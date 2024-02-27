@@ -1,0 +1,1 @@
+web: ./bin/trustless-rpc start --chain-id korellia-2
