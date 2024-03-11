@@ -1,14 +1,17 @@
 package server
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/gin-gonic/gin"
+	"go.eigsys.de/gin-cachecontrol/v2"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 var (
@@ -37,6 +40,19 @@ func StartApiServer(chainId, restEndpoint, storageRest string, port string) *Api
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
+
+	r.LoadHTMLGlob("templates/*")
+
+	// Index route
+	r.GET("/", func(c *gin.Context) {
+		c.HTML(200, "index.tmpl", gin.H{
+			"title": "Main website",
+		})
+	})
+
+	r.Use(cachecontrol.New(cachecontrol.Config{
+		MaxAge: cachecontrol.Duration(30 * 24 * time.Hour),
+	}))
 
 	r.GET("/celestia/GetAll", apiServer.GetAll)
 

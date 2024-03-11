@@ -7,6 +7,7 @@ require (
 	github.com/rs/zerolog v1.30.0
 	github.com/spf13/cobra v1.8.0
 	github.com/tendermint/tendermint v0.34.14
+	go.eigsys.de/gin-cachecontrol/v2 v2.1.0
 )
 
 require (
