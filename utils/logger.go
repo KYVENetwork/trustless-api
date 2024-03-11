@@ -11,7 +11,7 @@ func TrustlessRpcLogger(moduleName string) zerolog.Logger {
 	writer := io.MultiWriter(os.Stdout)
 	customConsoleWriter := zerolog.ConsoleWriter{Out: writer}
 	customConsoleWriter.FormatCaller = func(i interface{}) string {
-		return "\x1b[36m[Celestia<>KYVE]\x1b[0m"
+		return "\x1b[36m[RPC]\x1b[0m"
 	}
 
 	logger := zerolog.New(customConsoleWriter).With().Str("module", moduleName).Timestamp().Logger()

@@ -8,6 +8,7 @@ import (
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/tendermint/tendermint/libs/json"
 	"strconv"
+	"strings"
 )
 
 func GetBundleByKey(key int, restEndpoint string, poolId int64) (*types.FinalizedBundle, error) {
@@ -53,6 +54,62 @@ func GetBundleByKey(key int, restEndpoint string, poolId int64) (*types.Finalize
 					return nil, fmt.Errorf("failed to convert toKey: %w", err)
 				}
 				if toKey < key {
+					continue BundleFinder
+				} else {
+					return &bundle, nil
+				}
+			}
+		}
+	}
+}
+
+func GetBundleBySlot(slot int, restEndpoint string, poolId int64) (*types.FinalizedBundle, error) {
+	// TODO: Calculate start_slot or define in registry to exit before searching in all bundles
+	if slot < 4460000 {
+		return nil, fmt.Errorf("requested slot is smaller than KYVE pool start slot")
+	}
+
+	paginationKey := ""
+	for {
+		finalizedBundles, nextKey, err := GetFinalizedBundlesPage(restEndpoint, poolId, utils.BundlesPageLimit, paginationKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get finalized bundles page: %w", err)
+		}
+
+		lastBundleSummary := finalizedBundles[len(finalizedBundles)-1].BundleSummary
+
+		lastSlots := strings.Split(lastBundleSummary, "-")
+		if len(lastSlots) != 2 {
+			return nil, fmt.Errorf("failed to retrieve slot number from bundle summary")
+		}
+
+		lastToSlot, err := strconv.Atoi(lastSlots[1])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert slot number")
+		}
+
+		if lastToSlot < slot {
+			// If last found slot is smaller than requested slot, continue or exit if not validated yet
+			if nextKey == "" {
+				return nil, fmt.Errorf("could not find requested height")
+			}
+			paginationKey = nextKey
+			continue
+		} else {
+			// If last found key is greater than or equal to requested key, return bundle containing requested key
+		BundleFinder:
+			for _, bundle := range finalizedBundles {
+				toSlots := strings.Split(bundle.BundleSummary, "-")
+				if len(lastSlots) != 2 {
+					return nil, fmt.Errorf("failed to retrieve slot number from bundle summary")
+				}
+
+				toSlot, err := strconv.Atoi(toSlots[1])
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert slot number")
+				}
+
+				if toSlot < slot {
 					continue BundleFinder
 				} else {
 					return &bundle, nil

@@ -1,12 +1,12 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/tendermint/tendermint/libs/json"
 	"net/http"
 	"strconv"
 )
@@ -132,11 +132,12 @@ func (apiServer *ApiServer) GetAll(c *gin.Context) {
 }
 
 func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
-	slotStr := c.Query("slot")
-	chainId := c.Query("chain_id")
+	heightStr := c.Query("block_height")
+	slotStr := c.Query("slot_number")
+	chainId := c.Query("l2")
 
 	// TODO: Replace with Source-Registry integration
-	KorelliaPoolMap["sepolia"] = 78
+	KorelliaPoolMap["arbitrum"] = 86
 
 	var poolId int64
 
@@ -151,49 +152,109 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 
 	if poolId == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "chain_id is not supported yet; please contact the KYVE team",
+			"error":              "l2 is not supported yet; please contact the KYVE team",
+			"currentlySupported": "['arbitrum']",
 		})
 		return
 	}
 
-	slot, err := strconv.Atoi(slotStr)
-	if err != nil {
+	if heightStr != "" && slotStr != "" {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"error": "it's not allowed to specify block_height and slot_number",
 		})
 		return
 	}
 
-	bundle := getDecompressedBundleByKey(c, slot, apiServer.restEndpoint, apiServer.storageRest, poolId)
-	if bundle == nil {
-		return
-	}
+	if heightStr != "" {
+		var bundle *types.Bundle
 
-	for _, dataItem := range *bundle {
-		itemSlot, err := strconv.Atoi(dataItem.Key)
+		height, err := strconv.Atoi(heightStr)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("failed to parse block height from key: %v", err.Error()),
+				"error": err.Error(),
 			})
 			return
 		}
 
-		// skip blocks until we reach start height
-		if itemSlot < slot {
-			continue
-		} else if itemSlot == slot {
-			c.JSON(http.StatusOK, dataItem.Value)
+		bundle = getDecompressedBundleByHeight(c, height, apiServer.restEndpoint, apiServer.storageRest, poolId)
+		if bundle == nil {
 			return
 		}
+
+		for _, dataItem := range *bundle {
+			itemHeight, err := strconv.Atoi(dataItem.Key)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": fmt.Sprintf("failed to parse block height from key: %v", err.Error()),
+				})
+				return
+			}
+
+			// skip blocks until we reach start height
+			if itemHeight < height {
+				continue
+			} else if itemHeight == height {
+				c.JSON(http.StatusOK, dataItem.Value)
+				return
+			}
+		}
+	} else if slotStr != "" {
+		var bundle *types.Bundle
+
+		slot, err := strconv.Atoi(slotStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		bundle = getDecompressedBundleBySlot(c, slot, apiServer.restEndpoint, apiServer.storageRest, poolId)
+		if bundle == nil {
+			return
+		}
+
+		for _, dataItem := range *bundle {
+			// Parse JSON into RawMessage
+			var rawMsg json.RawMessage
+			err := json.Unmarshal(dataItem.Value, &rawMsg)
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
+
+			// Create a struct to unmarshal into
+			var blobData types.BlobValue
+
+			// Unmarshal the RawMessage into the struct
+			err = json.Unmarshal(rawMsg, &blobData)
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
+
+			// skip blocks until we reach start height
+			if blobData.SlotNumber < slot {
+				continue
+			} else if blobData.SlotNumber == slot {
+				c.JSON(http.StatusOK, blobData)
+				return
+			}
+		}
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("required to specify block_height or slot_number"),
+		})
 	}
+
 	c.JSON(http.StatusBadRequest, gin.H{
 		"error": fmt.Sprintf("failed to find data item in bundle"),
 	})
 	return
 }
 
-func getDecompressedBundleByKey(c *gin.Context, key int, restEndpoint string, storageRest string, poolId int64) *types.Bundle {
-	compressedBundle, err := bundles.GetBundleByKey(key, restEndpoint, poolId)
+func getDecompressedBundleByHeight(c *gin.Context, height int, restEndpoint string, storageRest string, poolId int64) *types.Bundle {
+	compressedBundle, err := bundles.GetBundleByKey(height, restEndpoint, poolId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -215,6 +276,37 @@ func getDecompressedBundleByKey(c *gin.Context, key int, restEndpoint string, st
 	if err := json.Unmarshal(decompressedBundle, &bundle); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": fmt.Sprintf("failed to unmarshal bundle data: %v", err.Error()),
+		})
+		return nil
+	}
+
+	return &bundle
+
+}
+
+func getDecompressedBundleBySlot(c *gin.Context, slot int, restEndpoint string, storageRest string, poolId int64) *types.Bundle {
+	compressedBundle, err := bundles.GetBundleBySlot(slot, restEndpoint, poolId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return nil
+	}
+
+	decompressedBundle, err := bundles.GetDataFromFinalizedBundle(*compressedBundle, storageRest)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("failed to decompress bundle: %v", err.Error()),
+		})
+		return nil
+	}
+
+	// parse bundle
+	var bundle types.Bundle
+
+	if err := json.Unmarshal(decompressedBundle, &bundle); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("failed to unmarshal bundle dataaa: %v", err.Error()),
 		})
 		return nil
 	}

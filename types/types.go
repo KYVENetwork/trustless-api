@@ -25,6 +25,11 @@ type PoolResponse = struct {
 	} `json:"pool"`
 }
 
+type BlobValue struct {
+	SlotNumber int               `json:"slot"`
+	Blobs      []json.RawMessage `json:"blobs"`
+}
+
 type DataItem struct {
 	Key   string          `json:"key"`
 	Value json.RawMessage `json:"value"`
@@ -44,6 +49,7 @@ type FinalizedBundle struct {
 	FromKey           string `json:"from_key,omitempty"`
 	ToKey             string `json:"to_key,omitempty"`
 	DataHash          string `json:"data_hash,omitempty"`
+	BundleSummary     string `json:"bundle_summary,omitempty"`
 }
 
 type FinalizedBundlesResponse = struct {
