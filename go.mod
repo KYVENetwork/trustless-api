@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/gin-gonic/gin v1.9.1
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/rs/zerolog v1.30.0
 	github.com/spf13/cobra v1.8.0
 	github.com/tendermint/tendermint v0.34.14

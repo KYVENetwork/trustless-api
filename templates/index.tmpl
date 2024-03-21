@@ -5,36 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KYVE Data Services</title>
     <style>
+        @font-face {
+                    font-family: 'Open Sans';
+                    src: url('path_to_your_font/OpenSans-Regular.ttf') format('truetype');
+                    /* Add additional font styles if needed */
+                }
+
         body {
-            font-family: 'Times New Roman', serif;
+            font-family: 'Open Sans', sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
             text-align: center;
-            padding-top: 50px;
         }
 
         h1 {
-            font-size: 2.5rem;
+            font-size: 3rem;
             margin-bottom: 20px;
+            color: #333;
+        }
+
+        h3 {
+            font-size: 1.8rem;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #444;
+        }
+
+        h5 {
+            font-size: 1.2rem;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #555;
         }
 
         a {
             display: block;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             text-decoration: none;
             color: #007bff;
+            transition: color 0.3s;
         }
 
         a:hover {
-            text-decoration: underline;
+            color: #0056b3;
         }
     </style>
 </head>
 <body>
-    <h1>KYVE Data Services</h1>
-    <p>Supported queries:</p>
-    <a href="/beacon/blob_sidecars?l2=arbitrum&block_height=_">/beacon/blob_sidecars?l2=arbitrum&block_height=_</a>
-    <a href="/beacon/blob_sidecars?l2=arbitrum&slot_number=_">/beacon/blob_sidecars?l2=arbitrum&slot_number=_</a>
+    <div class="container">
+        <h1>KYVE Data Services</h1>
+        <div class="query-section">
+            <h3>Supported queries:</h3>
+            <div class="query-group">
+                <h5>Ethereum Blobs</h5>
+                <a href="/beacon/blob_sidecars?block_height=_">/beacon/blob_sidecars?block_height=_</a>
+                <a href="/beacon/blob_sidecars?slot_number=_">/beacon/blob_sidecars?slot_number=_</a>
+            </div>
+            <div class="query-group">
+                <h5>Celestia Blobs</h5>
+                <a href="/celestia/GetSharesByNamespace?height=_&namespace=_">/celestia/GetSharesByNamespace?height=_&namespace=_</a>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

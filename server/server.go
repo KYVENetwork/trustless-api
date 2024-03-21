@@ -41,21 +41,18 @@ func StartApiServer(chainId, restEndpoint, storageRest string, port string) *Api
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
+	// Define index route
 	r.LoadHTMLGlob("templates/*")
-
-	// Index route
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(200, "index.tmpl", gin.H{
-			"title": "Main website",
-		})
+		c.HTML(200, "index.tmpl", gin.H{})
 	})
 
+	// Enable caching
 	r.Use(cachecontrol.New(cachecontrol.Config{
 		MaxAge: cachecontrol.Duration(30 * 24 * time.Hour),
 	}))
 
-	r.GET("/celestia/GetAll", apiServer.GetAll)
-
+	r.GET("/celestia/GetSharesByNamespace", apiServer.GetSharesByNamespace)
 	r.GET("/beacon/blob_sidecars", apiServer.BlobSidecars)
 
 	if err := r.Run(fmt.Sprintf(":%v", port)); err != nil {
@@ -65,29 +62,51 @@ func StartApiServer(chainId, restEndpoint, storageRest string, port string) *Api
 	return apiServer
 }
 
-func (apiServer *ApiServer) GetAll(c *gin.Context) {
+func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
 	heightStr := c.Query("height")
 	namespace := c.Query("namespace")
 
 	// TODO: Replace with Source-Registry integration
-	KorelliaPoolMap["AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0="] = 73
+	korelliaPoolMap := map[string]int64{
+		"AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0=": 93,
+		"AAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAg=": 93,
+		"AAAAAAAAAAAAAAAAAAAAAAAAAAAABYTLU4hLOUU=": 93,
+		"AAAAAAAAAAAAAAAAAAAAAAAAAAAADBuw7+PjGs8=": 93,
+	}
 
 	var poolId int64
 
 	switch apiServer.chainId {
 	case utils.ChainIdMainnet:
-		poolId = MainnetPoolMap[namespace]
+		id, exists := MainnetPoolMap[namespace]
+		if exists {
+			poolId = id
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "namespace is not supported yet; please contact the KYVE team",
+			})
+			return
+		}
 	case utils.ChainIdKaon:
-		poolId = KaonPoolMap[namespace]
+		id, exists := KaonPoolMap[namespace]
+		if exists {
+			poolId = id
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "namespace is not supported yet; please contact the KYVE team",
+			})
+			return
+		}
 	case utils.ChainIdKorellia:
-		poolId = KorelliaPoolMap[namespace]
-	}
-
-	if poolId == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "namespace is not supported yet; please contact the KYVE team",
-		})
-		return
+		id, exists := korelliaPoolMap[namespace]
+		if exists {
+			poolId = id
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "namespace is not supported yet; please contact the KYVE team",
+			})
+			return
+		}
 	}
 
 	height, err := strconv.Atoi(heightStr)
@@ -137,8 +156,23 @@ func (apiServer *ApiServer) GetAll(c *gin.Context) {
 		if itemHeight < height {
 			continue
 		} else if itemHeight == height {
-			c.JSON(http.StatusOK, dataItem.Value)
-			return
+			var shares types.Shares
+
+			if err := json.Unmarshal(dataItem.Value, &shares); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": fmt.Sprintf("failed to unmarshal value for key %v: %v", itemHeight, err.Error()),
+				})
+				return
+			}
+
+			for _, share := range shares.SharesByNamespace {
+				for key, value := range share {
+					if key == namespace {
+						c.JSON(http.StatusOK, value)
+						return
+					}
+				}
+			}
 		}
 	}
 	c.JSON(http.StatusBadRequest, gin.H{
@@ -153,23 +187,27 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	chainId := c.Query("l2")
 
 	// TODO: Replace with Source-Registry integration
-	KorelliaPoolMap["arbitrum"] = 86
+	KorelliaPoolMap["blobs"] = 95
+
+	// For backwards compatibility; will be removed soon
+	if chainId == "arbitrum" {
+		KorelliaPoolMap["blobs"] = 86
+	}
 
 	var poolId int64
 
 	switch apiServer.chainId {
 	case utils.ChainIdMainnet:
-		poolId = MainnetPoolMap[chainId]
+		poolId = MainnetPoolMap["blobs"]
 	case utils.ChainIdKaon:
-		poolId = KaonPoolMap[chainId]
+		poolId = KaonPoolMap["blobs"]
 	case utils.ChainIdKorellia:
-		poolId = KorelliaPoolMap[chainId]
+		poolId = KorelliaPoolMap["blobs"]
 	}
 
 	if poolId == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":              "l2 is not supported yet; please contact the KYVE team",
-			"currentlySupported": "['arbitrum']",
+			"error": "query is not supported yet; please contact the KYVE team",
 		})
 		return
 	}
@@ -192,7 +230,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			return
 		}
 
-		bundle = getDecompressedBundleByHeight(c, height, apiServer.restEndpoint, apiServer.storageRest, poolId)
+		bundle = bundles.GetDecompressedBundleByHeight(c, height, apiServer.restEndpoint, apiServer.storageRest, poolId)
 		if bundle == nil {
 			return
 		}
@@ -225,7 +263,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			return
 		}
 
-		bundle = getDecompressedBundleBySlot(c, slot, apiServer.restEndpoint, apiServer.storageRest, poolId)
+		bundle = bundles.GetDecompressedBundleBySlot(c, slot, apiServer.restEndpoint, apiServer.storageRest, poolId)
 		if bundle == nil {
 			return
 		}
@@ -267,66 +305,4 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 		"error": fmt.Sprintf("failed to find data item in bundle"),
 	})
 	return
-}
-
-func getDecompressedBundleByHeight(c *gin.Context, height int, restEndpoint string, storageRest string, poolId int64) *types.Bundle {
-	compressedBundle, err := bundles.GetBundleByKey(height, restEndpoint, poolId)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return nil
-	}
-
-	decompressedBundle, err := bundles.GetDataFromFinalizedBundle(*compressedBundle, storageRest)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("failed to decompress bundle: %v", err.Error()),
-		})
-		return nil
-	}
-
-	// parse bundle
-	var bundle types.Bundle
-
-	if err := json.Unmarshal(decompressedBundle, &bundle); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("failed to unmarshal bundle data: %v", err.Error()),
-		})
-		return nil
-	}
-
-	return &bundle
-
-}
-
-func getDecompressedBundleBySlot(c *gin.Context, slot int, restEndpoint string, storageRest string, poolId int64) *types.Bundle {
-	compressedBundle, err := bundles.GetBundleBySlot(slot, restEndpoint, poolId)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return nil
-	}
-
-	decompressedBundle, err := bundles.GetDataFromFinalizedBundle(*compressedBundle, storageRest)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("failed to decompress bundle: %v", err.Error()),
-		})
-		return nil
-	}
-
-	// parse bundle
-	var bundle types.Bundle
-
-	if err := json.Unmarshal(decompressedBundle, &bundle); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("failed to unmarshal bundle dataaa: %v", err.Error()),
-		})
-		return nil
-	}
-
-	return &bundle
-
 }
