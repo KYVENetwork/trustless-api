@@ -184,9 +184,15 @@ func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
 func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	heightStr := c.Query("block_height")
 	slotStr := c.Query("slot_number")
+	chainId := c.Query("l2")
 
 	// TODO: Replace with Source-Registry integration
 	KorelliaPoolMap["blobs"] = 95
+
+	// For backwards compatibility; will be removed soon
+	if chainId == "arbitrum" {
+		KorelliaPoolMap["blobs"] = 86
+	}
 
 	var poolId int64
 
