@@ -35,6 +35,10 @@ type DataItem struct {
 	Value json.RawMessage `json:"value"`
 }
 
+type Shares struct {
+	SharesByNamespace []map[string]interface{} `json:"sharesByNamespace"`
+}
+
 type Bundle = []DataItem
 
 type Pagination struct {

@@ -12,6 +12,7 @@ var (
 
 var (
 	chainId      string
+	dbPath       string
 	ecosystem    string
 	port         string
 	restEndpoint string
