@@ -263,7 +263,6 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			if itemHeight < height {
 				continue
 			} else if itemHeight == height {
-
 				hashes := merkle.GetBundleHashes(bundle)
 				response := types.BlobSidecarsResponse{DataItem: dataItem, MerkleLeafes: utils.BytesToHex(&hashes)}
 				if compact {

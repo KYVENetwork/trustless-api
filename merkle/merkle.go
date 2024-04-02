@@ -156,7 +156,7 @@ func IsBundleValid(bundleId int64, poolId int64, restEndpoint string, storageRes
 		logger.Fatal().Str("expected", summary.MerkleRoot).Str("got", hexHash).Msg("bundle is not valid: bundle summary hash is not equal to calculated hash")
 		return false
 	}
-	logger.Info().Msg("Bundle valid!")
+	logger.Info().Str("hash", summary.MerkleRoot).Msg("Bundle valid!")
 
 	return false
 }

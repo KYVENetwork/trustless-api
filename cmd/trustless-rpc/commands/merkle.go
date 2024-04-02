@@ -26,7 +26,7 @@ func init() {
 
 var merkleCmd = &cobra.Command{
 	Use:   "merkle",
-	Short: "Start the trustless RPC",
+	Short: "Construct and verify the merkle tree of the given bundle",
 	Run: func(cmd *cobra.Command, args []string) {
 		endpoint := utils.GetChainRest(chainId, restEndpoint)
 		storageRest = strings.TrimSuffix(storageRest, "/")
