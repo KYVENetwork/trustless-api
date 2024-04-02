@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -150,4 +151,12 @@ func CalculateSHA256Hash(obj interface{}) [32]byte {
 	sha256Hash := sha256.Sum256(serializedObj)
 
 	return sha256Hash
+}
+
+func BytesToHex(bytes *[][32]byte) []string {
+	var hexArray []string
+	for _, b := range *bytes {
+		hexArray = append(hexArray, hex.EncodeToString(b[:]))
+	}
+	return hexArray
 }

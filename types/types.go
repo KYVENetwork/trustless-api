@@ -112,3 +112,14 @@ type BundleSummary struct {
 	FromSlot   int64  `json:"from_slot,omitempty"`
 	MerkleRoot string `json:"merkle_root"`
 }
+
+type BlobSidecarsResponse struct {
+	DataItem      DataItem     `json:"data_item"`
+	MerkleLeafes  []string     `json:"merkle_leafes,omitempty"`
+	MerkleCompact []MerkleNode `json:"compact_hashes,omitempty"`
+}
+
+type MerkleNode struct {
+	Left bool   `json:"left"`
+	Hash string `json:"hash"`
+}

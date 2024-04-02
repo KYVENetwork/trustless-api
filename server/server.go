@@ -4,14 +4,16 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
-	"github.com/KYVENetwork/trustless-rpc/types"
-	"github.com/KYVENetwork/trustless-rpc/utils"
-	"github.com/gin-gonic/gin"
-	"go.eigsys.de/gin-cachecontrol/v2"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
+	"github.com/KYVENetwork/trustless-rpc/merkle"
+	"github.com/KYVENetwork/trustless-rpc/types"
+	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/gin-gonic/gin"
+	cachecontrol "go.eigsys.de/gin-cachecontrol/v2"
 )
 
 var (
@@ -185,9 +187,11 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	heightStr := c.Query("block_height")
 	slotStr := c.Query("slot_number")
 	chainId := c.Query("l2")
+	compactStr := c.Query("compact")
+	compact := false
 
 	// TODO: Replace with Source-Registry integration
-	KorelliaPoolMap["blobs"] = 95
+	KorelliaPoolMap["blobs"] = 97
 
 	// For backwards compatibility; will be removed soon
 	if chainId == "arbitrum" {
@@ -219,6 +223,17 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 		return
 	}
 
+	if compactStr != "" {
+		compactParsed, err := strconv.ParseBool(compactStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		compact = compactParsed
+	}
+
 	if heightStr != "" {
 		var bundle *types.Bundle
 
@@ -248,7 +263,13 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			if itemHeight < height {
 				continue
 			} else if itemHeight == height {
-				c.JSON(http.StatusOK, dataItem.Value)
+
+				hashes := merkle.GetBundleHashes(bundle)
+				response := types.BlobSidecarsResponse{DataItem: dataItem, MerkleLeafes: utils.BytesToHex(&hashes)}
+				if compact {
+					response = types.BlobSidecarsResponse{DataItem: dataItem, MerkleCompact: merkle.GetHashesCompact(hashes, dataItem)}
+				}
+				c.JSON(http.StatusOK, response)
 				return
 			}
 		}
@@ -291,7 +312,12 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			if blobData.SlotNumber < slot {
 				continue
 			} else if blobData.SlotNumber == slot {
-				c.JSON(http.StatusOK, blobData)
+				hashes := merkle.GetBundleHashes(bundle)
+				response := types.BlobSidecarsResponse{DataItem: dataItem, MerkleLeafes: utils.BytesToHex(&hashes)}
+				if compact {
+					response = types.BlobSidecarsResponse{DataItem: dataItem, MerkleCompact: merkle.GetHashesCompact(hashes, dataItem)}
+				}
+				c.JSON(http.StatusOK, response)
 				return
 			}
 		}
