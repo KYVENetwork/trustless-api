@@ -11,6 +11,10 @@ import (
 	"github.com/KYVENetwork/trustless-rpc/utils"
 )
 
+var (
+	logger = utils.TrustlessRpcLogger("merkle")
+)
+
 func GetMerkleRoot(hashes [][32]byte) [32]byte {
 	if len(hashes) == 1 {
 		return hashes[0]
@@ -44,7 +48,7 @@ func IsBundleValid(bundleId int64, poolId int64, restEndpoint string, storageRes
 	decompressedBundle, err :=
 		bundles.GetDataFromFinalizedBundle(*compressedBundle, storageRest)
 	if err != nil {
-		fmt.Printf("failed to decompress bundle: %v\n", err.Error())
+		logger.Fatal().Msg(fmt.Sprintf("failed to decompress bundle: %v\n", err.Error()))
 		return false
 	}
 
@@ -52,27 +56,28 @@ func IsBundleValid(bundleId int64, poolId int64, restEndpoint string, storageRes
 	var bundle types.Bundle
 
 	if err := json.Unmarshal(decompressedBundle, &bundle); err != nil {
-		fmt.Printf("failed to unmarshal bundle data: %v\n", err.Error())
+		logger.Fatal().Msg(fmt.Sprintf("failed to unmarshal bundle data: %v\n", err.Error()))
 		return false
 	}
-
 	var hashes [][32]byte
 
-	for dataitem := range bundle {
+	for _, dataitem := range bundle {
 		hashes = append(hashes, utils.CalculateSHA256Hash(dataitem))
 	}
 
 	var summary types.BundleSummary
 
 	if err := json.Unmarshal([]byte(compressedBundle.BundleSummary), &summary); err != nil {
-		fmt.Println("Was not able to parse summary!")
+		logger.Fatal().Msg(fmt.Sprintf("failed to unmarshal bundle summary: %v\n", err.Error()))
 		return false
 	}
 
 	rootHash := GetMerkleRoot(hashes)
 	hexHash := hex.EncodeToString(rootHash[:])
-	fmt.Printf("Calculated hash: \t%v\n", hexHash)
-	fmt.Printf("Summary hash: \t\t%v\n", summary.MerkleRoot)
-
+	if hexHash != summary.MerkleRoot {
+		logger.Fatal().Str("expected", summary.MerkleRoot).Str("got", hexHash).Msg("bundle is not valid: bundle summary hash is not equal to calculated hash")
+		return false
+	}
+	logger.Info().Msg("Bundle valid!")
 	return false
 }
