@@ -2,11 +2,12 @@ package commands
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/KYVENetwork/trustless-rpc/server"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/spf13/cobra"
-	"os"
-	"strings"
 )
 
 func init() {

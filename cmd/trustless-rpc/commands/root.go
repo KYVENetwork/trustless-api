@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/spf13/cobra"
 )
@@ -11,10 +12,12 @@ var (
 )
 
 var (
+	bundleId     int64
 	chainId      string
 	dbPath       string
 	ecosystem    string
 	port         string
+	poolId       int64
 	restEndpoint string
 	storageRest  string
 )

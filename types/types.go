@@ -107,3 +107,8 @@ type Entry struct {
 type SourceRegistry struct {
 	Entries map[string]Entry `yaml:",inline"`
 }
+
+type BundleSummary struct {
+	FromSlot   int64  `json:"from_slot,omitempty"`
+	MerkleRoot string `json:"merkle_root"`
+}

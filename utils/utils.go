@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -136,4 +137,17 @@ func GetChainRest(chainId, chainRest string) string {
 	}
 
 	return ""
+}
+
+func CalculateSHA256Hash(obj interface{}) [32]byte {
+	// Serialize the object to JSON with keys sorted ascending by default
+	serializedObj, err := json.Marshal(obj)
+	if err != nil {
+		panic(err)
+	}
+
+	// Calculate the SHA -256 hash
+	sha256Hash := sha256.Sum256(serializedObj)
+
+	return sha256Hash
 }
