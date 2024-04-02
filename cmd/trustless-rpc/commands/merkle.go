@@ -28,7 +28,7 @@ var merkleCmd = &cobra.Command{
 	Use:   "merkle",
 	Short: "Start the trustless RPC",
 	Run: func(cmd *cobra.Command, args []string) {
-		endpoint := utils.GetChainRest("korellia-2", restEndpoint)
+		endpoint := utils.GetChainRest(chainId, restEndpoint)
 		storageRest = strings.TrimSuffix(storageRest, "/")
 		merkle.IsBundleValid(bundleId, poolId, endpoint, storageRest)
 	},
