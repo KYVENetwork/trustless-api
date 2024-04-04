@@ -115,7 +115,7 @@ type BundleSummary struct {
 
 type BlobSidecarsResponse struct {
 	DataItem      DataItem     `json:"data_item"`
-	MerkleLeafes  []string     `json:"merkle_leafes,omitempty"`
+	MerkleLeafs   []string     `json:"merkle_leafs,omitempty"`
 	MerkleCompact []MerkleNode `json:"compact_hashes,omitempty"`
 }
 

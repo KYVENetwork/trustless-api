@@ -192,6 +192,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 
 	// TODO: Replace with Source-Registry integration
 	KorelliaPoolMap["blobs"] = 97
+	KaonPoolMap["blobs"] = 20
 
 	// For backwards compatibility; will be removed soon
 	if chainId == "arbitrum" {
@@ -264,7 +265,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 				continue
 			} else if itemHeight == height {
 				hashes := merkle.GetBundleHashes(bundle)
-				response := types.BlobSidecarsResponse{DataItem: dataItem, MerkleLeafes: utils.BytesToHex(&hashes)}
+				response := types.BlobSidecarsResponse{DataItem: dataItem, MerkleLeafs: utils.BytesToHex(&hashes)}
 				if compact {
 					response = types.BlobSidecarsResponse{DataItem: dataItem, MerkleCompact: merkle.GetHashesCompact(hashes, dataItem)}
 				}
@@ -312,7 +313,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 				continue
 			} else if blobData.SlotNumber == slot {
 				hashes := merkle.GetBundleHashes(bundle)
-				response := types.BlobSidecarsResponse{DataItem: dataItem, MerkleLeafes: utils.BytesToHex(&hashes)}
+				response := types.BlobSidecarsResponse{DataItem: dataItem, MerkleLeafs: utils.BytesToHex(&hashes)}
 				if compact {
 					response = types.BlobSidecarsResponse{DataItem: dataItem, MerkleCompact: merkle.GetHashesCompact(hashes, dataItem)}
 				}
