@@ -116,8 +116,8 @@ type BundleSummary struct {
 type TrustlessDataItem struct {
 	Value    DataItem     `json:"value"`
 	Proof    []MerkleNode `json:"proof"`
-	PoolId   int64
-	BundleId int64
+	PoolId   int64        `json:"poolId"`
+	BundleId int64        `json:"bundleId"`
 }
 
 type MerkleNode struct {

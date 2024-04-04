@@ -1,25 +1,44 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 )
 
-type KeyAsPrimaryInterface struct{}
+type KeyAsPrimaryInterface struct {
+}
 
 func (key *KeyAsPrimaryInterface) GetUniqueKey(dataitem types.TrustlessDataItem) string {
 	return fmt.Sprintf(dataitem.Value.Key)
 }
 
-type SaveLocalFileInterface struct{}
+type SaveLocalFileInterface struct {
+	DataDir string
+}
 
-func (fiel *SaveLocalFileInterface) Save(dataitem types.TrustlessDataItem) types.SavedFile {
-	return types.SavedFile{Type: utils.LocalFile, Path: "TODO"}
+func (saveFile *SaveLocalFileInterface) Save(dataitem types.TrustlessDataItem) types.SavedFile {
+
+	json, err := json.Marshal(dataitem)
+
+	if err != nil {
+		fmt.Println("Something big went wrong....")
+	}
+
+	filepath := fmt.Sprintf("%v/%v.json", saveFile.DataDir, dataitem.Value.Key)
+
+	file, err := os.Create(filepath)
+	if err != nil {
+		fmt.Println("Something big went wrong....")
+	}
+	file.Write(json)
+
+	return types.SavedFile{Type: utils.LocalFile, Path: filepath}
 }
 
 var (
-	KeyAsPrimary  = KeyAsPrimaryInterface{}
-	SaveLocalFile = SaveLocalFileInterface{}
+	KeyAsPrimary = KeyAsPrimaryInterface{}
 )

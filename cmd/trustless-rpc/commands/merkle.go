@@ -33,7 +33,8 @@ var merkleCmd = &cobra.Command{
 		endpoint := utils.GetChainRest(chainId, restEndpoint)
 		storageRest = strings.TrimSuffix(storageRest, "/")
 		// merkle.IsBundleValid(bundleId, poolId, endpoint, storageRest)
-		sqliteAdapter, err := adapters.StartSQLite("test.db", &db.SaveLocalFile, &db.KeyAsPrimary)
+		dataDir := "./bundles"
+		sqliteAdapter, err := adapters.StartSQLite(dataDir, &db.SaveLocalFileInterface{DataDir: dataDir}, &db.KeyAsPrimary)
 		if err != nil {
 			logger.Fatal().Err(err)
 			return

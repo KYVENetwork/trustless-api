@@ -56,7 +56,7 @@ func (crawler *Crawler) Start() {
 	lastBundle := poolInfo.Pool.Data.TotalBundles
 
 	for i := lastBundle - 1; i >= 0; i-- {
-		logger.Info().Msg(fmt.Sprintf("Inserting DataItems: %v/%v", lastBundle-i, lastBundle))
+		logger.Info().Msg(fmt.Sprintf("Inserting data items: %v/%v", lastBundle-i, lastBundle))
 		crawler.insertBundleDataItems(i)
 	}
 }
