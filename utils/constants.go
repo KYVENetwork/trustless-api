@@ -23,3 +23,8 @@ const (
 	DefaultChainId     = ChainIdMainnet
 	DefaultRegistryURL = "https://raw.githubusercontent.com/KYVENetwork/source-registry/main/.github/registry.yml"
 )
+
+const (
+	LocalFile = iota
+	AWSLink   = iota
+)

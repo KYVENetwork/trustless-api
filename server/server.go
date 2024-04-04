@@ -187,8 +187,6 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	heightStr := c.Query("block_height")
 	slotStr := c.Query("slot_number")
 	chainId := c.Query("l2")
-	compactStr := c.Query("compact")
-	compact := false
 
 	// TODO: Replace with Source-Registry integration
 	KorelliaPoolMap["blobs"] = 97
@@ -224,17 +222,6 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 		return
 	}
 
-	if compactStr != "" {
-		compactParsed, err := strconv.ParseBool(compactStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-		compact = compactParsed
-	}
-
 	if heightStr != "" {
 		var bundle *types.Bundle
 
@@ -265,10 +252,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 				continue
 			} else if itemHeight == height {
 				hashes := merkle.GetBundleHashes(bundle)
-				response := types.BlobSidecarsResponse{DataItem: dataItem, MerkleLeafs: utils.BytesToHex(&hashes)}
-				if compact {
-					response = types.BlobSidecarsResponse{DataItem: dataItem, MerkleCompact: merkle.GetHashesCompact(hashes, dataItem)}
-				}
+				response := types.TrustlessDataItem{Value: dataItem, Proof: merkle.GetHashesCompact(hashes, dataItem)}
 				c.JSON(http.StatusOK, response)
 				return
 			}
@@ -313,10 +297,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 				continue
 			} else if blobData.SlotNumber == slot {
 				hashes := merkle.GetBundleHashes(bundle)
-				response := types.BlobSidecarsResponse{DataItem: dataItem, MerkleLeafs: utils.BytesToHex(&hashes)}
-				if compact {
-					response = types.BlobSidecarsResponse{DataItem: dataItem, MerkleCompact: merkle.GetHashesCompact(hashes, dataItem)}
-				}
+				response := types.TrustlessDataItem{Value: dataItem, Proof: merkle.GetHashesCompact(hashes, dataItem)}
 				c.JSON(http.StatusOK, response)
 				return
 			}

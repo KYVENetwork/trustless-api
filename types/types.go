@@ -113,13 +113,26 @@ type BundleSummary struct {
 	MerkleRoot string `json:"merkle_root"`
 }
 
-type BlobSidecarsResponse struct {
-	DataItem      DataItem     `json:"data_item"`
-	MerkleLeafs   []string     `json:"merkle_leafs,omitempty"`
-	MerkleCompact []MerkleNode `json:"compact_hashes,omitempty"`
+type TrustlessDataItem struct {
+	Value    DataItem     `json:"value"`
+	Proof    []MerkleNode `json:"proof"`
+	PoolId   int64
+	BundleId int64
 }
 
 type MerkleNode struct {
 	Left bool   `json:"left"`
 	Hash string `json:"hash"`
+}
+
+type BlobDocument struct {
+	BundleId int64
+	Key      int64
+	Slot     int64
+	File     string
+}
+
+type SavedFile struct {
+	Type int
+	Path string
 }

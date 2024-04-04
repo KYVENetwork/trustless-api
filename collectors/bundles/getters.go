@@ -3,9 +3,10 @@ package bundles
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func GetDecompressedBundleByHeight(c *gin.Context, height int, restEndpoint string, storageRest string, poolId int64) *types.Bundle {
@@ -68,4 +69,19 @@ func GetDecompressedBundleBySlot(c *gin.Context, slot int, restEndpoint string, 
 	}
 
 	return &bundle
+}
+
+func GetDecompressedBundle(finalizedBundle types.FinalizedBundle, storageRest string) (types.Bundle, error) {
+
+	decompressedBundle, err := GetDataFromFinalizedBundle(finalizedBundle, storageRest)
+	if err != nil {
+		return nil, err
+	}
+
+	var bundle types.Bundle
+	if err := json.Unmarshal(decompressedBundle, &bundle); err != nil {
+		return nil, err
+	}
+
+	return bundle, nil
 }

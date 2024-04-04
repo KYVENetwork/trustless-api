@@ -3,12 +3,13 @@ package bundles
 import (
 	"encoding/base64"
 	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/KYVENetwork/trustless-rpc/collectors/pool"
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/tendermint/tendermint/libs/json"
-	"strconv"
-	"strings"
 )
 
 func GetBundleByKey(key int, restEndpoint string, poolId int64) (*types.FinalizedBundle, error) {
