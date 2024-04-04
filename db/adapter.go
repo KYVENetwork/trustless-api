@@ -7,4 +7,5 @@ import (
 type Adapter interface {
 	Save(dataitem types.TrustlessDataItem) error
 	Get(dataitemKey string) error
+	Exists(bundle int64) bool
 }

@@ -77,3 +77,12 @@ func (adapter *SQLiteAdapter) Get(dataitemKey string) error {
 	}
 	return nil
 }
+
+func (adapter *SQLiteAdapter) Exists(bundleId int64) bool {
+	rows, err := adapter.db.Query("select * from dataitems where bundleId = ? LIMIT 1", bundleId)
+	if err != nil {
+		logger.Fatal().Err(err)
+	}
+	defer rows.Close()
+	return rows.Next()
+}

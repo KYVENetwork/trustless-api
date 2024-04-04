@@ -57,6 +57,10 @@ func (crawler *Crawler) Start() {
 
 	for i := lastBundle - 1; i >= 0; i-- {
 		logger.Info().Msg(fmt.Sprintf("Inserting data items: %v/%v", lastBundle-i, lastBundle))
+		if crawler.adapter.Exists(i) {
+			logger.Info().Int64("bundleId", i).Msg("Bundle already exists, skipping...")
+			continue
+		}
 		crawler.insertBundleDataItems(i)
 	}
 }
