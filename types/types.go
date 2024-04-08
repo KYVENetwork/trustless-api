@@ -25,6 +25,12 @@ type PoolResponse = struct {
 	} `json:"pool"`
 }
 
+type EthereumBlobsBundleSummary struct {
+	FromSlot   int    `json:"from_slot"`
+	MerkleRoot string `json:"merkle_root"`
+	ToSlot     int    `json:"to_slot"`
+}
+
 type BlobValue struct {
 	SlotNumber int               `json:"slot"`
 	Blobs      []json.RawMessage `json:"blobs"`
