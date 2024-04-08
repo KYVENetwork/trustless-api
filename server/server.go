@@ -187,7 +187,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	chainId := c.Query("l2")
 
 	// TODO: Replace with Source-Registry integration
-	KorelliaPoolMap["blobs"] = 95
+	KaonPoolMap["blobs"] = 21
 
 	// For backwards compatibility; will be removed soon
 	if chainId == "arbitrum" {
@@ -248,7 +248,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			if itemHeight < height {
 				continue
 			} else if itemHeight == height {
-				c.JSON(http.StatusOK, dataItem.Value)
+				c.JSON(http.StatusOK, dataItem)
 				return
 			}
 		}
