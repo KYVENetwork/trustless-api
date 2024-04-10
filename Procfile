@@ -1,1 +1,1 @@
-web: ./bin/trustless-rpc start --chain-id korellia-2
+web: ./bin/trustless-rpc start --chain-id kaon-1
