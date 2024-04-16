@@ -3,6 +3,7 @@ package adapters
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	"github.com/KYVENetwork/trustless-rpc/indexer"
 	"github.com/KYVENetwork/trustless-rpc/types"
@@ -20,12 +21,12 @@ type SQLiteAdapter struct {
 	indexer      indexer.Indexer
 }
 
-func StartSQLite(path string, saveDataItem types.SaveDataItem, indexer indexer.Indexer) (SQLiteAdapter, error) {
+func StartSQLite(saveDataItem types.SaveDataItem, indexer indexer.Indexer) SQLiteAdapter {
 
+	path := os.Getenv("DB")
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Open Folder")
-		return SQLiteAdapter{}, err
 	}
 
 	sqlStmt := `
@@ -34,7 +35,6 @@ func StartSQLite(path string, saveDataItem types.SaveDataItem, indexer indexer.I
 	_, err = db.Exec(sqlStmt)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Create Table")
-		return SQLiteAdapter{}, err
 	}
 
 	for key := 0; key < indexer.GetIndexCount(); key++ {
@@ -42,70 +42,79 @@ func StartSQLite(path string, saveDataItem types.SaveDataItem, indexer indexer.I
 		_, err = db.Exec(sqlStmt)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("Create Index")
-			return SQLiteAdapter{}, err
 		}
 	}
 
-	return SQLiteAdapter{db: db, saveDataItem: saveDataItem, indexer: indexer}, nil
+	return SQLiteAdapter{db: db, saveDataItem: saveDataItem, indexer: indexer}
 }
 
 func (adapter *SQLiteAdapter) Save(dataitem types.TrustlessDataItem) error {
-	file := adapter.saveDataItem.Save(dataitem)
+	file, err := adapter.saveDataItem.Save(dataitem)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Faild to save dataitem")
+		return err
+	}
 
 	tx, err := adapter.db.Begin()
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Faild to add index")
-		return nil
+		logger.Error().Err(err).Msg("Faild to create txn")
+		return err
 	}
 	// First insert the dataitem
 	result, err := tx.Exec("insert into dataitems(bundleId, poolId, filePath, fileType) values(?, ?, ?, ?)", dataitem.BundleId, dataitem.PoolId, file.Path, file.Type)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Faild to add index")
-		return nil
+		logger.Error().Err(err).Msg("Faild to add dataitem")
+		return err
 	}
 
 	dataitemId, err := result.LastInsertId()
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Faild to get DataItem ID")
-		return nil
+		logger.Error().Err(err).Msg("Faild to get DataItem ID")
+		return err
 	}
 
 	keys, err := adapter.indexer.GetDataItemIndicies(&dataitem)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Faild to get dataitem indicies")
-		return nil
+		logger.Error().Err(err).Msg("Faild to get dataitem indicies")
+		return err
 	}
 
 	for keyIndex, key := range keys {
 		_, err = tx.Exec(fmt.Sprintf("insert into index_%v(key, dataitem) values(?, ?)", keyIndex), key, dataitemId)
 		if err != nil {
-			logger.Fatal().Err(err).Msg("Faild to add index")
-			return nil
+			logger.Error().Err(err).Msg("Faild to add index")
+			return err
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Faild to commit txn")
-		return nil
+		logger.Error().Err(err).Msg("Faild to commit txn")
+		return err
 	}
 	return nil
 }
 
-func (adapter *SQLiteAdapter) Get(dataitemKey string, index int) error {
-	stmt, err := adapter.db.Prepare(fmt.Sprintf("select filePath, fileType from dataitems d, index_%v i where i.key = '?' AND i.dataitem = d.rowid", index))
+func (adapter *SQLiteAdapter) Get(dataitemKey string, index int) (types.TrustlessDataItem, error) {
+	stmt, err := adapter.db.Prepare(fmt.Sprintf("select filePath from dataitems d, index_%v i where i.key = ? AND i.dataitem = d.rowid", index))
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed ot find dataitem")
-		return err
+		logger.Error().Err(err).Msg("Failed ot find dataitem")
+		return types.TrustlessDataItem{}, err
 	}
 	defer stmt.Close()
 	var filePath string
-	var fileType int
-	err = stmt.QueryRow(dataitemKey).Scan(&filePath, &fileType)
+	err = stmt.QueryRow(dataitemKey).Scan(&filePath)
 	if err != nil {
-		logger.Fatal().Err(err)
+		logger.Info().Str("key", dataitemKey).Msg("DataItem not found!")
+		return types.TrustlessDataItem{}, err
 	}
-	return nil
+
+	dataitem, err := adapter.saveDataItem.Load(filePath)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to load dataitem")
+		return types.TrustlessDataItem{}, err
+	}
+	return dataitem, nil
 }
 
 func (adapter *SQLiteAdapter) Exists(bundleId int64) bool {

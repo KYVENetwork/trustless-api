@@ -6,6 +6,6 @@ import (
 
 type Adapter interface {
 	Save(dataitem types.TrustlessDataItem) error
-	Get(dataitemKey string, index int) error
+	Get(dataitemKey string, index int) (types.TrustlessDataItem, error)
 	Exists(bundle int64) bool
 }

@@ -19,6 +19,8 @@ func init() {
 
 	startCmd.Flags().StringVar(&storageRest, "storage-rest", "", "storage endpoint for requesting bundle data")
 
+	startCmd.Flags().BoolVar(&noCache, "no-cache", false, "Query bundles directly on request, don't use any cache")
+
 	rootCmd.AddCommand(startCmd)
 }
 
@@ -37,6 +39,6 @@ var startCmd = &cobra.Command{
 			port = "4242"
 		}
 
-		server.StartApiServer(chainId, endpoint, storageRest, port)
+		server.StartApiServer(chainId, endpoint, storageRest, port, noCache)
 	},
 }

@@ -25,14 +25,14 @@ type Crawler struct {
 func (crawler *Crawler) insertBundleDataItems(bundleId int64) error {
 	compressedBundle, err := bundles.GetFinalizedBundle(crawler.restEndpoint, crawler.poolId, bundleId)
 	if err != nil {
-		logger.Fatal().Msg("Something went wrong when retrieving the bundle...")
+		logger.Error().Msg("Something went wrong when retrieving the bundle...")
 		return err
 	}
 
 	bundle, err := bundles.GetDecompressedBundle(*compressedBundle, crawler.storageRest)
 
 	if err != nil {
-		logger.Fatal().Msg("Something went wrong when retrieving the bundle...")
+		logger.Error().Msg("Something went wrong when retrieving the bundle...")
 		return err
 	}
 
@@ -50,7 +50,7 @@ func (crawler *Crawler) insertBundleDataItems(bundleId int64) error {
 func (crawler *Crawler) Start() {
 	poolInfo, err := pool.GetPoolInfo(crawler.restEndpoint, crawler.poolId)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to get latest bundle")
+		logger.Error().Err(err).Msg("Failed to get latest bundle")
 		return
 	}
 
@@ -68,6 +68,8 @@ func (crawler *Crawler) Start() {
 			i--
 		}
 	}
+
+	logger.Info().Int64("bundleId", lastBundle).Msg("Finished crawling to bundle.")
 }
 
 func Create(restEndpoint string, storageRest string, adapter db.Adapter, poolId int64) Crawler {

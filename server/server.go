@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
+	"github.com/KYVENetwork/trustless-rpc/db"
+	"github.com/KYVENetwork/trustless-rpc/db/adapters"
+	"github.com/KYVENetwork/trustless-rpc/indexer"
 	"github.com/KYVENetwork/trustless-rpc/merkle"
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
@@ -24,6 +27,8 @@ type ApiServer struct {
 	chainId      string
 	restEndpoint string
 	storageRest  string
+	noCache      bool
+	dbAdapter    db.Adapter
 }
 
 // TODO: Replace with Source-Registry integration
@@ -33,11 +38,19 @@ var (
 	KorelliaPoolMap = make(map[string]int64)
 )
 
-func StartApiServer(chainId, restEndpoint, storageRest string, port string) *ApiServer {
+func StartApiServer(chainId, restEndpoint, storageRest string, port string, noCache bool) *ApiServer {
+
+	sqliteAdapter := adapters.SQLiteAdapter{}
+	if !noCache {
+		sqliteAdapter = adapters.StartSQLite(&db.SaveLocalFileInterface{}, &indexer.EthBlobIndexer)
+	}
+
 	apiServer := &ApiServer{
 		chainId:      chainId,
 		restEndpoint: restEndpoint,
 		storageRest:  storageRest,
+		dbAdapter:    &sqliteAdapter,
+		noCache:      noCache,
 	}
 
 	gin.SetMode(gin.ReleaseMode)
@@ -223,6 +236,17 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	}
 
 	if heightStr != "" {
+		if !apiServer.noCache {
+			dataitem, err := apiServer.dbAdapter.Get(heightStr, indexer.EthBlobIndexHeight)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+			c.JSON(http.StatusOK, dataitem)
+			return
+		}
 		var bundle *types.Bundle
 
 		height, err := strconv.Atoi(heightStr)
@@ -258,6 +282,17 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			}
 		}
 	} else if slotStr != "" {
+		if !apiServer.noCache {
+			dataitem, err := apiServer.dbAdapter.Get(slotStr, indexer.EthBlobIndexSlot)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+			c.JSON(http.StatusOK, dataitem)
+			return
+		}
 		var bundle *types.Bundle
 
 		slot, err := strconv.Atoi(slotStr)

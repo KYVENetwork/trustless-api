@@ -14,7 +14,6 @@ import (
 
 func init() {
 	crawlerCmd.Flags().StringVar(&chainId, "chain-id", utils.DefaultChainId, fmt.Sprintf("KYVE chain id [\"%s\",\"%s\", \"%s\"]", utils.ChainIdMainnet, utils.ChainIdKaon, utils.ChainIdKorellia))
-	crawlerCmd.Flags().StringVar(&dbPath, "db-path", "./database.db", "the path where the db will be located")
 
 	rootCmd.AddCommand(crawlerCmd)
 }
@@ -26,12 +25,7 @@ var crawlerCmd = &cobra.Command{
 		endpoint := utils.GetChainRest(chainId, restEndpoint)
 		storageRest = strings.TrimSuffix(storageRest, "/")
 
-		dataDir := "./bundles"
-		sqliteAdapter, err := adapters.StartSQLite(dbPath, &db.SaveLocalFileInterface{DataDir: dataDir}, &indexer.EthBlobIndexer)
-		if err != nil {
-			logger.Fatal().Err(err)
-			return
-		}
+		sqliteAdapter := adapters.StartSQLite(&db.SaveLocalFileInterface{}, &indexer.EthBlobIndexer)
 
 		crawler := crawler.Create(endpoint, storageRest, &sqliteAdapter, 21)
 		crawler.Start()
