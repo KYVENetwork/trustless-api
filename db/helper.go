@@ -9,13 +9,6 @@ import (
 	"github.com/KYVENetwork/trustless-rpc/utils"
 )
 
-type KeyAsPrimaryInterface struct {
-}
-
-func (key *KeyAsPrimaryInterface) GetUniqueKey(dataitem types.TrustlessDataItem) string {
-	return fmt.Sprintf(dataitem.Value.Key)
-}
-
 type SaveLocalFileInterface struct {
 	DataDir string
 }
@@ -38,7 +31,3 @@ func (saveFile *SaveLocalFileInterface) Save(dataitem types.TrustlessDataItem) t
 
 	return types.SavedFile{Type: utils.LocalFile, Path: filepath}
 }
-
-var (
-	KeyAsPrimary = KeyAsPrimaryInterface{}
-)

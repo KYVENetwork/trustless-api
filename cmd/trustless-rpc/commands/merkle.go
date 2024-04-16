@@ -7,6 +7,7 @@ import (
 	"github.com/KYVENetwork/trustless-rpc/crawler"
 	"github.com/KYVENetwork/trustless-rpc/db"
 	"github.com/KYVENetwork/trustless-rpc/db/adapters"
+	"github.com/KYVENetwork/trustless-rpc/indexer"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/spf13/cobra"
 )
@@ -34,7 +35,7 @@ var merkleCmd = &cobra.Command{
 		storageRest = strings.TrimSuffix(storageRest, "/")
 		// merkle.IsBundleValid(bundleId, poolId, endpoint, storageRest)
 		dataDir := "./bundles"
-		sqliteAdapter, err := adapters.StartSQLite(dataDir, &db.SaveLocalFileInterface{DataDir: dataDir}, &db.KeyAsPrimary)
+		sqliteAdapter, err := adapters.StartSQLite(dataDir, &db.SaveLocalFileInterface{DataDir: dataDir}, &indexer.EthBlobIndexer)
 		if err != nil {
 			logger.Fatal().Err(err)
 			return

@@ -41,7 +41,6 @@ func (crawler *Crawler) insertBundleDataItems(bundleId int64) {
 	for _, dataitem := range bundle {
 		proof := merkle.GetHashesCompact(leafs, dataitem)
 		trustlessDataItem := types.TrustlessDataItem{Value: dataitem, Proof: proof, BundleId: bundleId, PoolId: crawler.poolId}
-		// TODO: save the trustless data item
 		crawler.adapter.Save(trustlessDataItem)
 	}
 }
@@ -55,8 +54,8 @@ func (crawler *Crawler) Start() {
 
 	lastBundle := poolInfo.Pool.Data.TotalBundles
 
-	for i := lastBundle - 1; i >= 0; i-- {
-		logger.Info().Msg(fmt.Sprintf("Inserting data items: %v/%v", lastBundle-i, lastBundle))
+	for i := int64(0); i < lastBundle; i++ {
+		logger.Info().Msg(fmt.Sprintf("Inserting data items: %v/%v", i, lastBundle))
 		if crawler.adapter.Exists(i) {
 			logger.Info().Int64("bundleId", i).Msg("Bundle already exists, skipping...")
 			continue
