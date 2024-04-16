@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/KYVENetwork/trustless-rpc/crawler"
-	"github.com/KYVENetwork/trustless-rpc/db"
 	"github.com/KYVENetwork/trustless-rpc/db/adapters"
+	"github.com/KYVENetwork/trustless-rpc/files"
 	"github.com/KYVENetwork/trustless-rpc/indexer"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/spf13/cobra"
@@ -25,7 +25,7 @@ var crawlerCmd = &cobra.Command{
 		endpoint := utils.GetChainRest(chainId, restEndpoint)
 		storageRest = strings.TrimSuffix(storageRest, "/")
 
-		sqliteAdapter := adapters.StartSQLite(&db.SaveLocalFileInterface{}, &indexer.EthBlobIndexer)
+		sqliteAdapter := adapters.StartSQLite(&files.SaveLocalFileInterface{}, &indexer.EthBlobIndexer)
 
 		crawler := crawler.Create(endpoint, storageRest, &sqliteAdapter, 21)
 		crawler.Start()

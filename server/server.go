@@ -11,6 +11,7 @@ import (
 	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
 	"github.com/KYVENetwork/trustless-rpc/db"
 	"github.com/KYVENetwork/trustless-rpc/db/adapters"
+	"github.com/KYVENetwork/trustless-rpc/files"
 	"github.com/KYVENetwork/trustless-rpc/indexer"
 	"github.com/KYVENetwork/trustless-rpc/merkle"
 	"github.com/KYVENetwork/trustless-rpc/types"
@@ -42,7 +43,7 @@ func StartApiServer(chainId, restEndpoint, storageRest string, port string, noCa
 
 	sqliteAdapter := adapters.SQLiteAdapter{}
 	if !noCache {
-		sqliteAdapter = adapters.StartSQLite(&db.SaveLocalFileInterface{}, &indexer.EthBlobIndexer)
+		sqliteAdapter = adapters.StartSQLite(&files.SaveLocalFileInterface{}, &indexer.EthBlobIndexer)
 	}
 
 	apiServer := &ApiServer{
@@ -203,7 +204,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 
 	// TODO: Replace with Source-Registry integration
 	KorelliaPoolMap["blobs"] = 97
-	KaonPoolMap["blobs"] = 20
+	KaonPoolMap["blobs"] = 21
 
 	// For backwards compatibility; will be removed soon
 	if chainId == "arbitrum" {
@@ -237,16 +238,31 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 
 	if heightStr != "" {
 		if !apiServer.noCache {
-			dataitem, err := apiServer.dbAdapter.Get(heightStr, indexer.EthBlobIndexHeight)
+			file, err := apiServer.dbAdapter.Get(heightStr, indexer.EthBlobIndexHeight)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": err.Error(),
 				})
 				return
 			}
-			c.JSON(http.StatusOK, dataitem)
+			switch file.Type {
+			case files.LocalFile:
+				file, err := files.LoadLocalFile(file.Path)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": err.Error(),
+					})
+					return
+				}
+				c.JSON(http.StatusOK, file)
+			case files.AWSFile:
+				//TODO
+				c.Redirect(301, file.Path)
+				fmt.Println("TODO")
+			}
 			return
 		}
+
 		var bundle *types.Bundle
 
 		height, err := strconv.Atoi(heightStr)
@@ -276,7 +292,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 				continue
 			} else if itemHeight == height {
 				hashes := merkle.GetBundleHashes(bundle)
-				response := types.TrustlessDataItem{Value: dataItem, Proof: merkle.GetHashesCompact(hashes, dataItem)}
+				response := types.TrustlessDataItem{Value: dataItem, Proof: merkle.GetHashesCompact(hashes, &dataItem)}
 				c.JSON(http.StatusOK, response)
 				return
 			}
@@ -332,7 +348,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 				continue
 			} else if blobData.SlotNumber == slot {
 				hashes := merkle.GetBundleHashes(bundle)
-				response := types.TrustlessDataItem{Value: dataItem, Proof: merkle.GetHashesCompact(hashes, dataItem)}
+				response := types.TrustlessDataItem{Value: dataItem, Proof: merkle.GetHashesCompact(hashes, &dataItem)}
 				c.JSON(http.StatusOK, response)
 				return
 			}

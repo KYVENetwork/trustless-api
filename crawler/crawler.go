@@ -2,6 +2,8 @@ package crawler
 
 import (
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
 	"github.com/KYVENetwork/trustless-rpc/collectors/pool"
@@ -9,6 +11,7 @@ import (
 	"github.com/KYVENetwork/trustless-rpc/merkle"
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/go-co-op/gocron"
 )
 
 var (
@@ -20,9 +23,12 @@ type Crawler struct {
 	storageRest  string
 	adapter      db.Adapter
 	poolId       int64
+	crawling     sync.Mutex
 }
 
 func (crawler *Crawler) insertBundleDataItems(bundleId int64) error {
+	start := time.Now()
+
 	compressedBundle, err := bundles.GetFinalizedBundle(crawler.restEndpoint, crawler.poolId, bundleId)
 	if err != nil {
 		logger.Error().Msg("Something went wrong when retrieving the bundle...")
@@ -36,18 +42,39 @@ func (crawler *Crawler) insertBundleDataItems(bundleId int64) error {
 		return err
 	}
 
-	leafs := merkle.GetBundleHashes(&bundle)
+	elapsed := time.Since(start)
+	logger.Debug().Msg(fmt.Sprintf("Downloading bundle took: %v", elapsed))
 
-	for _, dataitem := range bundle {
-		proof := merkle.GetHashesCompact(leafs, dataitem)
-		trustlessDataItem := types.TrustlessDataItem{Value: dataitem, Proof: proof, BundleId: bundleId, PoolId: crawler.poolId}
-		crawler.adapter.Save(trustlessDataItem)
+	leafs := merkle.GetBundleHashes(&bundle)
+	if false {
+		fmt.Println(leafs)
 	}
+
+	start = time.Now()
+	var trustlessDataItems []types.TrustlessDataItem
+	for _, dataitem := range bundle {
+		proof := merkle.GetHashesCompact(leafs, &dataitem)
+		trustlessDataItem := types.TrustlessDataItem{Value: dataitem, Proof: proof, BundleId: bundleId, PoolId: crawler.poolId}
+		trustlessDataItems = append(trustlessDataItems, trustlessDataItem)
+	}
+	err = crawler.adapter.Save(&trustlessDataItems)
+	if err != nil {
+		return err
+	}
+	elapsed = time.Since(start)
+	logger.Debug().Msg(fmt.Sprintf("Inserting data items took: %v", elapsed))
 
 	return nil
 }
 
-func (crawler *Crawler) Start() {
+func (crawler *Crawler) crawlBundles() {
+	if !crawler.crawling.TryLock() {
+		logger.Info().Msg("Still crawling bundles!")
+		return
+	}
+
+	defer crawler.crawling.Unlock()
+
 	poolInfo, err := pool.GetPoolInfo(crawler.restEndpoint, crawler.poolId)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to get latest bundle")
@@ -70,6 +97,12 @@ func (crawler *Crawler) Start() {
 	}
 
 	logger.Info().Int64("bundleId", lastBundle).Msg("Finished crawling to bundle.")
+}
+
+func (crawler *Crawler) Start() {
+	scheduler := gocron.NewScheduler(time.UTC)
+	scheduler.Every(3).Minutes().Do(crawler.crawlBundles)
+	scheduler.StartBlocking()
 }
 
 func Create(restEndpoint string, storageRest string, adapter db.Adapter, poolId int64) Crawler {

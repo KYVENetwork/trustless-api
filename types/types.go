@@ -131,8 +131,3 @@ type BlobDocument struct {
 	Slot     int64
 	File     string
 }
-
-type SavedFile struct {
-	Type int
-	Path string
-}

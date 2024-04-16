@@ -15,30 +15,30 @@ var (
 	logger = utils.TrustlessRpcLogger("merkle")
 )
 
-func buildMerkleTree(hashes [][32]byte, tree *[][]string) {
-	if len(hashes) == 1 {
+func buildMerkleTree(hashes *[][32]byte, tree *[][]string) {
+	if len(*hashes) == 1 {
 		return
 	}
 
 	// make sure we have an even number of hashes
-	if len(hashes)%2 == 1 {
-		hashes = append(hashes, hashes[len(hashes)-1])
+	if len(*hashes)%2 == 1 {
+		*hashes = append(*hashes, (*hashes)[len(*hashes)-1])
 	}
 
-	hexHashes := utils.BytesToHex(&hashes)
+	hexHashes := utils.BytesToHex(hashes)
 	*tree = append(*tree, hexHashes)
 
 	var computedHashes = [][32]byte{}
 
-	for i := 0; i < len(hashes); i += 2 {
-		left := hashes[i]
-		right := hashes[i+1]
+	for i := 0; i < len(*hashes); i += 2 {
+		left := (*hashes)[i]
+		right := (*hashes)[i+1]
 		combined := append(left[:], right[:]...)
 		parentHash := sha256.Sum256(combined)
 		computedHashes = append(computedHashes, parentHash)
 	}
 
-	buildMerkleTree(computedHashes, tree)
+	buildMerkleTree(&computedHashes, tree)
 }
 
 func GetMerkleRoot(hashes [][32]byte) [32]byte {
@@ -64,25 +64,25 @@ func GetMerkleRoot(hashes [][32]byte) [32]byte {
 	return GetMerkleRoot(computedHashes)
 }
 
-func GetBundleHashes(bundle *types.Bundle) [][32]byte {
+func GetBundleHashes(bundle *types.Bundle) *[][32]byte {
 	var hashes [][32]byte
 	for _, dataitem := range *bundle {
 		hashes = append(hashes, utils.CalculateSHA256Hash(dataitem))
 	}
-	return hashes
+	return &hashes
 }
 
 func GetBundleHashesHex(bundle *types.Bundle) []string {
 	hashes := GetBundleHashes(bundle)
-	return utils.BytesToHex(&hashes)
+	return utils.BytesToHex(hashes)
 }
 
-func GetHashesCompact(hashes [][32]byte, leaf any) []types.MerkleNode {
+func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) []types.MerkleNode {
 	var tree [][]string
 	buildMerkleTree(hashes, &tree)
 
-	leafHash := utils.CalculateSHA256Hash(leaf)
-	leaf = hex.EncodeToString(leafHash[:])
+	leafHash := utils.CalculateSHA256Hash(*leafObj)
+	leaf := hex.EncodeToString(leafHash[:])
 
 	// first find the leaf index
 	var leafIndex int = -1
@@ -150,7 +150,7 @@ func IsBundleValid(bundleId int64, poolId int64, restEndpoint string, storageRes
 	}
 
 	hashes := GetBundleHashes(&bundle)
-	rootHash := GetMerkleRoot(hashes)
+	rootHash := GetMerkleRoot(*hashes)
 	hexHash := hex.EncodeToString(rootHash[:])
 	if hexHash != summary.MerkleRoot {
 		logger.Fatal().Str("expected", summary.MerkleRoot).Str("got", hexHash).Msg("bundle is not valid: bundle summary hash is not equal to calculated hash")

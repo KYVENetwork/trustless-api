@@ -2,7 +2,7 @@ package helper
 
 import (
 	"encoding/json"
-	"fmt"
+	"strconv"
 
 	"github.com/KYVENetwork/trustless-rpc/types"
 )
@@ -13,7 +13,7 @@ func (eth *EthBlobIndexer) GetIndexCount() int {
 	return 2
 }
 
-func (eth *EthBlobIndexer) GetDataItemIndicies(dataitem *types.TrustlessDataItem) ([]string, error) {
+func (eth *EthBlobIndexer) GetDataItemIndicies(dataitem *types.TrustlessDataItem) ([]int, error) {
 	// Create a struct to unmarshal into
 	var blobData types.BlobValue
 
@@ -22,10 +22,10 @@ func (eth *EthBlobIndexer) GetDataItemIndicies(dataitem *types.TrustlessDataItem
 	if err != nil {
 		return nil, err
 	}
-
-	var indicies []string = []string{
-		dataitem.Value.Key,
-		fmt.Sprintf("%v", blobData.SlotNumber),
+	height, _ := strconv.Atoi(dataitem.Value.Key)
+	var indicies []int = []int{
+		height,
+		height,
 	}
 
 	return indicies, nil

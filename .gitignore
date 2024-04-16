@@ -12,6 +12,7 @@
 
 .env
 *.db
+*.db-journal
 bundles
 
 # Test binary, built with `go test -c`
