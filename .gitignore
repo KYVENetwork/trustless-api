@@ -11,6 +11,7 @@
 .idea
 
 *.db
+bundles
 
 # Test binary, built with `go test -c`
 *.test

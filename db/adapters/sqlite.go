@@ -20,9 +20,9 @@ type SQLiteAdapter struct {
 	indexer      indexer.Indexer
 }
 
-func StartSQLite(dataDir string, saveDataItem types.SaveDataItem, indexer indexer.Indexer) (SQLiteAdapter, error) {
+func StartSQLite(path string, saveDataItem types.SaveDataItem, indexer indexer.Indexer) (SQLiteAdapter, error) {
 
-	db, err := sql.Open("sqlite3", fmt.Sprintf("%v/database.db", dataDir))
+	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Open Folder")
 		return SQLiteAdapter{}, err
@@ -57,14 +57,8 @@ func (adapter *SQLiteAdapter) Save(dataitem types.TrustlessDataItem) error {
 		logger.Fatal().Err(err).Msg("Faild to add index")
 		return nil
 	}
-	stmt, err := tx.Prepare("insert into dataitems(bundleId, poolId, filePath, fileType) values(?, ?, ?, ?)")
-	if err != nil {
-		logger.Fatal().Err(err).Msg("Faild to add index")
-		return nil
-	}
-	defer stmt.Close()
 	// First insert the dataitem
-	result, err := stmt.Exec(dataitem.BundleId, dataitem.PoolId, file.Path, file.Type)
+	result, err := tx.Exec("insert into dataitems(bundleId, poolId, filePath, fileType) values(?, ?, ?, ?)", dataitem.BundleId, dataitem.PoolId, file.Path, file.Type)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Faild to add index")
 		return nil
@@ -76,42 +70,25 @@ func (adapter *SQLiteAdapter) Save(dataitem types.TrustlessDataItem) error {
 		return nil
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		logger.Fatal().Err(err).Msg("Faild to add index")
-		return nil
-	}
-
 	keys, err := adapter.indexer.GetDataItemIndicies(&dataitem)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Faild to get dataitem indicies")
 		return nil
 	}
+
 	for keyIndex, key := range keys {
-		tx, err := adapter.db.Begin()
-		if err != nil {
-			logger.Fatal().Err(err).Msg("Faild to add index")
-			return nil
-		}
-		stmt, err := tx.Prepare(fmt.Sprintf("insert into index_%v(key, dataitem) values(?, ?)", keyIndex))
-		if err != nil {
-			logger.Fatal().Err(err).Msg("Faild to add index")
-			return nil
-		}
-		defer stmt.Close()
-		// insert index
-		_, err = stmt.Exec(key, dataitemId)
-		if err != nil {
-			logger.Fatal().Err(err).Msg("Faild to add index")
-			return nil
-		}
-		err = tx.Commit()
+		_, err = tx.Exec(fmt.Sprintf("insert into index_%v(key, dataitem) values(?, ?)", keyIndex), key, dataitemId)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("Faild to add index")
 			return nil
 		}
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Faild to commit txn")
+		return nil
+	}
 	return nil
 }
 

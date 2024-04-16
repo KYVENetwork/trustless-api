@@ -22,18 +22,18 @@ type Crawler struct {
 	poolId       int64
 }
 
-func (crawler *Crawler) insertBundleDataItems(bundleId int64) {
+func (crawler *Crawler) insertBundleDataItems(bundleId int64) error {
 	compressedBundle, err := bundles.GetFinalizedBundle(crawler.restEndpoint, crawler.poolId, bundleId)
 	if err != nil {
 		logger.Fatal().Msg("Something went wrong when retrieving the bundle...")
-		return
+		return err
 	}
 
 	bundle, err := bundles.GetDecompressedBundle(*compressedBundle, crawler.storageRest)
 
 	if err != nil {
 		logger.Fatal().Msg("Something went wrong when retrieving the bundle...")
-		return
+		return err
 	}
 
 	leafs := merkle.GetBundleHashes(&bundle)
@@ -43,6 +43,8 @@ func (crawler *Crawler) insertBundleDataItems(bundleId int64) {
 		trustlessDataItem := types.TrustlessDataItem{Value: dataitem, Proof: proof, BundleId: bundleId, PoolId: crawler.poolId}
 		crawler.adapter.Save(trustlessDataItem)
 	}
+
+	return nil
 }
 
 func (crawler *Crawler) Start() {
@@ -60,7 +62,11 @@ func (crawler *Crawler) Start() {
 			logger.Info().Int64("bundleId", i).Msg("Bundle already exists, skipping...")
 			continue
 		}
-		crawler.insertBundleDataItems(i)
+
+		err := crawler.insertBundleDataItems(i)
+		if err != nil {
+			i--
+		}
 	}
 }
 

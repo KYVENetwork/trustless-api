@@ -15,7 +15,6 @@ var (
 	bundleId     int64
 	chainId      string
 	dbPath       string
-	ecosystem    string
 	port         string
 	poolId       int64
 	restEndpoint string

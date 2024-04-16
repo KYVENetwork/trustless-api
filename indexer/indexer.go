@@ -11,5 +11,7 @@ type Indexer interface {
 }
 
 var (
-	EthBlobIndexer = helper.EthBlobIndexer{}
+	EthBlobIndexer     = helper.EthBlobIndexer{}
+	EthBlobIndexHeight = 0
+	EthBlobIndexSlot   = 1
 )
