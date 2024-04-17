@@ -2,9 +2,10 @@ package utils
 
 import (
 	"fmt"
-	"github.com/rs/zerolog"
 	"io"
 	"os"
+
+	"github.com/rs/zerolog"
 )
 
 func TrustlessRpcLogger(moduleName string) zerolog.Logger {
