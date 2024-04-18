@@ -29,7 +29,7 @@ func loadDefaults() {
 	viper.SetDefault("storage.cdn", "")
 	viper.SetDefault("storage.aws-endpoint", "")
 	viper.SetDefault("storage.region", "auto")
-	viper.SetDefault("storage.bucketname", "trustless-cache")
+	viper.SetDefault("storage.bucketname", "")
 	viper.SetDefault("storage.credentials.keyid", "")
 	viper.SetDefault("storage.credentials.keysecret", "")
 
