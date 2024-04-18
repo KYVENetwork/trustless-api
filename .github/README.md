@@ -13,6 +13,29 @@ make
 cp build/trustless-rpc ~/go/bin/trustless-rpc 
 ```
 
+## How it works
+
+The Turstless API works in multiple phases. First the `crawler` goes through every bundle, downloads its content and stores every data item together with a proof of inclusion to a given data destination. Finally, the `crawler` creates indicies on those data items, to quickly retrieve its origin (poolId, bundleId) and content again. These indicies will be stored in the given database.
+
+A user then requests a data item with a key, the trustless api will then search for the key in the previously created indicies of the database and serve the corresponding data item.
+
+These steps are independent on the code level, meaning that we first have to start a process with the `crawler` to then correctly serve the crawled data items.
+
+## Crawler
+
+You can start the crawling process with the following command:
+
+```sh
+trustless-api crawler
+```
+
+## Server
+
+To server the crawled data items you have to start the process with the following arguments:
+
+```sh
+trustless-api start
+```
 
 ## Config
 
@@ -45,28 +68,4 @@ storage:
         keyid: "<access_key_id>" # your access key id
         keysecret: "<access_key_secret>" #your access key secret
     region: auto # default: auto
-```
-
-## How it works
-
-The Turstless API works in multiple phases. First the `crawler` goes through every bundle, downloads its content and stores every data item together with a proof of inclusion to a given data destination. Finally, the `crawler` creates indicies on those data items, to quickly retrieve its origin (poolId and bundleId) and content again. These indicies will be stored in the given database.
-
-A user then requests a dataitem with a given key, the trustless api will then search for the given key in the previously created indicies of the database and serve the corresponding dataitem.
-
-These steps are independent on the code level, meaning that the we first have to start a process with the `crawler` to then correctly serve the crawled dataitems.
-
-## Crawler
-
-You can start the crawling process with the following command:
-
-```sh
-trustless-api crawler
-```
-
-## Server
-
-To server the crawled data items you have to start the process with the following arguments:
-
-```sh
-trustless-api start
 ```
