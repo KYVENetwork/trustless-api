@@ -30,6 +30,7 @@ type ApiServer struct {
 	restEndpoint string
 	storageRest  string
 	noCache      bool
+	redirect     bool
 	dbAdapter    db.Adapter
 }
 
@@ -40,8 +41,12 @@ var (
 	KorelliaPoolMap = make(map[string]int64)
 )
 
-func StartApiServer(chainId, restEndpoint, storageRest string, port int, noCache bool) *ApiServer {
+func StartApiServer(chainId, restEndpoint, storageRest string) *ApiServer {
 	var adapter db.Adapter
+	noCache := viper.GetBool("server.no-cache")
+	port := viper.GetInt("server.port")
+	redirect := viper.GetBool("server.redirect")
+
 	if !noCache {
 		adapter = config.GetDatabaseAdapter(&files.SaveLocalFileInterface{}, &indexer.EthBlobIndexer, 21)
 	}
@@ -52,6 +57,7 @@ func StartApiServer(chainId, restEndpoint, storageRest string, port int, noCache
 		storageRest:  storageRest,
 		dbAdapter:    adapter,
 		noCache:      noCache,
+		redirect:     redirect,
 	}
 
 	gin.SetMode(gin.ReleaseMode)
@@ -361,6 +367,18 @@ func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
 	case files.S3File:
 		//TODO
 		url := viper.GetString("storage.cdn")
-		c.Redirect(301, fmt.Sprintf("%v%v", url, file.Path))
+		if apiServer.redirect {
+			c.Redirect(301, fmt.Sprintf("%v%v", url, file.Path))
+		} else {
+			res, err := http.Get(fmt.Sprintf("%v%v", url, file.Path))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+			defer res.Body.Close()
+			c.DataFromReader(200, res.ContentLength, "application/json", res.Body, nil)
+		}
 	}
 }

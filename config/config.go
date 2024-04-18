@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/KYVENetwork/trustless-rpc/db"
 	"github.com/KYVENetwork/trustless-rpc/db/adapters"
 	"github.com/KYVENetwork/trustless-rpc/files"
@@ -63,7 +61,8 @@ func LoadConfig() {
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("fatal error config file: %w", err))
+		logger.Info().Msg("No config found! Will create config with default values!")
+		viper.WriteConfigAs("config.yml")
 	}
 }
 

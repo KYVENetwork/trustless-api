@@ -103,11 +103,11 @@ func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile,
 
 	//TODO: only send one query
 	query := db.IndexDocument{IndexID: indexId, Key: dataitemKey}
-	rows := adapter.db.Table(adapter.indexTable).Model(&db.IndexDocument{}).First(&query)
+	rows := adapter.db.Table(adapter.indexTable).Model(&db.IndexDocument{}).Where(&query).Scan(&query)
 	if rows.Error != nil {
 		return files.SavedFile{}, rows.Error
 	}
-	if query.Key != dataitemKey {
+	if rows.RowsAffected == 0 {
 		return files.SavedFile{}, fmt.Errorf("DataItem not found")
 	}
 	result := db.DataItemDocument{}
