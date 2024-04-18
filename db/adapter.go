@@ -16,8 +16,8 @@ type DataItemDocument struct {
 
 type IndexDocument struct {
 	gorm.Model
-	Key                int64 `gorm:"primaryKey"`
-	IndexID            int   `gorm:"primaryKey"`
+	Key                int64 `gorm:"index:idx"`
+	IndexID            int   `gorm:"index:idx"`
 	DataItemDocumentID uint
 	DataItemDocument   DataItemDocument
 }
