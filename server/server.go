@@ -9,14 +9,15 @@ import (
 	"time"
 
 	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
+	"github.com/KYVENetwork/trustless-rpc/config"
 	"github.com/KYVENetwork/trustless-rpc/db"
-	"github.com/KYVENetwork/trustless-rpc/db/adapters"
 	"github.com/KYVENetwork/trustless-rpc/files"
 	"github.com/KYVENetwork/trustless-rpc/indexer"
 	"github.com/KYVENetwork/trustless-rpc/merkle"
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	cachecontrol "go.eigsys.de/gin-cachecontrol/v2"
 )
 
@@ -40,17 +41,16 @@ var (
 )
 
 func StartApiServer(chainId, restEndpoint, storageRest string, port int, noCache bool) *ApiServer {
-
-	sqliteAdapter := adapters.SQLAdapter{}
+	var adapter db.Adapter
 	if !noCache {
-		sqliteAdapter = adapters.GetSQLite(&files.SaveLocalFileInterface{}, &indexer.EthBlobIndexer, 21)
+		adapter = config.GetDatabaseAdapter(&files.SaveLocalFileInterface{}, &indexer.EthBlobIndexer, 21)
 	}
 
 	apiServer := &ApiServer{
 		chainId:      chainId,
 		restEndpoint: restEndpoint,
 		storageRest:  storageRest,
-		dbAdapter:    &sqliteAdapter,
+		dbAdapter:    adapter,
 		noCache:      noCache,
 	}
 
@@ -194,7 +194,6 @@ func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
 	c.JSON(http.StatusBadRequest, gin.H{
 		"error": fmt.Sprintf("failed to find data item in bundle"),
 	})
-	return
 }
 
 func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
@@ -347,7 +346,6 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	c.JSON(http.StatusBadRequest, gin.H{
 		"error": fmt.Sprintf("failed to find data item in bundle"),
 	})
-	return
 }
 
 func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
@@ -361,9 +359,9 @@ func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
 			return
 		}
 		c.JSON(http.StatusOK, file)
-	case files.AWSFile:
+	case files.S3File:
 		//TODO
-		c.Redirect(301, file.Path)
-		fmt.Println("TODO")
+		url := viper.GetString("storage.cdn")
+		c.Redirect(301, fmt.Sprintf("%v%v", url, file.Path))
 	}
 }

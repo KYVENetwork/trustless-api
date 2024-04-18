@@ -35,6 +35,6 @@ var startCmd = &cobra.Command{
 		endpoint := utils.GetChainRest(chainId, restEndpoint)
 		storageRest = strings.TrimSuffix(storageRest, "/")
 
-		server.StartApiServer(chainId, endpoint, storageRest, viper.GetInt("port"), viper.GetBool("no-cache"))
+		server.StartApiServer(chainId, endpoint, storageRest, viper.GetInt("server.port"), viper.GetBool("server.no-cache"))
 	},
 }

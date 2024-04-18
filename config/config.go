@@ -25,14 +25,25 @@ var (
 )
 
 func loadDefaults() {
+	// storage
 	viper.SetDefault("storage.type", "local")
 	viper.SetDefault("storage.path", "./data")
 	viper.SetDefault("storage.cdn", "")
+	viper.SetDefault("storage.aws-endpoint", "")
+	viper.SetDefault("storage.region", "auto")
+	viper.SetDefault("storage.bucketname", "trustless-cache")
+	viper.SetDefault("storage.credentials.keyid", "")
+	viper.SetDefault("storage.credentials.keysecret", "")
+
+	// database
 	viper.SetDefault("database.type", "sqlite")
 	viper.SetDefault("database.dbname", "./database.db")
 	viper.SetDefault("database.host", "")
 	viper.SetDefault("database.user", "")
 	viper.SetDefault("database.password", "")
+	viper.SetDefault("database.port", 0)
+
+	// server
 	viper.SetDefault("server.no-cache", false)
 	viper.SetDefault("server.port", 4242)
 	viper.SetDefault("server.redirect", true)
@@ -40,7 +51,6 @@ func loadDefaults() {
 	var pools []CrawlerConfig = []CrawlerConfig{
 		EthBlobsConfig,
 	}
-
 	viper.SetDefault("crawler.pools", pools)
 }
 
@@ -58,7 +68,15 @@ func LoadConfig() {
 }
 
 func GetSaveDataItemAdapter() files.SaveDataItem {
-	return &files.LocalFileAdapter
+	switch viper.GetString("storage.type") {
+	case "local":
+		return &files.LocalFileAdapter
+	case "s3":
+		return &files.S3FileAdapter
+	}
+
+	logger.Fatal().Str("type", viper.GetString("storage.type")).Msg("Unkown storage type")
+	return nil
 }
 
 func GetCrawlerConfig() []CrawlerConfig {
@@ -70,11 +88,24 @@ func GetCrawlerConfig() []CrawlerConfig {
 	return config
 }
 
+func GetDatabaseAdapter(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) db.Adapter {
+	switch viper.GetString("database.type") {
+	case "sqlite":
+		adapter := adapters.GetSQLite(saveDataItem, indexer, poolId)
+		return &adapter
+	case "postgres":
+		adapter := adapters.GetPostgres(saveDataItem, indexer, poolId)
+		return &adapter
+	}
+	logger.Fatal().Str("type", viper.GetString("database.type")).Msg("Unkown database type")
+	return nil
+}
+
 func (c CrawlerConfig) GetDatabaseAdapter() db.Adapter {
 	switch c.Indexer {
 	case "EthBlobs":
-		adapter := adapters.GetSQLite(GetSaveDataItemAdapter(), &indexer.EthBlobIndexer, c.PoolId)
-		return &adapter
+		adapter := GetDatabaseAdapter(GetSaveDataItemAdapter(), &indexer.EthBlobIndexer, c.PoolId)
+		return adapter
 	}
 	logger.Fatal().Str("type", c.Indexer).Msg("Cannot resolve indexer")
 

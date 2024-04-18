@@ -13,7 +13,7 @@
 .env
 *.db
 *.db-journal
-data
+config.yml
 
 # Test binary, built with `go test -c`
 *.test

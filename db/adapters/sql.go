@@ -1,12 +1,15 @@
 package adapters
 
 import (
+	"fmt"
+
 	"github.com/KYVENetwork/trustless-rpc/db"
 	"github.com/KYVENetwork/trustless-rpc/files"
 	"github.com/KYVENetwork/trustless-rpc/indexer"
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/spf13/viper"
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -26,6 +29,30 @@ type SQLAdapter struct {
 func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) SQLAdapter {
 
 	database, err := gorm.Open(sqlite.Open(viper.GetString("database.dbname")), &gorm.Config{})
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Cannot open datase.")
+	}
+
+	dataItemTable, indexTable := db.GetTableNames(poolId)
+
+	// Migrate the schema
+	database.Table(dataItemTable).AutoMigrate(&db.DataItemDocument{})
+	database.Table(indexTable).AutoMigrate(&db.IndexDocument{})
+
+	return SQLAdapter{db: database, saveDataItem: saveDataItem, indexer: indexer, dataItemTable: dataItemTable, indexTable: indexTable}
+}
+
+func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) SQLAdapter {
+	dsn := fmt.Sprintf(
+		"host=%v user=%v password=%v dbname=%v port=%v",
+		viper.GetString("database.host"),
+		viper.GetString("database.user"),
+		viper.GetString("database.password"),
+		viper.GetString("database.dbname"),
+		viper.GetString("database.port"),
+	)
+
+	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Cannot open datase.")
 	}
@@ -75,12 +102,12 @@ func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile, error) {
 
 	query := db.IndexDocument{IndexID: indexId, Key: dataitemKey}
-	err := adapter.db.Table(adapter.indexTable).Model(&db.IndexDocument{}).Find(&query).Error
-	if err != nil {
-		return files.SavedFile{}, err
+	rows := adapter.db.Table(adapter.indexTable).Model(&db.IndexDocument{}).Find(&query)
+	if rows.Error != nil {
+		return files.SavedFile{}, rows.Error
 	}
 	result := db.DataItemDocument{}
-	err = adapter.db.Table(adapter.dataItemTable).Model(&db.DataItemDocument{}).Find(&result, query.DataItemID).Error
+	err := adapter.db.Table(adapter.dataItemTable).Model(&db.DataItemDocument{}).Find(&result, query.DataItemID).Error
 	if err != nil {
 		return files.SavedFile{}, err
 	}
