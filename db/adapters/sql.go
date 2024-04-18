@@ -101,10 +101,14 @@ func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 
 func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile, error) {
 
+	//TODO: only send one query
 	query := db.IndexDocument{IndexID: indexId, Key: dataitemKey}
-	rows := adapter.db.Table(adapter.indexTable).Model(&db.IndexDocument{}).Find(&query)
+	rows := adapter.db.Table(adapter.indexTable).Model(&db.IndexDocument{}).First(&query)
 	if rows.Error != nil {
 		return files.SavedFile{}, rows.Error
+	}
+	if query.Key != dataitemKey {
+		return files.SavedFile{}, fmt.Errorf("DataItem not found")
 	}
 	result := db.DataItemDocument{}
 	err := adapter.db.Table(adapter.dataItemTable).Model(&db.DataItemDocument{}).Find(&result, query.DataItemID).Error
