@@ -7,7 +7,7 @@ import (
 
 type Indexer interface {
 	GetIndexCount() int
-	GetDataItemIndicies(dataitem *types.TrustlessDataItem) ([]int, error)
+	GetDataItemIndicies(dataitem *types.TrustlessDataItem) ([]int64, error)
 }
 
 var (

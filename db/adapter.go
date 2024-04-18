@@ -3,10 +3,11 @@ package db
 import (
 	"github.com/KYVENetwork/trustless-rpc/files"
 	"github.com/KYVENetwork/trustless-rpc/types"
+	"gorm.io/gorm"
 )
 
 type DataItemDocument struct {
-	ID       int64 `bun:",pk,autoincrement"`
+	gorm.Model
 	BundleID int64
 	PoolId   int64
 	FileType int
@@ -14,12 +15,15 @@ type DataItemDocument struct {
 }
 
 type IndexDocument struct {
-	Key        int64
-	DataItemID int64
+	gorm.Model
+	Key                int64 `gorm:"primaryKey"`
+	IndexID            int   `gorm:"primaryKey"`
+	DataItemDocumentID uint
+	DataItemDocument   DataItemDocument
 }
 
 type Adapter interface {
 	Save(dataitem *[]types.TrustlessDataItem) error
-	Get(dataitemKey string, index int) (files.SavedFile, error)
+	Get(dataitemKey int64, indexId int) (files.SavedFile, error)
 	Exists(bundle int64) bool
 }

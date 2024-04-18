@@ -237,8 +237,17 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	}
 
 	if heightStr != "" {
+		var bundle *types.Bundle
+
+		height, err := strconv.Atoi(heightStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
 		if !apiServer.noCache {
-			file, err := apiServer.dbAdapter.Get(heightStr, indexer.EthBlobIndexHeight)
+			file, err := apiServer.dbAdapter.Get(int64(height), indexer.EthBlobIndexHeight)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": err.Error(),
@@ -260,16 +269,6 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 				c.Redirect(301, file.Path)
 				fmt.Println("TODO")
 			}
-			return
-		}
-
-		var bundle *types.Bundle
-
-		height, err := strconv.Atoi(heightStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
 			return
 		}
 
@@ -298,17 +297,6 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			}
 		}
 	} else if slotStr != "" {
-		if !apiServer.noCache {
-			dataitem, err := apiServer.dbAdapter.Get(slotStr, indexer.EthBlobIndexSlot)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": err.Error(),
-				})
-				return
-			}
-			c.JSON(http.StatusOK, dataitem)
-			return
-		}
 		var bundle *types.Bundle
 
 		slot, err := strconv.Atoi(slotStr)
@@ -316,6 +304,17 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
 			})
+			return
+		}
+		if !apiServer.noCache {
+			dataitem, err := apiServer.dbAdapter.Get(int64(slot), indexer.EthBlobIndexSlot)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": err.Error(),
+				})
+				return
+			}
+			c.JSON(http.StatusOK, dataitem)
 			return
 		}
 
