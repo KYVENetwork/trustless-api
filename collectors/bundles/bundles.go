@@ -2,14 +2,13 @@ package bundles
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/KYVENetwork/trustless-rpc/collectors/pool"
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
-	"github.com/tendermint/tendermint/libs/json"
 )
 
 func GetBundleByKey(key int, restEndpoint string, poolId int64) (*types.FinalizedBundle, error) {
@@ -66,7 +65,7 @@ func GetBundleByKey(key int, restEndpoint string, poolId int64) (*types.Finalize
 
 func GetBundleBySlot(slot int, restEndpoint string, poolId int64) (*types.FinalizedBundle, error) {
 	// TODO: Calculate start_slot or define in registry to exit before searching in all bundles
-	if slot < 4460000 {
+	if slot < 800000 {
 		return nil, fmt.Errorf("requested slot is smaller than KYVE pool start slot")
 	}
 
@@ -77,19 +76,14 @@ func GetBundleBySlot(slot int, restEndpoint string, poolId int64) (*types.Finali
 			return nil, fmt.Errorf("failed to get finalized bundles page: %w", err)
 		}
 
-		lastBundleSummary := finalizedBundles[len(finalizedBundles)-1].BundleSummary
+		lastBundleSummaryRaw := finalizedBundles[len(finalizedBundles)-1].BundleSummary
 
-		lastSlots := strings.Split(lastBundleSummary, "-")
-		if len(lastSlots) != 2 {
-			return nil, fmt.Errorf("failed to retrieve slot number from bundle summary")
+		var lastBundleSummary *types.EthereumBlobsBundleSummary
+		if err = json.Unmarshal([]byte(lastBundleSummaryRaw), &lastBundleSummary); err != nil {
+			return nil, err
 		}
 
-		lastToSlot, err := strconv.Atoi(lastSlots[1])
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert slot number")
-		}
-
-		if lastToSlot < slot {
+		if lastBundleSummary.ToSlot < slot {
 			// If last found slot is smaller than requested slot, continue or exit if not validated yet
 			if nextKey == "" {
 				return nil, fmt.Errorf("could not find requested height")
@@ -100,17 +94,12 @@ func GetBundleBySlot(slot int, restEndpoint string, poolId int64) (*types.Finali
 			// If last found key is greater than or equal to requested key, return bundle containing requested key
 		BundleFinder:
 			for _, bundle := range finalizedBundles {
-				toSlots := strings.Split(bundle.BundleSummary, "-")
-				if len(lastSlots) != 2 {
-					return nil, fmt.Errorf("failed to retrieve slot number from bundle summary")
+				var summary types.EthereumBlobsBundleSummary
+				if err = json.Unmarshal([]byte(bundle.BundleSummary), &summary); err != nil {
+					return nil, err
 				}
 
-				toSlot, err := strconv.Atoi(toSlots[1])
-				if err != nil {
-					return nil, fmt.Errorf("failed to convert slot number")
-				}
-
-				if toSlot < slot {
+				if summary.ToSlot < slot {
 					continue BundleFinder
 				} else {
 					return &bundle, nil

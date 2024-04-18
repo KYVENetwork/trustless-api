@@ -202,7 +202,6 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	chainId := c.Query("l2")
 
 	// TODO: Replace with Source-Registry integration
-	KorelliaPoolMap["blobs"] = 97
 	KaonPoolMap["blobs"] = 21
 
 	// For backwards compatibility; will be removed soon
