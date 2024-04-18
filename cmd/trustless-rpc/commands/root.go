@@ -15,7 +15,7 @@ var (
 	bundleId     int64
 	chainId      string
 	noCache      bool
-	port         string
+	port         int
 	poolId       int64
 	restEndpoint string
 	storageRest  string

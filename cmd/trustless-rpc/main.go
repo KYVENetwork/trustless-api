@@ -2,12 +2,10 @@ package main
 
 import (
 	cmd "github.com/KYVENetwork/trustless-rpc/cmd/trustless-rpc/commands"
-	"github.com/joho/godotenv"
+	"github.com/KYVENetwork/trustless-rpc/config"
 )
 
 func main() {
-
-	godotenv.Load()
-
+	config.LoadConfig()
 	cmd.Execute()
 }

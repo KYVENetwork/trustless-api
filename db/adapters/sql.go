@@ -1,13 +1,12 @@
 package adapters
 
 import (
-	"os"
-
 	"github.com/KYVENetwork/trustless-rpc/db"
 	"github.com/KYVENetwork/trustless-rpc/files"
 	"github.com/KYVENetwork/trustless-rpc/indexer"
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/spf13/viper"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -16,27 +15,31 @@ var (
 	logger = utils.TrustlessRpcLogger("DB")
 )
 
-type SQLiteAdapter struct {
-	db           *gorm.DB
-	saveDataItem files.SaveDataItem
-	indexer      indexer.Indexer
+type SQLAdapter struct {
+	db            *gorm.DB
+	saveDataItem  files.SaveDataItem
+	indexer       indexer.Indexer
+	dataItemTable string
+	indexTable    string
 }
 
-func StartSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer) SQLiteAdapter {
-	path := os.Getenv("DB")
-	database, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
+func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) SQLAdapter {
+
+	database, err := gorm.Open(sqlite.Open(viper.GetString("database.dbname")), &gorm.Config{})
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Open Folder")
+		logger.Fatal().Err(err).Msg("Cannot open datase.")
 	}
 
-	// Migrate the schema
-	database.AutoMigrate(&db.DataItemDocument{})
-	database.AutoMigrate(&db.IndexDocument{})
+	dataItemTable, indexTable := db.GetTableNames(poolId)
 
-	return SQLiteAdapter{db: database, saveDataItem: saveDataItem, indexer: indexer}
+	// Migrate the schema
+	database.Table(dataItemTable).AutoMigrate(&db.DataItemDocument{})
+	database.Table(indexTable).AutoMigrate(&db.IndexDocument{})
+
+	return SQLAdapter{db: database, saveDataItem: saveDataItem, indexer: indexer, dataItemTable: dataItemTable, indexTable: indexTable}
 }
 
-func (adapter *SQLiteAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
+func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
 		for _, dataitem := range *dataitems {
 			file, err := adapter.saveDataItem.Save(&dataitem)
@@ -45,7 +48,7 @@ func (adapter *SQLiteAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 				return err
 			}
 			item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolId: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
-			err = tx.Create(&item).Error
+			err = tx.Table(adapter.dataItemTable).Create(&item).Error
 			if err != nil {
 				logger.Fatal().Err(err).Msg("Faild to save dataitem")
 				return err
@@ -58,7 +61,7 @@ func (adapter *SQLiteAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 			}
 
 			for keyIndex, key := range keys {
-				err = tx.Create(&db.IndexDocument{DataItemDocumentID: item.ID, IndexID: keyIndex, Key: key}).Error
+				err = tx.Table(adapter.indexTable).Create(&db.IndexDocument{DataItemID: item.ID, IndexID: keyIndex, Key: key}).Error
 				if err != nil {
 					logger.Error().Err(err).Msg("Faild to add index")
 					return err
@@ -69,21 +72,27 @@ func (adapter *SQLiteAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 	})
 }
 
-func (adapter *SQLiteAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile, error) {
+func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile, error) {
 
 	query := db.IndexDocument{IndexID: indexId, Key: dataitemKey}
-	result := adapter.db.Preload("DataItemDocument").First(&query)
-	if result.Error != nil {
-		return files.SavedFile{}, result.Error
+	err := adapter.db.Table(adapter.indexTable).Model(&db.IndexDocument{}).Find(&query).Error
+	if err != nil {
+		return files.SavedFile{}, err
 	}
-	return files.SavedFile{Path: query.DataItemDocument.FilePath, Type: query.DataItemDocument.FileType}, nil
+	result := db.DataItemDocument{}
+	err = adapter.db.Table(adapter.dataItemTable).Model(&db.DataItemDocument{}).Find(&result, query.DataItemID).Error
+	if err != nil {
+		return files.SavedFile{}, err
+	}
+	return files.SavedFile{Path: result.FilePath, Type: result.FileType}, nil
 }
 
-func (adapter *SQLiteAdapter) Exists(bundleId int64) bool {
-	query := db.DataItemDocument{BundleID: 2}
-	err := adapter.db.First(&query).Error
+func (adapter *SQLAdapter) Exists(bundleId int64) bool {
+	query := db.DataItemDocument{BundleID: bundleId}
+	var count int64
+	err := adapter.db.Table(adapter.dataItemTable).Model(&db.DataItemDocument{}).Where(&query).Count(&count).Error
 	if err != nil {
 		return false
 	}
-	return query.ID != 0 && query.BundleID == bundleId
+	return count > 0
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/KYVENetwork/trustless-rpc/types"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -17,6 +18,10 @@ type SavedFile struct {
 	Type int
 	Path string
 }
+
+var (
+	LocalFileAdapter = SaveLocalFileInterface{}
+)
 
 type SaveDataItem interface {
 	Save(dataitem *types.TrustlessDataItem) (SavedFile, error)
@@ -33,8 +38,13 @@ func (saveFile *SaveLocalFileInterface) Save(dataitem *types.TrustlessDataItem) 
 	if err != nil {
 		return SavedFile{}, err
 	}
-	path := os.Getenv("DATA_DIR")
-	filepath := fmt.Sprintf("%v/%v.json", path, dataitem.Value.Key)
+	path := viper.GetString("storage.path")
+	dir := fmt.Sprintf("%v/%v/%v", path, dataitem.PoolId, dataitem.BundleId)
+	err = os.MkdirAll(dir, 0777)
+	if err != nil {
+		return SavedFile{}, err
+	}
+	filepath := fmt.Sprintf("%v/%v.json", dir, dataitem.Value.Key)
 
 	file, err := os.Create(filepath)
 	if err != nil {

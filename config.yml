@@ -1,0 +1,19 @@
+chain-id: kaon-1
+crawler:
+    pools:
+        - poolid: 21
+          indexer: EthBlobs
+database:
+    dbname: ./database.db
+    type: sqlite
+    host: ""
+    password: ""
+    user: ""
+server:
+    no-cache: false
+    port: 4242
+    redirect: true
+storage:
+    path: ./data
+    type: local
+    cdn: ""

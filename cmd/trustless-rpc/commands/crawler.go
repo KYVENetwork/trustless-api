@@ -2,19 +2,17 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/KYVENetwork/trustless-rpc/crawler"
-	"github.com/KYVENetwork/trustless-rpc/db/adapters"
-	"github.com/KYVENetwork/trustless-rpc/files"
-	"github.com/KYVENetwork/trustless-rpc/indexer"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func init() {
 	crawlerCmd.Flags().StringVar(&chainId, "chain-id", utils.DefaultChainId, fmt.Sprintf("KYVE chain id [\"%s\",\"%s\", \"%s\"]", utils.ChainIdMainnet, utils.ChainIdKaon, utils.ChainIdKorellia))
 
+	viper.BindPFlags(crawlerCmd.Flags())
 	rootCmd.AddCommand(crawlerCmd)
 }
 
@@ -22,12 +20,7 @@ var crawlerCmd = &cobra.Command{
 	Use:   "crawler",
 	Short: "Indexes all bundles and saves them",
 	Run: func(cmd *cobra.Command, args []string) {
-		endpoint := utils.GetChainRest(chainId, restEndpoint)
-		storageRest = strings.TrimSuffix(storageRest, "/")
-
-		sqliteAdapter := adapters.StartSQLite(&files.SaveLocalFileInterface{}, &indexer.EthBlobIndexer)
-
-		crawler := crawler.Create(endpoint, storageRest, &sqliteAdapter, 21)
+		crawler := crawler.Create()
 		crawler.Start()
 	},
 }

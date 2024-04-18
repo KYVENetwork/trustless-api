@@ -39,11 +39,11 @@ var (
 	KorelliaPoolMap = make(map[string]int64)
 )
 
-func StartApiServer(chainId, restEndpoint, storageRest string, port string, noCache bool) *ApiServer {
+func StartApiServer(chainId, restEndpoint, storageRest string, port int, noCache bool) *ApiServer {
 
-	sqliteAdapter := adapters.SQLiteAdapter{}
+	sqliteAdapter := adapters.SQLAdapter{}
 	if !noCache {
-		sqliteAdapter = adapters.StartSQLite(&files.SaveLocalFileInterface{}, &indexer.EthBlobIndexer)
+		sqliteAdapter = adapters.GetSQLite(&files.SaveLocalFileInterface{}, &indexer.EthBlobIndexer, 21)
 	}
 
 	apiServer := &ApiServer{
@@ -254,21 +254,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 				})
 				return
 			}
-			switch file.Type {
-			case files.LocalFile:
-				file, err := files.LoadLocalFile(file.Path)
-				if err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{
-						"error": err.Error(),
-					})
-					return
-				}
-				c.JSON(http.StatusOK, file)
-			case files.AWSFile:
-				//TODO
-				c.Redirect(301, file.Path)
-				fmt.Println("TODO")
-			}
+			apiServer.resolveFile(c, file)
 			return
 		}
 
@@ -307,14 +293,14 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			return
 		}
 		if !apiServer.noCache {
-			dataitem, err := apiServer.dbAdapter.Get(int64(slot), indexer.EthBlobIndexSlot)
+			file, err := apiServer.dbAdapter.Get(int64(slot), indexer.EthBlobIndexSlot)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": err.Error(),
 				})
 				return
 			}
-			c.JSON(http.StatusOK, dataitem)
+			apiServer.resolveFile(c, file)
 			return
 		}
 
@@ -362,4 +348,22 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 		"error": fmt.Sprintf("failed to find data item in bundle"),
 	})
 	return
+}
+
+func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
+	switch file.Type {
+	case files.LocalFile:
+		file, err := files.LoadLocalFile(file.Path)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusOK, file)
+	case files.AWSFile:
+		//TODO
+		c.Redirect(301, file.Path)
+		fmt.Println("TODO")
+	}
 }

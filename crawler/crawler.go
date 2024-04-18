@@ -2,16 +2,19 @@ package crawler
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
 	"github.com/KYVENetwork/trustless-rpc/collectors/pool"
+	"github.com/KYVENetwork/trustless-rpc/config"
 	"github.com/KYVENetwork/trustless-rpc/db"
 	"github.com/KYVENetwork/trustless-rpc/merkle"
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/go-co-op/gocron"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -19,6 +22,10 @@ var (
 )
 
 type Crawler struct {
+	bundleCrawler []*BundleCrawler
+}
+
+type BundleCrawler struct {
 	restEndpoint string
 	storageRest  string
 	adapter      db.Adapter
@@ -26,7 +33,7 @@ type Crawler struct {
 	crawling     sync.Mutex
 }
 
-func (crawler *Crawler) insertBundleDataItems(bundleId int64) error {
+func (crawler *BundleCrawler) insertBundleDataItems(bundleId int64) error {
 	start := time.Now()
 
 	compressedBundle, err := bundles.GetFinalizedBundle(crawler.restEndpoint, crawler.poolId, bundleId)
@@ -67,7 +74,7 @@ func (crawler *Crawler) insertBundleDataItems(bundleId int64) error {
 	return nil
 }
 
-func (crawler *Crawler) crawlBundles() {
+func (crawler *BundleCrawler) crawlBundles() {
 	if !crawler.crawling.TryLock() {
 		logger.Info().Msg("Still crawling bundles!")
 		return
@@ -99,12 +106,34 @@ func (crawler *Crawler) crawlBundles() {
 	logger.Info().Int64("bundleId", lastBundle).Msg("Finished crawling to bundle.")
 }
 
-func (crawler *Crawler) Start() {
+func (crawler *BundleCrawler) Start() {
 	scheduler := gocron.NewScheduler(time.UTC)
 	scheduler.Every(3).Minutes().Do(crawler.crawlBundles)
 	scheduler.StartBlocking()
 }
 
-func Create(restEndpoint string, storageRest string, adapter db.Adapter, poolId int64) Crawler {
-	return Crawler{restEndpoint: restEndpoint, storageRest: storageRest, adapter: adapter, poolId: poolId}
+func CreateBundleCrawler(restEndpoint string, storageRest string, adapter db.Adapter, poolId int64) BundleCrawler {
+	return BundleCrawler{restEndpoint: restEndpoint, storageRest: storageRest, adapter: adapter, poolId: poolId}
+}
+
+func Create() Crawler {
+	var bundleCrawler []*BundleCrawler
+	chainId := viper.GetString("chain-id")
+	endpoint := utils.GetChainRest(chainId, viper.GetString("chain-rest"))
+	storageRest := strings.TrimSuffix(viper.GetString("storage-rest"), "/")
+	for _, bc := range config.GetCrawlerConfig() {
+		adapter := bc.GetDatabaseAdapter()
+		newCrawler := CreateBundleCrawler(endpoint, storageRest, adapter, bc.PoolId)
+		bundleCrawler = append(bundleCrawler, &newCrawler)
+	}
+
+	return Crawler{
+		bundleCrawler: bundleCrawler,
+	}
+}
+
+func (c *Crawler) Start() {
+	for _, bc := range c.bundleCrawler {
+		bc.Start()
+	}
 }
