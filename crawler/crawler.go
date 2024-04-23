@@ -53,9 +53,6 @@ func (crawler *BundleCrawler) insertBundleDataItems(bundleId int64) error {
 	logger.Debug().Msg(fmt.Sprintf("Downloading bundle took: %v", elapsed))
 
 	leafs := merkle.GetBundleHashes(&bundle)
-	if false {
-		fmt.Println(leafs)
-	}
 
 	start = time.Now()
 	var trustlessDataItems []types.TrustlessDataItem
@@ -99,6 +96,7 @@ func (crawler *BundleCrawler) crawlBundles() {
 
 		err := crawler.insertBundleDataItems(i)
 		if err != nil {
+			logger.Error().Err(err).Msg("Failed to insert bundle data items, retrying...")
 			i--
 		}
 	}

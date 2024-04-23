@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/KYVENetwork/trustless-rpc/db"
 	"github.com/KYVENetwork/trustless-rpc/files"
@@ -9,6 +10,7 @@ import (
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/spf13/viper"
+	"golang.org/x/sync/errgroup"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -69,30 +71,43 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
 		for _, dataitem := range *dataitems {
-			file, err := adapter.saveDataItem.Save(&dataitem)
-			if err != nil {
-				logger.Fatal().Err(err).Msg("Faild to save dataitem")
-				return err
-			}
-			item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolId: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
-			err = tx.Table(adapter.dataItemTable).Create(&item).Error
-			if err != nil {
-				logger.Fatal().Err(err).Msg("Faild to save dataitem")
-				return err
-			}
+			var mutex sync.Mutex
+			var g errgroup.Group
 
-			keys, err := adapter.indexer.GetDataItemIndicies(&dataitem)
-			if err != nil {
-				logger.Error().Err(err).Msg("Faild to get dataitem indicies")
-				return err
-			}
+			g.Go(func() error {
+				file, err := adapter.saveDataItem.Save(&dataitem)
 
-			for keyIndex, key := range keys {
-				err = tx.Table(adapter.indexTable).Create(&db.IndexDocument{DataItemID: item.ID, IndexID: keyIndex, Key: key}).Error
+				mutex.Lock()
+				defer mutex.Unlock()
+
 				if err != nil {
-					logger.Error().Err(err).Msg("Faild to add index")
+					logger.Error().Err(err).Msg("Faild to save dataitem")
 					return err
 				}
+				item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolId: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
+				err = tx.Table(adapter.dataItemTable).Create(&item).Error
+				if err != nil {
+					logger.Error().Err(err).Msg("Faild to save dataitem")
+					return err
+				}
+
+				keys, err := adapter.indexer.GetDataItemIndicies(&dataitem)
+				if err != nil {
+					logger.Error().Err(err).Msg("Faild to get dataitem indicies")
+					return err
+				}
+
+				for keyIndex, key := range keys {
+					err = tx.Table(adapter.indexTable).Create(&db.IndexDocument{DataItemID: item.ID, IndexID: keyIndex, Key: key}).Error
+					if err != nil {
+						logger.Error().Err(err).Msg("Faild to add index")
+						return err
+					}
+				}
+				return nil
+			})
+			if err := g.Wait(); err != nil {
+				return err
 			}
 		}
 		return nil
@@ -101,19 +116,15 @@ func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 
 func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile, error) {
 
-	//TODO: only send one query
+	result := db.DataItemDocument{}
 	query := db.IndexDocument{IndexID: indexId, Key: dataitemKey}
-	rows := adapter.db.Table(adapter.indexTable).Model(&db.IndexDocument{}).Where(&query).Scan(&query)
+	joinString := fmt.Sprintf("join %v on %v.id = %v.data_item_id", adapter.dataItemTable, adapter.dataItemTable, adapter.indexTable)
+	rows := adapter.db.Table(adapter.indexTable).Joins(joinString).Where(&query).Scan(&result)
 	if rows.Error != nil {
 		return files.SavedFile{}, rows.Error
 	}
 	if rows.RowsAffected == 0 {
-		return files.SavedFile{}, fmt.Errorf("DataItem not found")
-	}
-	result := db.DataItemDocument{}
-	err := adapter.db.Table(adapter.dataItemTable).Model(&db.DataItemDocument{}).Find(&result, query.DataItemID).Error
-	if err != nil {
-		return files.SavedFile{}, err
+		return files.SavedFile{}, fmt.Errorf("data item not found")
 	}
 	return files.SavedFile{Path: result.FilePath, Type: result.FileType}, nil
 }
@@ -121,7 +132,7 @@ func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile,
 func (adapter *SQLAdapter) Exists(bundleId int64) bool {
 	query := db.DataItemDocument{BundleID: bundleId}
 	var count int64
-	err := adapter.db.Table(adapter.dataItemTable).Model(&db.DataItemDocument{}).Where(&query).Count(&count).Error
+	err := adapter.db.Table(adapter.dataItemTable).Where(&query).Count(&count).Error
 	if err != nil {
 		return false
 	}

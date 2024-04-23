@@ -5,11 +5,10 @@ import (
 
 	"github.com/KYVENetwork/trustless-rpc/files"
 	"github.com/KYVENetwork/trustless-rpc/types"
-	"gorm.io/gorm"
 )
 
 type DataItemDocument struct {
-	gorm.Model
+	ID       uint  `gorm:"primarykey"`
 	BundleID int64 `gorm:"index:bundleId"`
 	PoolId   int64
 	FileType int
@@ -17,9 +16,8 @@ type DataItemDocument struct {
 }
 
 type IndexDocument struct {
-	gorm.Model
-	Key        int64 `gorm:"index:idx"`
-	IndexID    int   `gorm:"index:idx"`
+	Key        int64 `gorm:"index:idx;primarykey"`
+	IndexID    int   `gorm:"index:idx;primarykey"`
 	DataItemID uint
 }
 
