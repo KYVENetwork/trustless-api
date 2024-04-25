@@ -95,6 +95,9 @@ We do this by iterating over each data item of the bundle and computing a compac
 
 Finally, we start saving the trustless data items.
 
+### Crawler sketch
+<img width="50%" src="../assets/crawler.png" alt="Crawler sketch"/>
+
 ### Indexer
 We have to generate indices on each data item, because we want to quickly retrieve the trustless data item based on a specific key that corresponse to that exact data item. For each data item, there must be at least one index, but here can be more than one. The crawler will generate indices based on the `Indexer` defined in the `config.yml`.
 
@@ -189,3 +192,6 @@ E. g. the user does the following request: `/beacon/blob_sidecars?block_height=1
 - Server returns the file / redirects to the file
 
 To verify the data item, the user only has to send one request to the KYVE chain asking for the specific bundle's Merkle root. Since we can construct the full Merkle root from our single data item, we can verify the validated data by simply comparing our self-constructed Merkle root against the chain's Merkle root.
+
+### Lifetime of a request
+<img src="../assets/server.png" alt="server sketch"/>
