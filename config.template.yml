@@ -3,6 +3,8 @@ crawler: # the pools that will be crawled when running `crawler`
     pools:
         - poolid: 21        # pool id form the desired pool, depends on the chain-id
           indexer: EthBlobs # what indexer to use, available indexer: EthBlobs
+          chainrest: https://api-eu-1.kaon.kyve.network # the chain rest enpoint to use
+          storagerest: https://storage.kyve.network # the storage endpoint to use
 database: # config for the database
     type: postgres      # supported databases: sqlite (default), postgres
     dbname: indexer     # the database name, if you use sqlite this will the the database file. default: ./database.db
