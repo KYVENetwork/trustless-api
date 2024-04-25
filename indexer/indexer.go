@@ -6,7 +6,6 @@ import (
 )
 
 type Indexer interface {
-	GetIndexCount() int
 	GetDataItemIndicies(dataitem *types.TrustlessDataItem) ([]int64, error)
 }
 
@@ -14,4 +13,6 @@ var (
 	EthBlobIndexer     = helper.EthBlobIndexer{}
 	EthBlobIndexHeight = 0
 	EthBlobIndexSlot   = 1
+	HeightIndexer      = helper.HeightIndexer{}
+	HeightIndexHeight  = 0
 )

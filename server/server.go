@@ -31,7 +31,8 @@ type ApiServer struct {
 	storageRest  string
 	noCache      bool
 	redirect     bool
-	dbAdapter    db.Adapter
+	blobsAdapter db.Adapter
+	lineaAdapter db.Adapter
 }
 
 // TODO: Replace with Source-Registry integration
@@ -42,20 +43,22 @@ var (
 )
 
 func StartApiServer(chainId, restEndpoint, storageRest string) *ApiServer {
-	var adapter db.Adapter
+	var blobsAdapter, lineaAdapter db.Adapter
 	noCache := viper.GetBool("server.no-cache")
 	port := viper.GetInt("server.port")
 	redirect := viper.GetBool("server.redirect")
 
 	if !noCache {
-		adapter = config.GetDatabaseAdapter(nil, &indexer.EthBlobIndexer, 21)
+		blobsAdapter = config.GetDatabaseAdapter(nil, &indexer.EthBlobIndexer, 21)
+		lineaAdapter = config.GetDatabaseAdapter(nil, &indexer.EthBlobIndexer, 105)
 	}
 
 	apiServer := &ApiServer{
 		chainId:      chainId,
 		restEndpoint: restEndpoint,
 		storageRest:  storageRest,
-		dbAdapter:    adapter,
+		blobsAdapter: blobsAdapter,
+		lineaAdapter: lineaAdapter,
 		noCache:      noCache,
 		redirect:     redirect,
 	}
@@ -76,6 +79,7 @@ func StartApiServer(chainId, restEndpoint, storageRest string) *ApiServer {
 
 	r.GET("/celestia/GetSharesByNamespace", apiServer.GetSharesByNamespace)
 	r.GET("/beacon/blob_sidecars", apiServer.BlobSidecars)
+	r.GET("/linea", apiServer.LineaHeight)
 
 	if err := r.Run(fmt.Sprintf(":%v", port)); err != nil {
 		logger.Error().Str("err", err.Error()).Msg("failed to run api server")
@@ -202,6 +206,25 @@ func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
 	})
 }
 
+func (apiServer *ApiServer) LineaHeight(c *gin.Context) {
+	heightStr := c.Query("block_height")
+	height, err := strconv.Atoi(heightStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	file, err := apiServer.lineaAdapter.Get(int64(height), indexer.HeightIndexHeight)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	apiServer.resolveFile(c, file)
+}
+
 func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	heightStr := c.Query("block_height")
 	slotStr := c.Query("slot_number")
@@ -251,7 +274,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			return
 		}
 		if !apiServer.noCache {
-			file, err := apiServer.dbAdapter.Get(int64(height), indexer.EthBlobIndexHeight)
+			file, err := apiServer.blobsAdapter.Get(int64(height), indexer.EthBlobIndexHeight)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": err.Error(),
@@ -297,7 +320,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			return
 		}
 		if !apiServer.noCache {
-			file, err := apiServer.dbAdapter.Get(int64(slot), indexer.EthBlobIndexSlot)
+			file, err := apiServer.blobsAdapter.Get(int64(slot), indexer.EthBlobIndexSlot)
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"error": err.Error(),

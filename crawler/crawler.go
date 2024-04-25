@@ -2,7 +2,6 @@ package crawler
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/KYVENetwork/trustless-rpc/types"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/go-co-op/gocron"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -116,12 +114,9 @@ func CreateBundleCrawler(restEndpoint string, storageRest string, adapter db.Ada
 
 func Create() Crawler {
 	var bundleCrawler []*BundleCrawler
-	chainId := viper.GetString("chain-id")
-	endpoint := utils.GetChainRest(chainId, viper.GetString("chain-rest"))
-	storageRest := strings.TrimSuffix(viper.GetString("storage-rest"), "/")
 	for _, bc := range config.GetCrawlerConfig() {
 		adapter := bc.GetDatabaseAdapter()
-		newCrawler := CreateBundleCrawler(endpoint, storageRest, adapter, bc.PoolId)
+		newCrawler := CreateBundleCrawler(bc.ChainRest, bc.StorageRest, adapter, bc.PoolId)
 		bundleCrawler = append(bundleCrawler, &newCrawler)
 	}
 
@@ -131,7 +126,10 @@ func Create() Crawler {
 }
 
 func (c *Crawler) Start() {
+	var wg sync.WaitGroup
 	for _, bc := range c.bundleCrawler {
-		bc.Start()
+		wg.Add(1)
+		go bc.Start()
 	}
+	wg.Wait()
 }
