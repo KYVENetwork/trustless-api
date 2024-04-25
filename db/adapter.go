@@ -10,7 +10,7 @@ import (
 type DataItemDocument struct {
 	ID       uint  `gorm:"primarykey"`
 	BundleID int64 `gorm:"bundleId"`
-	PoolId   int64
+	PoolID   int64
 	FileType int
 	FilePath string
 }

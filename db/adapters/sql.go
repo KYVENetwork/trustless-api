@@ -3,6 +3,7 @@ package adapters
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/KYVENetwork/trustless-api/db"
 	"github.com/KYVENetwork/trustless-api/files"
@@ -84,7 +85,7 @@ func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 					logger.Error().Err(err).Msg("Faild to save dataitem")
 					return err
 				}
-				item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolId: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
+				item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolID: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
 				err = tx.Table(adapter.dataItemTable).Create(&item).Error
 				if err != nil {
 					logger.Error().Err(err).Msg("Faild to save dataitem")
@@ -115,10 +116,15 @@ func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 }
 
 func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile, error) {
+
+	start := time.Now()
+
 	result := db.DataItemDocument{}
 	query := db.IndexDocument{IndexID: indexId, Key: dataitemKey}
 	joinString := fmt.Sprintf("join %v on %v.id = %v.data_item_id", adapter.dataItemTable, adapter.dataItemTable, adapter.indexTable)
 	rows := adapter.db.Table(adapter.indexTable).Joins(joinString).Where(&query).Scan(&result)
+	elapsed := time.Since(start)
+	logger.Debug().Msg(fmt.Sprintf("data item lookup took: %v", elapsed))
 	if rows.Error != nil {
 		return files.SavedFile{}, rows.Error
 	}
