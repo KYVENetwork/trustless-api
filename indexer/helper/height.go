@@ -8,13 +8,13 @@ import (
 
 type HeightIndexer struct{}
 
-func (*HeightIndexer) GetDataItemIndicies(dataitem *types.TrustlessDataItem) ([]int64, error) {
+func (*HeightIndexer) GetDataItemIndices(dataitem *types.TrustlessDataItem) ([]int64, error) {
 	height, err := strconv.Atoi(dataitem.Value.Key)
 	if err != nil {
 		return []int64{}, err
 	}
-	var indicies []int64 = []int64{
+	var indices []int64 = []int64{
 		int64(height),
 	}
-	return indicies, nil
+	return indices, nil
 }

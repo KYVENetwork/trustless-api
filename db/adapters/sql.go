@@ -32,7 +32,7 @@ func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId 
 
 	database, err := gorm.Open(sqlite.Open(viper.GetString("database.dbname")), &gorm.Config{})
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Cannot open datase.")
+		logger.Fatal().Err(err).Msg("Cannot open database.")
 	}
 
 	dataItemTable, indexTable := db.GetTableNames(poolId)
@@ -91,9 +91,9 @@ func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 					return err
 				}
 
-				keys, err := adapter.indexer.GetDataItemIndicies(&dataitem)
+				keys, err := adapter.indexer.GetDataItemIndices(&dataitem)
 				if err != nil {
-					logger.Error().Err(err).Msg("Faild to get dataitem indicies")
+					logger.Error().Err(err).Msg("Faild to get dataitem indices")
 					return err
 				}
 

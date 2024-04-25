@@ -6,7 +6,7 @@ import (
 )
 
 type Indexer interface {
-	GetDataItemIndicies(dataitem *types.TrustlessDataItem) ([]int64, error)
+	GetDataItemIndices(dataitem *types.TrustlessDataItem) ([]int64, error)
 }
 
 var (
