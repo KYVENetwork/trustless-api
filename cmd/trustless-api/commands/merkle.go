@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/KYVENetwork/trustless-rpc/merkle"
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/merkle"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/spf13/cobra"
 )
 

@@ -3,8 +3,8 @@ package db
 import (
 	"fmt"
 
-	"github.com/KYVENetwork/trustless-rpc/files"
-	"github.com/KYVENetwork/trustless-rpc/types"
+	"github.com/KYVENetwork/trustless-api/files"
+	"github.com/KYVENetwork/trustless-api/types"
 )
 
 type DataItemDocument struct {

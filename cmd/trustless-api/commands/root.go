@@ -3,12 +3,12 @@ package commands
 import (
 	"fmt"
 
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/spf13/cobra"
 )
 
 var (
-	logger = utils.TrustlessRpcLogger("commands")
+	logger = utils.TrustlessApiLogger("commands")
 )
 
 var (
@@ -21,10 +21,10 @@ var (
 	storageRest  string
 )
 
-// RootCmd is the root command for trustless-rpc.
+// RootCmd is the root command for trustless-api.
 var rootCmd = &cobra.Command{
-	Use:   "trustless-rpc",
-	Short: "The first trustless RPC, providing validated data through KYVE.",
+	Use:   "trustless-api",
+	Short: "The first Trustless API, providing validated data through KYVE.",
 }
 
 func Execute() {

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/KYVENetwork/trustless-rpc/server"
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/server"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -29,7 +29,7 @@ func init() {
 
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "Start the trustless RPC",
+	Short: "Start the Trustless API",
 	Run: func(cmd *cobra.Command, args []string) {
 		chainId := viper.GetString("chain-id")
 		endpoint := utils.GetChainRest(chainId, restEndpoint)

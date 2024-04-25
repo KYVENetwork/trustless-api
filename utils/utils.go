@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	logger = TrustlessRpcLogger("utils")
+	logger = TrustlessApiLogger("utils")
 )
 
 func GetVersion() string {
@@ -47,9 +47,9 @@ func GetFromUrl(url string) ([]byte, error) {
 		if strings.HasPrefix(version, "v") {
 			version = strings.TrimPrefix(version, "v")
 		}
-		request.Header.Set("User-Agent", fmt.Sprintf("trustless-rpc/%v (%v / %v / %v)", version, runtime.GOOS, runtime.GOARCH, runtime.Version()))
+		request.Header.Set("User-Agent", fmt.Sprintf("trustless-api/%v (%v / %v / %v)", version, runtime.GOOS, runtime.GOARCH, runtime.Version()))
 	} else {
-		request.Header.Set("User-Agent", fmt.Sprintf("trustless-rpc/dev (%v / %v / %v)", runtime.GOOS, runtime.GOARCH, runtime.Version()))
+		request.Header.Set("User-Agent", fmt.Sprintf("trustless-api/dev (%v / %v / %v)", runtime.GOOS, runtime.GOARCH, runtime.Version()))
 	}
 
 	// Perform the request

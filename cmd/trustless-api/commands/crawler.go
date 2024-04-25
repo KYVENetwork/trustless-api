@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 
-	"github.com/KYVENetwork/trustless-rpc/crawler"
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/crawler"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

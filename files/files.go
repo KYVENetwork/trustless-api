@@ -1,7 +1,7 @@
 package files
 
 import (
-	"github.com/KYVENetwork/trustless-rpc/types"
+	"github.com/KYVENetwork/trustless-api/types"
 )
 
 type SavedFile struct {

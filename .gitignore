@@ -28,3 +28,4 @@ config.yml
 go.work
 
 build
+/release/

@@ -6,19 +6,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
-	"github.com/KYVENetwork/trustless-rpc/collectors/pool"
-	"github.com/KYVENetwork/trustless-rpc/config"
-	"github.com/KYVENetwork/trustless-rpc/db"
-	"github.com/KYVENetwork/trustless-rpc/merkle"
-	"github.com/KYVENetwork/trustless-rpc/types"
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/collectors/bundles"
+	"github.com/KYVENetwork/trustless-api/collectors/pool"
+	"github.com/KYVENetwork/trustless-api/config"
+	"github.com/KYVENetwork/trustless-api/db"
+	"github.com/KYVENetwork/trustless-api/merkle"
+	"github.com/KYVENetwork/trustless-api/types"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/go-co-op/gocron"
 	"github.com/spf13/viper"
 )
 
 var (
-	logger = utils.TrustlessRpcLogger("crawler")
+	logger = utils.TrustlessApiLogger("crawler")
 )
 
 type Crawler struct {

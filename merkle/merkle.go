@@ -6,13 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
-	"github.com/KYVENetwork/trustless-rpc/types"
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/collectors/bundles"
+	"github.com/KYVENetwork/trustless-api/types"
+	"github.com/KYVENetwork/trustless-api/utils"
 )
 
 var (
-	logger = utils.TrustlessRpcLogger("merkle")
+	logger = utils.TrustlessApiLogger("merkle")
 )
 
 func buildMerkleTree(hashes *[][32]byte, tree *[][]string) {

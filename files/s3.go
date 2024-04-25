@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/KYVENetwork/trustless-rpc/types"
+	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
