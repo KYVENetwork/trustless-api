@@ -68,6 +68,8 @@ storage:
 
 The Trustless API is split up into different responsibilities. First, there is the `crawler`, which crawls the actual bundles from KYVE, generates an inclusion proof for each data item in the bundle, creates indices for those data items, and finally stores them together with a proof of inclusion.
 
+Next, there is the server, which receives a request for a data item with a specific key, looks up the data item based on the key, and returns the data item together with the previously generated proof of inclusion.
+
 These steps are independent at the code level, meaning that it is necessary to first start a process with the crawler in order to correctly serve the crawled data items.
 
 ### How the crawler works in detail
@@ -99,6 +101,7 @@ We have to generate indices on each data item, because we want to quickly retrie
 The whole purpose of the Indexer is to return the possible indices of a specific data item, that then will be stored and later queried in the database.
 
 **Example: `EthBlobs`**
+
 The `EthBlobsIndexer` generates all necessary indices to query for blobs:
 - block_height
 - slot_number
@@ -109,11 +112,11 @@ This means, the `EthBlobsIndexer` will take a trustless data item as an argument
 func (*EthBlobIndexer) GetDataItemIndices(dataitem *types.TrustlessDataItem) ([]int64, error) {
     // process blob data
     ...
-	var indices []int64 = []int64{
-		int64(height),
-		int64(blobData.SlotNumber),
-	}
-	return indices, nil
+    var indices []int64 = []int64{
+        int64(height),
+        int64(blobData.SlotNumber),
+    }
+    return indices, nil
 }
 ```
 
@@ -124,12 +127,12 @@ How are the data items stored and how do we index them?
 The table structure is the following: We have two schemes 1. DataItemDocument & 2. IndexDocument.
 There will be exactly two tables per pool with the following naming conventions: data_items_pool_`poolId`, indices_pool_`poolId` 
 
-DataItemDocument:
+**DataItemDocument**
 |ID|BundleID|PoolID|FileType|FilePath|
 |-|-|-|-|-|
 |uint, primarykey|int64|int64|int|string|
 
-IndexDocument:
+**IndexDocument**
 |Key|IndexID|DataItemID|
 |-|-|-|
 |int64, primarykey|int, primarykey|uint|
@@ -141,9 +144,9 @@ We make use of a database adapter interface to disconnect the actual database us
 Adapter interface:
 ```go
 type Adapter interface {
-	Save(dataitem *[]types.TrustlessDataItem) error
-	Get(dataitemKey int64, indexId int) (files.SavedFile, error)
-	Exists(bundle int64) bool
+    Save(dataitem *[]types.TrustlessDataItem) error
+    Get(dataitemKey int64, indexId int) (files.SavedFile, error)
+    Exists(bundle int64) bool
 }
 ```
 
