@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"fmt"
 	"strings"
 
+	"github.com/KYVENetwork/trustless-api/config"
 	"github.com/KYVENetwork/trustless-api/server"
 	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/spf13/cobra"
@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	startCmd.Flags().StringVar(&chainId, "chain-id", utils.DefaultChainId, fmt.Sprintf("KYVE chain id [\"%s\",\"%s\", \"%s\"]", utils.ChainIdMainnet, utils.ChainIdKaon, utils.ChainIdKorellia))
+	startCmd.Flags().StringVar(&configPath, "config", "./config.yml", "sets the config that is used")
 
 	startCmd.Flags().IntVar(&port, "port", 4242, "API server port")
 
@@ -34,7 +34,7 @@ var startCmd = &cobra.Command{
 		chainId := viper.GetString("chain-id")
 		endpoint := utils.GetChainRest(chainId, restEndpoint)
 		storageRest = strings.TrimSuffix(storageRest, "/")
-
+		config.LoadConfig(configPath)
 		server.StartApiServer(chainId, endpoint, storageRest)
 	},
 }
