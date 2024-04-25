@@ -9,15 +9,15 @@ import (
 
 type DataItemDocument struct {
 	ID       uint  `gorm:"primarykey"`
-	BundleID int64 `gorm:"index:bundleId"`
+	BundleID int64 `gorm:"bundleId"`
 	PoolId   int64
 	FileType int
 	FilePath string
 }
 
 type IndexDocument struct {
-	Key        int64 `gorm:"index:idx;primarykey"`
-	IndexID    int   `gorm:"index:idx;primarykey"`
+	Key        int64 `gorm:"primarykey"`
+	IndexID    int   `gorm:"primarykey"`
 	DataItemID uint
 }
 
@@ -28,5 +28,5 @@ type Adapter interface {
 }
 
 func GetTableNames(poolId int64) (string, string) {
-	return fmt.Sprintf("data_items_pool_%v", poolId), fmt.Sprintf("indexes_pool_%v", poolId)
+	return fmt.Sprintf("data_items_pool_%v", poolId), fmt.Sprintf("indices_pool_%v", poolId)
 }

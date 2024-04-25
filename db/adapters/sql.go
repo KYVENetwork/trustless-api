@@ -32,7 +32,7 @@ func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId 
 
 	database, err := gorm.Open(sqlite.Open(viper.GetString("database.dbname")), &gorm.Config{})
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Cannot open datase.")
+		logger.Fatal().Err(err).Msg("Cannot open database.")
 	}
 
 	dataItemTable, indexTable := db.GetTableNames(poolId)
@@ -91,9 +91,9 @@ func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 					return err
 				}
 
-				keys, err := adapter.indexer.GetDataItemIndicies(&dataitem)
+				keys, err := adapter.indexer.GetDataItemIndices(&dataitem)
 				if err != nil {
-					logger.Error().Err(err).Msg("Faild to get dataitem indicies")
+					logger.Error().Err(err).Msg("Faild to get dataitem indices")
 					return err
 				}
 
@@ -115,7 +115,6 @@ func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 }
 
 func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile, error) {
-
 	result := db.DataItemDocument{}
 	query := db.IndexDocument{IndexID: indexId, Key: dataitemKey}
 	joinString := fmt.Sprintf("join %v on %v.id = %v.data_item_id", adapter.dataItemTable, adapter.dataItemTable, adapter.indexTable)
@@ -123,7 +122,7 @@ func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile,
 	if rows.Error != nil {
 		return files.SavedFile{}, rows.Error
 	}
-	if rows.RowsAffected == 0 {
+	if rows.RowsAffected == 0 || dataitemKey == 0 {
 		return files.SavedFile{}, fmt.Errorf("data item not found")
 	}
 	return files.SavedFile{Path: result.FilePath, Type: result.FileType}, nil

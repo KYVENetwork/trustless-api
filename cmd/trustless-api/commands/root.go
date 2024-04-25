@@ -14,6 +14,7 @@ var (
 var (
 	bundleId     int64
 	chainId      string
+	configPath   string
 	noCache      bool
 	port         int
 	poolId       int64

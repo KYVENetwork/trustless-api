@@ -15,11 +15,11 @@ cp build/trustless-api ~/go/bin/trustless-api
 
 ## How it works
 
-The Turstless API works in multiple phases. First the `crawler` goes through every bundle, downloads its content and stores every data item together with a proof of inclusion to a given data destination. Finally, the `crawler` creates indicies on those data items, to quickly retrieve its origin (poolId, bundleId) and content again. These indicies will be stored in the given database.
+The Trustless API works in multiple phases. First the `crawler` goes through every bundle, downloads its content and stores every data item together with a proof of inclusion to a given data destination. Finally, the `crawler` creates indices on those data items, to quickly retrieve its origin (poolId, bundleId) and content again. These indices will be stored in the given database.
 
-A user then requests a data item with a key, the trustless api will then search for the key in the previously created indicies of the database and serve the corresponding data item.
+A user then requests a data item with a key, the Trustless API will then search for the key in the previously created indices of the database and serve the corresponding data item.
 
-These steps are independent on the code level, meaning that we first have to start a process with the `crawler` to then correctly serve the crawled data items.
+These steps are independent on the code level, meaning that it is required to first start a process with the `crawler` in order to correctly serve the crawled data items.
 
 ## Crawler
 
@@ -31,13 +31,15 @@ trustless-api crawler
 
 ## Server
 
-To server the crawled data items you have to start the process with the following arguments:
+To serve the crawled data items you have to start the process with the following arguments:
 
 ```sh
 trustless-api start
 ```
 
 ## Config
+
+The following config serves as an example, utilizing a Postgres database and an S3 bucket. You can find the template configuration here: `.config.template.yml`
 
 ```yml
 chain-id: kaon-1 # the chain-id which is being used, chain endpoint & storage endpoints are based on that

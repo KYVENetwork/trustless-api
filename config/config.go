@@ -10,8 +10,10 @@ import (
 )
 
 type CrawlerConfig struct {
-	PoolId  int64
-	Indexer string
+	PoolId      int64
+	Indexer     string
+	ChainRest   string
+	StorageRest string
 }
 
 var (
@@ -19,7 +21,8 @@ var (
 )
 
 var (
-	EthBlobsConfig = CrawlerConfig{PoolId: 21, Indexer: "EthBlobs"}
+	EthBlobsConfig = CrawlerConfig{PoolId: 21, Indexer: "EthBlobs", ChainRest: utils.RestEndpointKaon, StorageRest: utils.RestEndpointKYVEStorage}
+	LineaConfig    = CrawlerConfig{PoolId: 105, Indexer: "Height", ChainRest: utils.RestEndpointKorellia, StorageRest: utils.RestEndpointKYVEStorage}
 )
 
 func loadDefaults() {
@@ -48,21 +51,26 @@ func loadDefaults() {
 
 	var pools []CrawlerConfig = []CrawlerConfig{
 		EthBlobsConfig,
+		LineaConfig,
 	}
 	viper.SetDefault("crawler.pools", pools)
 }
 
-func LoadConfig() {
+func LoadConfig(configPath string) {
 
 	viper.AutomaticEnv()
 	loadDefaults()
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
-	viper.AddConfigPath(".")
+	viper.SetConfigFile(configPath)
 	err := viper.ReadInConfig()
 	if err != nil {
 		logger.Info().Msg("No config found! Will create config with default values!")
-		viper.WriteConfigAs("config.yml")
+		err = viper.WriteConfigAs(configPath)
+		if err != nil {
+			logger.Fatal().Err(err).Msg("Failed to create config file")
+			return
+		}
 	}
 }
 
@@ -101,12 +109,20 @@ func GetDatabaseAdapter(saveDataItem files.SaveDataItem, indexer indexer.Indexer
 }
 
 func (c CrawlerConfig) GetDatabaseAdapter() db.Adapter {
+	var saveFile files.SaveDataItem = GetSaveDataItemAdapter()
+	var idx indexer.Indexer = nil
 	switch c.Indexer {
 	case "EthBlobs":
-		adapter := GetDatabaseAdapter(GetSaveDataItemAdapter(), &indexer.EthBlobIndexer, c.PoolId)
-		return adapter
+		idx = &indexer.EthBlobIndexer
+	case "Height":
+		idx = &indexer.HeightIndexer
 	}
-	logger.Fatal().Str("type", c.Indexer).Msg("Cannot resolve indexer")
 
-	return nil
+	if idx == nil {
+		logger.Fatal().Str("type", c.Indexer).Msg("Cannot resolve indexer")
+		return nil
+	}
+
+	adapter := GetDatabaseAdapter(saveFile, idx, c.PoolId)
+	return adapter
 }

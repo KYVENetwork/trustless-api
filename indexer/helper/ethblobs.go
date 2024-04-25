@@ -9,11 +9,7 @@ import (
 
 type EthBlobIndexer struct{}
 
-func (eth *EthBlobIndexer) GetIndexCount() int {
-	return 2
-}
-
-func (eth *EthBlobIndexer) GetDataItemIndicies(dataitem *types.TrustlessDataItem) ([]int64, error) {
+func (eth *EthBlobIndexer) GetDataItemIndices(dataitem *types.TrustlessDataItem) ([]int64, error) {
 	// Create a struct to unmarshal into
 	var blobData types.BlobValue
 
@@ -22,11 +18,14 @@ func (eth *EthBlobIndexer) GetDataItemIndicies(dataitem *types.TrustlessDataItem
 	if err != nil {
 		return nil, err
 	}
-	height, _ := strconv.Atoi(dataitem.Value.Key)
-	var indicies []int64 = []int64{
+	height, err := strconv.Atoi(dataitem.Value.Key)
+	if err != nil {
+		return nil, err
+	}
+	var indices []int64 = []int64{
 		int64(height),
 		int64(blobData.SlotNumber),
 	}
 
-	return indicies, nil
+	return indices, nil
 }
