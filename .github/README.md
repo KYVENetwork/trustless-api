@@ -124,7 +124,10 @@ func (*EthBlobIndexer) GetDataItemIndices(dataitem *types.TrustlessDataItem) ([]
 
 How are the data items stored and how do we index them?
 
-The table structure is the following: We have two schemes 1. DataItemDocument & 2. IndexDocument.
+We have two schemes:
+1. DataItemDocument
+2. IndexDocument.
+
 There will be exactly two tables per pool with the following naming conventions: data_items_pool_`poolId`, indices_pool_`poolId` 
 
 **DataItemDocument**
