@@ -25,6 +25,9 @@ var (
 	logger = utils.TrustlessRpcLogger("server")
 )
 
+//go:embed index.tmpl
+var embeddedHTML []byte
+
 type ApiServer struct {
 	chainId      string
 	restEndpoint string
@@ -66,10 +69,8 @@ func StartApiServer(chainId, restEndpoint, storageRest string) *ApiServer {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
-	// Define index route
-	r.LoadHTMLGlob("templates/*")
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(200, "index.tmpl", gin.H{})
+		c.Data(http.StatusOK, "text/html", embeddedHTML)
 	})
 
 	// Enable caching
@@ -388,7 +389,6 @@ func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
 		}
 		c.JSON(http.StatusOK, file)
 	case files.S3File:
-		//TODO
 		url := viper.GetString("storage.cdn")
 		if apiServer.redirect {
 			c.Redirect(301, fmt.Sprintf("%v%v", url, file.Path))
