@@ -1,8 +1,8 @@
 package indexer
 
 import (
-	"github.com/KYVENetwork/trustless-rpc/indexer/helper"
-	"github.com/KYVENetwork/trustless-rpc/types"
+	"github.com/KYVENetwork/trustless-api/indexer/helper"
+	"github.com/KYVENetwork/trustless-api/types"
 )
 
 type Indexer interface {

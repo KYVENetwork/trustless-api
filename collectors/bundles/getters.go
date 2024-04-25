@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/KYVENetwork/trustless-rpc/types"
+	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/gin-gonic/gin"
 )
 

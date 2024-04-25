@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/KYVENetwork/trustless-rpc/db"
-	"github.com/KYVENetwork/trustless-rpc/files"
-	"github.com/KYVENetwork/trustless-rpc/indexer"
-	"github.com/KYVENetwork/trustless-rpc/types"
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/db"
+	"github.com/KYVENetwork/trustless-api/files"
+	"github.com/KYVENetwork/trustless-api/indexer"
+	"github.com/KYVENetwork/trustless-api/types"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/driver/postgres"
@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	logger = utils.TrustlessRpcLogger("DB")
+	logger = utils.TrustlessApiLogger("DB")
 )
 
 type SQLAdapter struct {

@@ -1,11 +1,11 @@
 package config
 
 import (
-	"github.com/KYVENetwork/trustless-rpc/db"
-	"github.com/KYVENetwork/trustless-rpc/db/adapters"
-	"github.com/KYVENetwork/trustless-rpc/files"
-	"github.com/KYVENetwork/trustless-rpc/indexer"
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/db"
+	"github.com/KYVENetwork/trustless-api/db/adapters"
+	"github.com/KYVENetwork/trustless-api/files"
+	"github.com/KYVENetwork/trustless-api/indexer"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/spf13/viper"
 )
 
@@ -17,7 +17,7 @@ type CrawlerConfig struct {
 }
 
 var (
-	logger = utils.TrustlessRpcLogger("Config")
+	logger = utils.TrustlessApiLogger("Config")
 )
 
 var (

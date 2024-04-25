@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/KYVENetwork/trustless-rpc/types"
+	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/spf13/viper"
 )
 

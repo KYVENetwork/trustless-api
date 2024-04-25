@@ -1,4 +1,4 @@
-module github.com/KYVENetwork/trustless-rpc
+module github.com/KYVENetwork/trustless-api
 
 go 1.21
 

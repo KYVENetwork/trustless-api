@@ -1,16 +1,16 @@
-# Trustless RPC
+# Trustless API
 
-The trustless Celestia and EVM Blobs RPC, providing validated data through KYVE.
+The trustless Celestia and EVM Blobs API, providing validated data through KYVE.
 
 ## Build from Source
 ```bash
-git clone https://github.com/KYVENetwork/trustless-rpc.git
+git clone https://github.com/KYVENetwork/trustless-api.git
 
-cd trustless-rpc
+cd trustless-api
 
 make
 
-cp build/trustless-rpc ~/go/bin/trustless-rpc 
+cp build/trustless-api ~/go/bin/trustless-api
 ```
 
 ## How it works

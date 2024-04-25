@@ -8,21 +8,21 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
-	"github.com/KYVENetwork/trustless-rpc/config"
-	"github.com/KYVENetwork/trustless-rpc/db"
-	"github.com/KYVENetwork/trustless-rpc/files"
-	"github.com/KYVENetwork/trustless-rpc/indexer"
-	"github.com/KYVENetwork/trustless-rpc/merkle"
-	"github.com/KYVENetwork/trustless-rpc/types"
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/collectors/bundles"
+	"github.com/KYVENetwork/trustless-api/config"
+	"github.com/KYVENetwork/trustless-api/db"
+	"github.com/KYVENetwork/trustless-api/files"
+	"github.com/KYVENetwork/trustless-api/indexer"
+	"github.com/KYVENetwork/trustless-api/merkle"
+	"github.com/KYVENetwork/trustless-api/types"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	cachecontrol "go.eigsys.de/gin-cachecontrol/v2"
 )
 
 var (
-	logger = utils.TrustlessRpcLogger("server")
+	logger = utils.TrustlessApiLogger("server")
 )
 
 //go:embed index.tmpl

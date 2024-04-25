@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/KYVENetwork/trustless-rpc/collectors/pool"
-	"github.com/KYVENetwork/trustless-rpc/types"
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/collectors/pool"
+	"github.com/KYVENetwork/trustless-api/types"
+	"github.com/KYVENetwork/trustless-api/utils"
 )
 
 func GetBundleByKey(key int, restEndpoint string, poolId int64) (*types.FinalizedBundle, error) {

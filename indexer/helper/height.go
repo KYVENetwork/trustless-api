@@ -3,7 +3,7 @@ package helper
 import (
 	"strconv"
 
-	"github.com/KYVENetwork/trustless-rpc/types"
+	"github.com/KYVENetwork/trustless-api/types"
 )
 
 type HeightIndexer struct{}

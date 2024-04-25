@@ -1,18 +1,17 @@
 package commands
 
 import (
-	"fmt"
 	"strings"
 
-	"github.com/KYVENetwork/trustless-rpc/config"
-	"github.com/KYVENetwork/trustless-rpc/server"
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/config"
+	"github.com/KYVENetwork/trustless-api/server"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 func init() {
-	startCmd.Flags().StringVar(&chainId, "chain-id", utils.DefaultChainId, fmt.Sprintf("KYVE chain id [\"%s\",\"%s\", \"%s\"]", utils.ChainIdMainnet, utils.ChainIdKaon, utils.ChainIdKorellia))
+	startCmd.Flags().StringVar(&configPath, "config", "./config.yml", "sets the config that is used")
 
 	startCmd.Flags().IntVar(&port, "port", 4242, "API server port")
 
@@ -22,8 +21,6 @@ func init() {
 
 	startCmd.Flags().BoolVar(&noCache, "no-cache", false, "Query bundles directly on request, don't use any cache")
 
-	startCmd.Flags().StringVar(&configPath, "config", "./config.yml", "sets the config that is used")
-
 	viper.BindPFlag("server.no-cache", startCmd.Flags().Lookup("no-cache"))
 	viper.BindPFlag("chain-id", startCmd.Flags().Lookup("chain-id"))
 	viper.BindPFlag("server.port", startCmd.Flags().Lookup("port"))
@@ -32,13 +29,12 @@ func init() {
 
 var startCmd = &cobra.Command{
 	Use:   "start",
-	Short: "Start the trustless RPC",
+	Short: "Start the Trustless API",
 	Run: func(cmd *cobra.Command, args []string) {
 		chainId := viper.GetString("chain-id")
 		endpoint := utils.GetChainRest(chainId, restEndpoint)
 		storageRest = strings.TrimSuffix(storageRest, "/")
 		config.LoadConfig(configPath)
-
 		server.StartApiServer(chainId, endpoint, storageRest)
 	},
 }

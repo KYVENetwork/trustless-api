@@ -2,8 +2,8 @@ package pool
 
 import (
 	"fmt"
-	"github.com/KYVENetwork/trustless-rpc/types"
-	"github.com/KYVENetwork/trustless-rpc/utils"
+	"github.com/KYVENetwork/trustless-api/types"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/tendermint/tendermint/libs/json"
 )
 
