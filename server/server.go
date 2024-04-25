@@ -48,7 +48,7 @@ func StartApiServer(chainId, restEndpoint, storageRest string) *ApiServer {
 	redirect := viper.GetBool("server.redirect")
 
 	if !noCache {
-		adapter = config.GetDatabaseAdapter(&files.SaveLocalFileInterface{}, &indexer.EthBlobIndexer, 21)
+		adapter = config.GetDatabaseAdapter(nil, &indexer.EthBlobIndexer, 21)
 	}
 
 	apiServer := &ApiServer{

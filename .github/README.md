@@ -15,7 +15,7 @@ cp build/trustless-rpc ~/go/bin/trustless-rpc
 
 ## How it works
 
-The Turstless API works in multiple phases. First the `crawler` goes through every bundle, downloads its content and stores every data item together with a proof of inclusion to a given data destination. Finally, the `crawler` creates indicies on those data items, to quickly retrieve its origin (poolId, bundleId) and content again. These indicies will be stored in the given database.
+The Trustless API works in multiple phases. First the `crawler` goes through every bundle, downloads its content and stores every data item together with a proof of inclusion to a given data destination. Finally, the `crawler` creates indicies on those data items, to quickly retrieve its origin (poolId, bundleId) and content again. These indicies will be stored in the given database.
 
 A user then requests a data item with a key, the Trustless API will then search for the key in the previously created indicies of the database and serve the corresponding data item.
 
