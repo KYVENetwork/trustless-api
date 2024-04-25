@@ -52,17 +52,21 @@ func loadDefaults() {
 	viper.SetDefault("crawler.pools", pools)
 }
 
-func LoadConfig() {
+func LoadConfig(configPath string) {
 
 	viper.AutomaticEnv()
 	loadDefaults()
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
-	viper.AddConfigPath(".")
+	viper.SetConfigFile(configPath)
 	err := viper.ReadInConfig()
 	if err != nil {
 		logger.Info().Msg("No config found! Will create config with default values!")
-		viper.WriteConfigAs("config.yml")
+		err = viper.WriteConfigAs(configPath)
+		if err != nil {
+			logger.Fatal().Err(err).Msg("Failed to create config file")
+			return
+		}
 	}
 }
 

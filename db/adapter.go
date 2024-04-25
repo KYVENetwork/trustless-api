@@ -28,5 +28,5 @@ type Adapter interface {
 }
 
 func GetTableNames(poolId int64) (string, string) {
-	return fmt.Sprintf("data_items_pool_%v", poolId), fmt.Sprintf("indexes_pool_%v", poolId)
+	return fmt.Sprintf("data_items_pool_%v", poolId), fmt.Sprintf("indicies_pool_%v", poolId)
 }

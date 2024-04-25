@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/KYVENetwork/trustless-rpc/config"
 	"github.com/KYVENetwork/trustless-rpc/server"
 	"github.com/KYVENetwork/trustless-rpc/utils"
 	"github.com/spf13/cobra"
@@ -21,6 +22,8 @@ func init() {
 
 	startCmd.Flags().BoolVar(&noCache, "no-cache", false, "Query bundles directly on request, don't use any cache")
 
+	startCmd.Flags().StringVar(&configPath, "config", "./config.yml", "sets the config that is used")
+
 	viper.BindPFlag("server.no-cache", startCmd.Flags().Lookup("no-cache"))
 	viper.BindPFlag("chain-id", startCmd.Flags().Lookup("chain-id"))
 	viper.BindPFlag("server.port", startCmd.Flags().Lookup("port"))
@@ -34,6 +37,7 @@ var startCmd = &cobra.Command{
 		chainId := viper.GetString("chain-id")
 		endpoint := utils.GetChainRest(chainId, restEndpoint)
 		storageRest = strings.TrimSuffix(storageRest, "/")
+		config.LoadConfig(configPath)
 
 		server.StartApiServer(chainId, endpoint, storageRest)
 	},
