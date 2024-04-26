@@ -69,47 +69,54 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 	return SQLAdapter{db: database, saveDataItem: saveDataItem, indexer: indexer, dataItemTable: dataItemTable, indexTable: indexTable}
 }
 
-func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
-	return adapter.db.Transaction(func(tx *gorm.DB) error {
-		for _, dataitem := range *dataitems {
-			var mutex sync.Mutex
-			var g errgroup.Group
+func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.TrustlessDataItem, errgroup *errgroup.Group, mutex *sync.Mutex) {
+	// NOTE: i know that channels are probably the solution for what is just did here
+	// but i was in a hurry and just wanted to test it out and it works
+	errgroup.Go(func() error {
+		file, err := adapter.saveDataItem.Save(dataitem)
 
-			g.Go(func() error {
-				file, err := adapter.saveDataItem.Save(&dataitem)
+		mutex.Lock()
+		defer mutex.Unlock()
 
-				mutex.Lock()
-				defer mutex.Unlock()
+		if err != nil {
+			logger.Error().Err(err).Msg("Faild to save dataitem")
+			return err
+		}
+		item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolID: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
+		err = tx.Table(adapter.dataItemTable).Create(&item).Error
+		if err != nil {
+			logger.Error().Err(err).Msg("Faild to save dataitem")
+			return err
+		}
 
-				if err != nil {
-					logger.Error().Err(err).Msg("Faild to save dataitem")
-					return err
-				}
-				item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolID: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
-				err = tx.Table(adapter.dataItemTable).Create(&item).Error
-				if err != nil {
-					logger.Error().Err(err).Msg("Faild to save dataitem")
-					return err
-				}
+		keys, err := adapter.indexer.GetDataItemIndices(dataitem)
+		if err != nil {
+			logger.Error().Err(err).Msg("Faild to get dataitem indices")
+			return err
+		}
 
-				keys, err := adapter.indexer.GetDataItemIndices(&dataitem)
-				if err != nil {
-					logger.Error().Err(err).Msg("Faild to get dataitem indices")
-					return err
-				}
-
-				for keyIndex, key := range keys {
-					err = tx.Table(adapter.indexTable).Create(&db.IndexDocument{DataItemID: item.ID, IndexID: keyIndex, Key: key}).Error
-					if err != nil {
-						logger.Error().Err(err).Msg("Faild to add index")
-						return err
-					}
-				}
-				return nil
-			})
-			if err := g.Wait(); err != nil {
+		for keyIndex, key := range keys {
+			err = tx.Table(adapter.indexTable).Create(&db.IndexDocument{DataItemID: item.ID, IndexID: keyIndex, Key: key}).Error
+			if err != nil {
+				logger.Error().Err(err).Msg("Faild to add index")
 				return err
 			}
+		}
+		return nil
+	})
+}
+
+func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
+	return adapter.db.Transaction(func(tx *gorm.DB) error {
+		var mutex sync.Mutex
+		var g errgroup.Group
+		g.SetLimit(16) // TODO: make this a config var
+		for index := range *dataitems {
+			dataitem := &(*dataitems)[index]
+			adapter.insertDataItem(tx, dataitem, &g, &mutex)
+		}
+		if err := g.Wait(); err != nil {
+			return err
 		}
 		return nil
 	})
