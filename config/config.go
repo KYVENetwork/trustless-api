@@ -10,9 +10,10 @@ import (
 )
 
 type CrawlerConfig struct {
-	PoolId      int64
-	Indexer     string
+	ChainId     string
 	ChainRest   string
+	Indexer     string
+	PoolId      int64
 	StorageRest string
 }
 
@@ -21,8 +22,8 @@ var (
 )
 
 var (
-	EthBlobsConfig = CrawlerConfig{PoolId: 21, Indexer: "EthBlobs", ChainRest: utils.RestEndpointKaon, StorageRest: utils.RestEndpointKYVEStorage}
-	LineaConfig    = CrawlerConfig{PoolId: 105, Indexer: "Height", ChainRest: utils.RestEndpointKorellia, StorageRest: utils.RestEndpointKYVEStorage}
+	EthBlobsConfig = CrawlerConfig{PoolId: 21, Indexer: "EthBlobs", ChainRest: utils.RestEndpointKaon, StorageRest: utils.RestEndpointKYVEStorage, ChainId: "kaon-1"}
+	LineaConfig    = CrawlerConfig{PoolId: 105, Indexer: "Height", ChainRest: utils.RestEndpointKorellia, StorageRest: utils.RestEndpointKYVEStorage, ChainId: "korellia-2"}
 )
 
 func loadDefaults() {

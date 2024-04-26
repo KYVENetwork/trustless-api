@@ -10,6 +10,8 @@
 
 .idea
 
+data
+
 .env
 *.db
 *.db-journal

@@ -24,11 +24,12 @@ type Crawler struct {
 }
 
 type BundleCrawler struct {
+	adapter      db.Adapter
+	chainId      string
+	crawling     sync.Mutex
+	poolId       int64
 	restEndpoint string
 	storageRest  string
-	adapter      db.Adapter
-	poolId       int64
-	crawling     sync.Mutex
 }
 
 func (crawler *BundleCrawler) insertBundleDataItems(bundleId int64) error {
@@ -56,7 +57,7 @@ func (crawler *BundleCrawler) insertBundleDataItems(bundleId int64) error {
 	var trustlessDataItems []types.TrustlessDataItem
 	for _, dataitem := range bundle {
 		proof := merkle.GetHashesCompact(leafs, &dataitem)
-		trustlessDataItem := types.TrustlessDataItem{Value: dataitem, Proof: proof, BundleId: bundleId, PoolId: crawler.poolId}
+		trustlessDataItem := types.TrustlessDataItem{Value: dataitem, Proof: proof, BundleId: bundleId, PoolId: crawler.poolId, ChainId: crawler.chainId}
 		trustlessDataItems = append(trustlessDataItems, trustlessDataItem)
 	}
 	err = crawler.adapter.Save(&trustlessDataItems)
@@ -108,15 +109,15 @@ func (crawler *BundleCrawler) Start() {
 	scheduler.StartBlocking()
 }
 
-func CreateBundleCrawler(restEndpoint string, storageRest string, adapter db.Adapter, poolId int64) BundleCrawler {
-	return BundleCrawler{restEndpoint: restEndpoint, storageRest: storageRest, adapter: adapter, poolId: poolId}
+func CreateBundleCrawler(chainId, restEndpoint, storageRest string, adapter db.Adapter, poolId int64) BundleCrawler {
+	return BundleCrawler{restEndpoint: restEndpoint, storageRest: storageRest, adapter: adapter, poolId: poolId, chainId: chainId}
 }
 
 func Create() Crawler {
 	var bundleCrawler []*BundleCrawler
 	for _, bc := range config.GetCrawlerConfig() {
 		adapter := bc.GetDatabaseAdapter()
-		newCrawler := CreateBundleCrawler(bc.ChainRest, bc.StorageRest, adapter, bc.PoolId)
+		newCrawler := CreateBundleCrawler(bc.ChainId, bc.ChainRest, bc.StorageRest, adapter, bc.PoolId)
 		bundleCrawler = append(bundleCrawler, &newCrawler)
 	}
 
