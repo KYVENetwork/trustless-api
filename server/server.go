@@ -37,13 +37,6 @@ type ApiServer struct {
 	storageRest  string
 }
 
-// TODO: Replace with Source-Registry integration
-var (
-	MainnetPoolMap  = make(map[string]int64)
-	KaonPoolMap     = make(map[string]int64)
-	KorelliaPoolMap = make(map[string]int64)
-)
-
 func StartApiServer(endpointMap map[string]string, storageRest string) *ApiServer {
 	var blobsAdapter, lineaAdapter db.Adapter
 	noCache := viper.GetBool("server.no-cache")
@@ -52,7 +45,7 @@ func StartApiServer(endpointMap map[string]string, storageRest string) *ApiServe
 
 	if !noCache {
 		blobsAdapter = config.GetDatabaseAdapter(nil, &indexer.EthBlobIndexer, 21)
-		lineaAdapter = config.GetDatabaseAdapter(nil, &indexer.EthBlobIndexer, 105)
+		lineaAdapter = config.GetDatabaseAdapter(nil, &indexer.HeightIndexer, 108)
 	}
 
 	apiServer := &ApiServer{
@@ -152,6 +145,18 @@ func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
+		return
+	}
+
+	if !apiServer.noCache {
+		file, err := apiServer.lineaAdapter.Get(int64(height), indexer.HeightIndexHeight)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		apiServer.resolveFile(c, file)
 		return
 	}
 
@@ -265,6 +270,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			})
 			return
 		}
+
 		if !apiServer.noCache {
 			file, err := apiServer.blobsAdapter.Get(int64(height), indexer.EthBlobIndexHeight)
 			if err != nil {

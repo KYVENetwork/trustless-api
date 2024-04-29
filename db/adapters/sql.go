@@ -19,14 +19,15 @@ import (
 
 var (
 	logger = utils.TrustlessApiLogger("DB")
+	mu     sync.Mutex
 )
 
 type SQLAdapter struct {
-	db            *gorm.DB
-	saveDataItem  files.SaveDataItem
-	indexer       indexer.Indexer
 	dataItemTable string
+	db            *gorm.DB
+	indexer       indexer.Indexer
 	indexTable    string
+	saveDataItem  files.SaveDataItem
 }
 
 func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) SQLAdapter {
@@ -75,23 +76,24 @@ func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.Trustless
 	errgroup.Go(func() error {
 		file, err := adapter.saveDataItem.Save(dataitem)
 
-		mutex.Lock()
-		defer mutex.Unlock()
-
+		mu.Lock()
 		if err != nil {
 			logger.Error().Err(err).Msg("Faild to save dataitem")
+			mu.Unlock()
 			return err
 		}
 		item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolID: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
 		err = tx.Table(adapter.dataItemTable).Create(&item).Error
 		if err != nil {
 			logger.Error().Err(err).Msg("Faild to save dataitem")
+			mu.Unlock()
 			return err
 		}
 
 		keys, err := adapter.indexer.GetDataItemIndices(dataitem)
 		if err != nil {
 			logger.Error().Err(err).Msg("Faild to get dataitem indices")
+			mu.Unlock()
 			return err
 		}
 
@@ -99,9 +101,11 @@ func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.Trustless
 			err = tx.Table(adapter.indexTable).Create(&db.IndexDocument{DataItemID: item.ID, IndexID: keyIndex, Key: key}).Error
 			if err != nil {
 				logger.Error().Err(err).Msg("Faild to add index")
+				mu.Unlock()
 				return err
 			}
 		}
+		mu.Unlock()
 		return nil
 	})
 }
