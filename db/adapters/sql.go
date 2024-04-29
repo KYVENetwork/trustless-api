@@ -71,29 +71,27 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 }
 
 func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.TrustlessDataItem, errgroup *errgroup.Group, mutex *sync.Mutex) {
-	// NOTE: i know that channels are probably the solution for what is just did here
-	// but i was in a hurry and just wanted to test it out and it works
+	// TODO(@Jamin): Cleanup/Optimize
 	errgroup.Go(func() error {
 		file, err := adapter.saveDataItem.Save(dataitem)
 
-		mu.Lock()
+		mutex.Lock()
+		defer mutex.Unlock()
+
 		if err != nil {
 			logger.Error().Err(err).Msg("Faild to save dataitem")
-			mu.Unlock()
 			return err
 		}
 		item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolID: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
 		err = tx.Table(adapter.dataItemTable).Create(&item).Error
 		if err != nil {
 			logger.Error().Err(err).Msg("Faild to save dataitem")
-			mu.Unlock()
 			return err
 		}
 
 		keys, err := adapter.indexer.GetDataItemIndices(dataitem)
 		if err != nil {
 			logger.Error().Err(err).Msg("Faild to get dataitem indices")
-			mu.Unlock()
 			return err
 		}
 
@@ -101,11 +99,9 @@ func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.Trustless
 			err = tx.Table(adapter.indexTable).Create(&db.IndexDocument{DataItemID: item.ID, IndexID: keyIndex, Key: key}).Error
 			if err != nil {
 				logger.Error().Err(err).Msg("Faild to add index")
-				mu.Unlock()
 				return err
 			}
 		}
-		mu.Unlock()
 		return nil
 	})
 }
