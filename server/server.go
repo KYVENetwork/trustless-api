@@ -29,13 +29,12 @@ var (
 var embeddedHTML []byte
 
 type ApiServer struct {
-	chainId      string
-	restEndpoint string
-	storageRest  string
+	blobsAdapter db.Adapter
+	endpointMap  map[string]string
+	lineaAdapter db.Adapter
 	noCache      bool
 	redirect     bool
-	blobsAdapter db.Adapter
-	lineaAdapter db.Adapter
+	storageRest  string
 }
 
 // TODO: Replace with Source-Registry integration
@@ -45,7 +44,7 @@ var (
 	KorelliaPoolMap = make(map[string]int64)
 )
 
-func StartApiServer(chainId, restEndpoint, storageRest string) *ApiServer {
+func StartApiServer(endpointMap map[string]string, storageRest string) *ApiServer {
 	var blobsAdapter, lineaAdapter db.Adapter
 	noCache := viper.GetBool("server.no-cache")
 	port := viper.GetInt("server.port")
@@ -57,13 +56,12 @@ func StartApiServer(chainId, restEndpoint, storageRest string) *ApiServer {
 	}
 
 	apiServer := &ApiServer{
-		chainId:      chainId,
-		restEndpoint: restEndpoint,
-		storageRest:  storageRest,
 		blobsAdapter: blobsAdapter,
+		endpointMap:  endpointMap,
 		lineaAdapter: lineaAdapter,
 		noCache:      noCache,
 		redirect:     redirect,
+		storageRest:  storageRest,
 	}
 
 	gin.SetMode(gin.ReleaseMode)
@@ -93,8 +91,11 @@ func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
 	heightStr := c.Query("height")
 	namespace := c.Query("namespace")
 
+	// Chain ID to use correct pools and endpoints for this route
+	chainId := "korellia-2"
+
 	// TODO: Replace with Source-Registry integration
-	korelliaPoolMap := map[string]int64{
+	poolMap := map[string]int64{
 		"AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0=": 93,
 		"AAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAg=": 93,
 		"AAAAAAAAAAAAAAAAAAAAAAAAAAAABYTLU4hLOUU=": 93,
@@ -103,38 +104,48 @@ func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
 
 	var poolId int64
 
-	switch apiServer.chainId {
-	case utils.ChainIdMainnet:
-		id, exists := MainnetPoolMap[namespace]
-		if exists {
-			poolId = id
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "namespace is not supported yet; please contact the KYVE team",
-			})
-			return
-		}
-	case utils.ChainIdKaon:
-		id, exists := KaonPoolMap[namespace]
-		if exists {
-			poolId = id
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "namespace is not supported yet; please contact the KYVE team",
-			})
-			return
-		}
-	case utils.ChainIdKorellia:
-		id, exists := korelliaPoolMap[namespace]
-		if exists {
-			poolId = id
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "namespace is not supported yet; please contact the KYVE team",
-			})
-			return
-		}
+	id, exists := poolMap[namespace]
+	if exists {
+		poolId = id
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "namespace is not supported yet; please contact the KYVE team",
+		})
+		return
 	}
+
+	//switch chainId {
+	//case utils.ChainIdMainnet:
+	//	id, exists := MainnetPoolMap[namespace]
+	//	if exists {
+	//		poolId = id
+	//	} else {
+	//		c.JSON(http.StatusBadRequest, gin.H{
+	//			"error": "namespace is not supported yet; please contact the KYVE team",
+	//		})
+	//		return
+	//	}
+	//case utils.ChainIdKaon:
+	//	id, exists := KaonPoolMap[namespace]
+	//	if exists {
+	//		poolId = id
+	//	} else {
+	//		c.JSON(http.StatusBadRequest, gin.H{
+	//			"error": "namespace is not supported yet; please contact the KYVE team",
+	//		})
+	//		return
+	//	}
+	//case utils.ChainIdKorellia:
+	//	id, exists := korelliaPoolMap[namespace]
+	//	if exists {
+	//		poolId = id
+	//	} else {
+	//		c.JSON(http.StatusBadRequest, gin.H{
+	//			"error": "namespace is not supported yet; please contact the KYVE team",
+	//		})
+	//		return
+	//	}
+	//}
 
 	height, err := strconv.Atoi(heightStr)
 	if err != nil {
@@ -144,7 +155,7 @@ func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
 		return
 	}
 
-	compressedBundle, err := bundles.GetBundleByKey(height, apiServer.restEndpoint, poolId)
+	compressedBundle, err := bundles.GetBundleByKey(height, chainId, apiServer.endpointMap, poolId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -216,6 +227,7 @@ func (apiServer *ApiServer) LineaHeight(c *gin.Context) {
 		})
 		return
 	}
+
 	file, err := apiServer.lineaAdapter.Get(int64(height), indexer.HeightIndexHeight)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -229,33 +241,12 @@ func (apiServer *ApiServer) LineaHeight(c *gin.Context) {
 func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	heightStr := c.Query("block_height")
 	slotStr := c.Query("slot_number")
-	chainId := c.Query("l2")
 
-	// TODO: Replace with Source-Registry integration
-	KaonPoolMap["blobs"] = 21
+	// Chain ID to use correct pools and endpoints for this route
+	chainId := "korellia-2"
 
-	// For backwards compatibility; will be removed soon
-	if chainId == "arbitrum" {
-		KorelliaPoolMap["blobs"] = 86
-	}
-
-	var poolId int64
-
-	switch apiServer.chainId {
-	case utils.ChainIdMainnet:
-		poolId = MainnetPoolMap["blobs"]
-	case utils.ChainIdKaon:
-		poolId = KaonPoolMap["blobs"]
-	case utils.ChainIdKorellia:
-		poolId = KorelliaPoolMap["blobs"]
-	}
-
-	if poolId == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "query is not supported yet; please contact the KYVE team",
-		})
-		return
-	}
+	// Pool ID of the Ethereum // Blobs pool on Kaon
+	var poolId int64 = 21
 
 	if heightStr != "" && slotStr != "" {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -286,7 +277,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			return
 		}
 
-		bundle = bundles.GetDecompressedBundleByHeight(c, height, apiServer.restEndpoint, apiServer.storageRest, poolId)
+		bundle = bundles.GetDecompressedBundleByHeight(c, height, chainId, apiServer.endpointMap, apiServer.storageRest, poolId)
 		if bundle == nil {
 			return
 		}
@@ -332,7 +323,7 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			return
 		}
 
-		bundle = bundles.GetDecompressedBundleBySlot(c, slot, apiServer.restEndpoint, apiServer.storageRest, poolId)
+		bundle = bundles.GetDecompressedBundleBySlot(c, slot, chainId, apiServer.endpointMap, apiServer.storageRest, poolId)
 		if bundle == nil {
 			return
 		}

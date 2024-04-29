@@ -11,8 +11,8 @@ import (
 	"github.com/KYVENetwork/trustless-api/utils"
 )
 
-func GetBundleByKey(key int, restEndpoint string, poolId int64) (*types.FinalizedBundle, error) {
-	poolInfo, err := pool.GetPoolInfo(restEndpoint, poolId)
+func GetBundleByKey(key int, chainId string, endpointMap map[string]string, poolId int64) (*types.FinalizedBundle, error) {
+	poolInfo, err := pool.GetPoolInfo(endpointMap[chainId], poolId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool info: %w", err)
 	}
@@ -28,7 +28,7 @@ func GetBundleByKey(key int, restEndpoint string, poolId int64) (*types.Finalize
 
 	paginationKey := ""
 	for {
-		finalizedBundles, nextKey, err := GetFinalizedBundlesPage(restEndpoint, poolId, utils.BundlesPageLimit, paginationKey)
+		finalizedBundles, nextKey, err := GetFinalizedBundlesPage(endpointMap[chainId], poolId, utils.BundlesPageLimit, paginationKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get finalized bundles page: %w", err)
 		}
