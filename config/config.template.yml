@@ -1,12 +1,13 @@
-chain-id: kaon-1 # the chain-id which is being used, chain endpoint & storage endpoints are based on that
-crawler: # the pools that will be crawled when running `crawler`
-    pools:
-        - poolid: 21        # pool id form the desired pool, depends on the chain-id
-          indexer: EthBlobs # what indexer to use, available indexer: EthBlobs
-          chainrest: https://api-eu-1.kaon.kyve.network # the chain rest enpoint to use
-          storagerest: https://storage.kyve.network # the storage endpoint to use
+# TODO: correctly comment
+pools:
+    - chainid: kaon-1
+      indexer: EthBlobs
+      poolid: 21
+    - chainid: korellia-2
+      indexer: Height
+      poolid: 105
 database: # config for the database
-    type: postgres      # supported databases: sqlite (default), postgres
+    type: sqlite      # supported databases: sqlite (default), postgres
     dbname: indexer     # the database name, if you use sqlite this will the the database file. default: ./database.db
     # following attributes are only relevant when using postgres, you don't need them for sqlite
     host: "localhost"
@@ -17,7 +18,7 @@ server: # configuration when running `start`
     port: 4242 # port of the server
     redirect: false # will redirect to the CDN defined in `storage` if set to false the server will fetch the content on request and serve it directly
 storage:
-    type: s3 # the type of storage to use. available options: local (default), s3
+    type: local # the type of storage to use. available options: local (default), s3
     path: ./data # only relevant when using local storage
     # S3 configuration
     aws-endpoint: "http://example-bucket.s3-website.us-west-2.amazonaws.com/" # your R2 or AWS endpoint
@@ -27,3 +28,18 @@ storage:
         keyid: "<access_key_id>" # your access key id
         keysecret: "<access_key_secret>" #your access key secret
     region: auto # default: auto
+endpoints:
+    storage:
+        1:
+            - https://arweave.net
+        2:
+            - https://arweave.net
+        3:
+            - https://storage.kyve.network
+    chains:
+        kaon-1:
+            - https://api.kaon.kyve.network
+        korellia-2:
+            - https://api.korellia.kyve.network
+        kyve-1:
+            - https://api.kyve.network

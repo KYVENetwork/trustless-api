@@ -120,15 +120,15 @@ func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) []types.Merkl
 	return compactHashes
 }
 
-func IsBundleValid(bundleId int64, poolId int64, restEndpoint string, storageRest string) bool {
-	compressedBundle, err := bundles.GetFinalizedBundle(restEndpoint, poolId, bundleId)
+func IsBundleValid(bundleId int64, poolId int64, chainId string) bool {
+	compressedBundle, err := bundles.GetFinalizedBundle(chainId, poolId, bundleId)
 	if err != nil {
 		fmt.Println(err)
 		return false
 	}
 
 	decompressedBundle, err :=
-		bundles.GetDataFromFinalizedBundle(*compressedBundle, storageRest)
+		bundles.GetDataFromFinalizedBundle(*compressedBundle)
 	if err != nil {
 		logger.Fatal().Msg(fmt.Sprintf("failed to decompress bundle: %v\n", err.Error()))
 		return false

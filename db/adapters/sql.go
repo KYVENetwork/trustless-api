@@ -78,26 +78,26 @@ func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.Trustless
 		defer mutex.Unlock()
 
 		if err != nil {
-			logger.Error().Err(err).Msg("Faild to save dataitem")
+			logger.Error().Err(err).Msg("Failed to save dataitem")
 			return err
 		}
 		item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolID: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
 		err = tx.Table(adapter.dataItemTable).Create(&item).Error
 		if err != nil {
-			logger.Error().Err(err).Msg("Faild to save dataitem")
+			logger.Error().Err(err).Msg("Failed to save dataitem")
 			return err
 		}
 
 		keys, err := adapter.indexer.GetDataItemIndices(dataitem)
 		if err != nil {
-			logger.Error().Err(err).Msg("Faild to get dataitem indices")
+			logger.Error().Err(err).Msg("Failed to get dataitem indices")
 			return err
 		}
 
 		for keyIndex, key := range keys {
 			err = tx.Table(adapter.indexTable).Create(&db.IndexDocument{DataItemID: item.ID, IndexID: keyIndex, Key: key}).Error
 			if err != nil {
-				logger.Error().Err(err).Msg("Faild to add index")
+				logger.Error().Err(err).Msg("Failed to add index")
 				return err
 			}
 		}

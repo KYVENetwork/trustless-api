@@ -1,6 +1,9 @@
 package config
 
 import (
+	_ "embed"
+	"os"
+
 	"github.com/KYVENetwork/trustless-api/db"
 	"github.com/KYVENetwork/trustless-api/db/adapters"
 	"github.com/KYVENetwork/trustless-api/files"
@@ -9,21 +12,39 @@ import (
 	"github.com/spf13/viper"
 )
 
-type CrawlerConfig struct {
-	ChainId     string
-	ChainRest   string
-	Indexer     string
-	PoolId      int64
-	StorageRest string
+type PoolsConfig struct {
+	ChainId string
+	Indexer string
+	PoolId  int64
+}
+
+type ConfigEndpoints struct {
+	Storage map[int][]string
+	Chains  map[string][]string
 }
 
 var (
-	logger = utils.TrustlessApiLogger("Config")
+	logger    = utils.TrustlessApiLogger("Config")
+	Endpoints = ConfigEndpoints{
+		Storage: map[int][]string{
+			1: {utils.RestEndpointArweave},
+			2: {utils.RestEndpointBundlr},
+			3: {utils.RestEndpointKYVEStorage},
+		},
+		Chains: map[string][]string{
+			utils.ChainIdMainnet:  {utils.RestEndpointMainnet},
+			utils.ChainIdKaon:     {utils.RestEndpointKaon},
+			utils.ChainIdKorellia: {utils.RestEndpointKorellia},
+		},
+	}
 )
 
+//go:embed config.template.yml
+var DefaultTempalte []byte
+
 var (
-	EthBlobsConfig = CrawlerConfig{PoolId: 21, Indexer: "EthBlobs", ChainRest: utils.RestEndpointKaon, StorageRest: utils.RestEndpointKYVEStorage, ChainId: "kaon-1"}
-	LineaConfig    = CrawlerConfig{PoolId: 105, Indexer: "Height", ChainRest: utils.RestEndpointKorellia, StorageRest: utils.RestEndpointKYVEStorage, ChainId: "korellia-2"}
+	EthBlobsConfig = PoolsConfig{PoolId: 21, Indexer: "EthBlobs", ChainId: "kaon-1"}
+	LineaConfig    = PoolsConfig{PoolId: 105, Indexer: "Height", ChainId: "korellia-2"}
 )
 
 func loadDefaults() {
@@ -49,11 +70,10 @@ func loadDefaults() {
 	viper.SetDefault("server.port", 4242)
 	viper.SetDefault("server.redirect", true)
 
-	var pools []CrawlerConfig = []CrawlerConfig{
-		EthBlobsConfig,
-		LineaConfig,
-	}
-	viper.SetDefault("crawler.pools", pools)
+	var pools []PoolsConfig = []PoolsConfig{EthBlobsConfig, LineaConfig}
+	viper.SetDefault("pools", pools)
+
+	viper.SetDefault("endpoints", Endpoints)
 }
 
 func LoadConfig(configPath string) {
@@ -66,12 +86,27 @@ func LoadConfig(configPath string) {
 	err := viper.ReadInConfig()
 	if err != nil {
 		logger.Info().Msg("No config found! Will create config with default values!")
-		err = viper.WriteConfigAs(configPath)
+		fo, err := os.Create(configPath)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("Failed to create config file")
 			return
 		}
+
+		fo.Write(DefaultTempalte)
+		// read the default config
+		viper.ReadInConfig()
 	}
+
+	LoadEndpoints()
+}
+
+func LoadEndpoints() {
+	var config ConfigEndpoints
+	err := viper.UnmarshalKey("endpoints", &config)
+	if err != nil {
+		logger.Fatal().Msg("Failed to parse endpoints")
+	}
+	Endpoints = config
 }
 
 func GetSaveDataItemAdapter() files.SaveDataItem {
@@ -86,11 +121,11 @@ func GetSaveDataItemAdapter() files.SaveDataItem {
 	return nil
 }
 
-func GetCrawlerConfig() []CrawlerConfig {
-	var config []CrawlerConfig
-	err := viper.UnmarshalKey("crawler.pools", &config)
+func GetPoolsConfig() []PoolsConfig {
+	var config []PoolsConfig
+	err := viper.UnmarshalKey("pools", &config)
 	if err != nil {
-		logger.Fatal().Msg("Failed to parse crawler pools")
+		logger.Fatal().Msg("Failed to parse pools")
 	}
 	return config
 }
@@ -108,7 +143,7 @@ func GetDatabaseAdapter(saveDataItem files.SaveDataItem, indexer indexer.Indexer
 	return nil
 }
 
-func (c CrawlerConfig) GetDatabaseAdapter() db.Adapter {
+func (c PoolsConfig) GetDatabaseAdapter() db.Adapter {
 	var saveFile files.SaveDataItem = GetSaveDataItemAdapter()
 	var idx indexer.Indexer = nil
 	switch c.Indexer {

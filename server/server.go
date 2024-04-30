@@ -26,13 +26,11 @@ var embeddedHTML []byte
 
 type ApiServer struct {
 	blobsAdapter db.Adapter
-	endpointMap  map[string]string
 	lineaAdapter db.Adapter
 	redirect     bool
-	storageRest  string
 }
 
-func StartApiServer(endpointMap map[string]string, storageRest string) *ApiServer {
+func StartApiServer() *ApiServer {
 	var blobsAdapter, lineaAdapter db.Adapter
 	port := viper.GetInt("server.port")
 	redirect := viper.GetBool("server.redirect")
@@ -42,10 +40,8 @@ func StartApiServer(endpointMap map[string]string, storageRest string) *ApiServe
 
 	apiServer := &ApiServer{
 		blobsAdapter: blobsAdapter,
-		endpointMap:  endpointMap,
 		lineaAdapter: lineaAdapter,
 		redirect:     redirect,
-		storageRest:  storageRest,
 	}
 
 	gin.SetMode(gin.ReleaseMode)

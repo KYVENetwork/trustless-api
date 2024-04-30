@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/KYVENetwork/trustless-api/merkle"
 	"github.com/KYVENetwork/trustless-api/utils"
@@ -28,8 +27,6 @@ var merkleCmd = &cobra.Command{
 	Use:   "merkle",
 	Short: "Construct and verify the merkle tree of the given bundle",
 	Run: func(cmd *cobra.Command, args []string) {
-		endpoint := utils.GetChainRest(chainId, restEndpoint)
-		storageRest = strings.TrimSuffix(storageRest, "/")
-		merkle.IsBundleValid(bundleId, poolId, endpoint, storageRest)
+		merkle.IsBundleValid(bundleId, poolId, chainId)
 	},
 }

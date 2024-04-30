@@ -24,25 +24,24 @@ type Crawler struct {
 }
 
 type BundleCrawler struct {
-	restEndpoint string
-	storageRest  string
-	adapter      db.Adapter
-	poolId       int64
-	crawling     sync.Mutex
-	buffer       chan int64
-	err          chan error
+	chainId  string
+	adapter  db.Adapter
+	poolId   int64
+	crawling sync.Mutex
+	buffer   chan int64
+	err      chan error
 }
 
 func (crawler *BundleCrawler) insertBundleDataItems(bundleId int64) error {
 	start := time.Now()
 
-	compressedBundle, err := bundles.GetFinalizedBundle(crawler.restEndpoint, crawler.poolId, bundleId)
+	compressedBundle, err := bundles.GetFinalizedBundle(crawler.chainId, crawler.poolId, bundleId)
 	if err != nil {
 		logger.Error().Msg("Something went wrong when retrieving the bundle...")
 		return err
 	}
 
-	bundle, err := bundles.GetDecompressedBundle(*compressedBundle, crawler.storageRest)
+	bundle, err := bundles.GetDecompressedBundle(*compressedBundle)
 
 	if err != nil {
 		logger.Error().Msg("Something went wrong when retrieving the bundle...")
@@ -90,7 +89,7 @@ func (crawler *BundleCrawler) crawlBundles() {
 
 	defer crawler.crawling.Unlock()
 
-	poolInfo, err := pool.GetPoolInfo(crawler.restEndpoint, crawler.poolId)
+	poolInfo, err := pool.GetPoolInfo(crawler.chainId, crawler.poolId)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to get latest bundle")
 		return
@@ -126,17 +125,17 @@ func (crawler *BundleCrawler) Start() {
 	scheduler.StartBlocking()
 }
 
-func CreateBundleCrawler(restEndpoint string, storageRest string, adapter db.Adapter, poolId int64) BundleCrawler {
+func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId int64) BundleCrawler {
 	buffer := make(chan int64, 8)
 	err := make(chan error)
-	return BundleCrawler{restEndpoint: restEndpoint, storageRest: storageRest, adapter: adapter, poolId: poolId, buffer: buffer, err: err}
+	return BundleCrawler{adapter: adapter, poolId: poolId, buffer: buffer, err: err, chainId: chainId}
 }
 
 func Create() Crawler {
 	var bundleCrawler []*BundleCrawler
-	for _, bc := range config.GetCrawlerConfig() {
+	for _, bc := range config.GetPoolsConfig() {
 		adapter := bc.GetDatabaseAdapter()
-		newCrawler := CreateBundleCrawler(bc.ChainRest, bc.StorageRest, adapter, bc.PoolId)
+		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId)
 		bundleCrawler = append(bundleCrawler, &newCrawler)
 	}
 
