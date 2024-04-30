@@ -24,9 +24,6 @@ func init() {
 
 	startCmd.Flags().StringVar(&storageRest, "storage-rest", "", "storage endpoint for requesting bundle data")
 
-	startCmd.Flags().BoolVar(&noCache, "no-cache", false, "Query bundles directly on request, don't use any cache")
-
-	viper.BindPFlag("server.no-cache", startCmd.Flags().Lookup("no-cache"))
 	viper.BindPFlag("server.port", startCmd.Flags().Lookup("port"))
 	rootCmd.AddCommand(startCmd)
 }

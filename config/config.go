@@ -46,7 +46,6 @@ func loadDefaults() {
 	viper.SetDefault("database.port", 0)
 
 	// server
-	viper.SetDefault("server.no-cache", false)
 	viper.SetDefault("server.port", 4242)
 	viper.SetDefault("server.redirect", true)
 

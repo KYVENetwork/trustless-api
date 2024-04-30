@@ -18,7 +18,6 @@ var (
 	kaonEndpoint     string
 	korelliaEndpoint string
 	mainnetEndpoint  string
-	noCache          bool
 	port             int
 	poolId           int64
 	restEndpoint     string

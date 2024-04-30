@@ -2,19 +2,15 @@ package server
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/KYVENetwork/trustless-api/collectors/bundles"
 	"github.com/KYVENetwork/trustless-api/config"
 	"github.com/KYVENetwork/trustless-api/db"
 	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/indexer"
-	"github.com/KYVENetwork/trustless-api/merkle"
-	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -32,27 +28,22 @@ type ApiServer struct {
 	blobsAdapter db.Adapter
 	endpointMap  map[string]string
 	lineaAdapter db.Adapter
-	noCache      bool
 	redirect     bool
 	storageRest  string
 }
 
 func StartApiServer(endpointMap map[string]string, storageRest string) *ApiServer {
 	var blobsAdapter, lineaAdapter db.Adapter
-	noCache := viper.GetBool("server.no-cache")
 	port := viper.GetInt("server.port")
 	redirect := viper.GetBool("server.redirect")
 
-	if !noCache {
-		blobsAdapter = config.GetDatabaseAdapter(nil, &indexer.EthBlobIndexer, 21)
-		lineaAdapter = config.GetDatabaseAdapter(nil, &indexer.HeightIndexer, 108)
-	}
+	blobsAdapter = config.GetDatabaseAdapter(nil, &indexer.EthBlobIndexer, 21)
+	lineaAdapter = config.GetDatabaseAdapter(nil, &indexer.HeightIndexer, 108)
 
 	apiServer := &ApiServer{
 		blobsAdapter: blobsAdapter,
 		endpointMap:  endpointMap,
 		lineaAdapter: lineaAdapter,
-		noCache:      noCache,
 		redirect:     redirect,
 		storageRest:  storageRest,
 	}
@@ -82,63 +73,6 @@ func StartApiServer(endpointMap map[string]string, storageRest string) *ApiServe
 
 func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
 	heightStr := c.Query("height")
-	namespace := c.Query("namespace")
-
-	// Chain ID to use correct pools and endpoints for this route
-	chainId := "korellia-2"
-
-	// TODO: Replace with Source-Registry integration
-	poolMap := map[string]int64{
-		"AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0=": 93,
-		"AAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAg=": 93,
-		"AAAAAAAAAAAAAAAAAAAAAAAAAAAABYTLU4hLOUU=": 93,
-		"AAAAAAAAAAAAAAAAAAAAAAAAAAAADBuw7+PjGs8=": 93,
-	}
-
-	var poolId int64
-
-	id, exists := poolMap[namespace]
-	if exists {
-		poolId = id
-	} else {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "namespace is not supported yet; please contact the KYVE team",
-		})
-		return
-	}
-
-	//switch chainId {
-	//case utils.ChainIdMainnet:
-	//	id, exists := MainnetPoolMap[namespace]
-	//	if exists {
-	//		poolId = id
-	//	} else {
-	//		c.JSON(http.StatusBadRequest, gin.H{
-	//			"error": "namespace is not supported yet; please contact the KYVE team",
-	//		})
-	//		return
-	//	}
-	//case utils.ChainIdKaon:
-	//	id, exists := KaonPoolMap[namespace]
-	//	if exists {
-	//		poolId = id
-	//	} else {
-	//		c.JSON(http.StatusBadRequest, gin.H{
-	//			"error": "namespace is not supported yet; please contact the KYVE team",
-	//		})
-	//		return
-	//	}
-	//case utils.ChainIdKorellia:
-	//	id, exists := korelliaPoolMap[namespace]
-	//	if exists {
-	//		poolId = id
-	//	} else {
-	//		c.JSON(http.StatusBadRequest, gin.H{
-	//			"error": "namespace is not supported yet; please contact the KYVE team",
-	//		})
-	//		return
-	//	}
-	//}
 
 	height, err := strconv.Atoi(heightStr)
 	if err != nil {
@@ -148,79 +82,14 @@ func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
 		return
 	}
 
-	if !apiServer.noCache {
-		file, err := apiServer.lineaAdapter.Get(int64(height), indexer.HeightIndexHeight)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-		apiServer.resolveFile(c, file)
-		return
-	}
-
-	compressedBundle, err := bundles.GetBundleByKey(height, chainId, apiServer.endpointMap, poolId)
+	file, err := apiServer.lineaAdapter.Get(int64(height), indexer.HeightIndexHeight)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
-
-	decompressedBundle, err := bundles.GetDataFromFinalizedBundle(*compressedBundle, apiServer.storageRest)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("failed to decompress bundle: %v", err.Error()),
-		})
-		return
-	}
-
-	// parse bundle
-	var bundle types.Bundle
-
-	if err := json.Unmarshal(decompressedBundle, &bundle); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("failed to unmarshal bundle data: %v", err.Error()),
-		})
-		return
-	}
-
-	for _, dataItem := range bundle {
-		itemHeight, err := strconv.Atoi(dataItem.Key)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("failed to parse block height from key: %v", err.Error()),
-			})
-			return
-		}
-
-		// skip blocks until we reach start height
-		if itemHeight < height {
-			continue
-		} else if itemHeight == height {
-			var shares types.Shares
-
-			if err := json.Unmarshal(dataItem.Value, &shares); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": fmt.Sprintf("failed to unmarshal value for key %v: %v", itemHeight, err.Error()),
-				})
-				return
-			}
-
-			for _, share := range shares.SharesByNamespace {
-				for key, value := range share {
-					if key == namespace {
-						c.JSON(http.StatusOK, value)
-						return
-					}
-				}
-			}
-		}
-	}
-	c.JSON(http.StatusBadRequest, gin.H{
-		"error": fmt.Sprintf("failed to find data item in bundle"),
-	})
+	apiServer.resolveFile(c, file)
 }
 
 func (apiServer *ApiServer) LineaHeight(c *gin.Context) {
@@ -247,12 +116,6 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	heightStr := c.Query("block_height")
 	slotStr := c.Query("slot_number")
 
-	// Chain ID to use correct pools and endpoints for this route
-	chainId := "korellia-2"
-
-	// Pool ID of the Ethereum // Blobs pool on Kaon
-	var poolId int64 = 21
-
 	if heightStr != "" && slotStr != "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "it's not allowed to specify block_height and slot_number",
@@ -261,8 +124,6 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 	}
 
 	if heightStr != "" {
-		var bundle *types.Bundle
-
 		height, err := strconv.Atoi(heightStr)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -271,45 +132,17 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			return
 		}
 
-		if !apiServer.noCache {
-			file, err := apiServer.blobsAdapter.Get(int64(height), indexer.EthBlobIndexHeight)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": err.Error(),
-				})
-				return
-			}
-			apiServer.resolveFile(c, file)
+		file, err := apiServer.blobsAdapter.Get(int64(height), indexer.EthBlobIndexHeight)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
 			return
 		}
+		apiServer.resolveFile(c, file)
+		return
 
-		bundle = bundles.GetDecompressedBundleByHeight(c, height, chainId, apiServer.endpointMap, apiServer.storageRest, poolId)
-		if bundle == nil {
-			return
-		}
-
-		for _, dataItem := range *bundle {
-			itemHeight, err := strconv.Atoi(dataItem.Key)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": fmt.Sprintf("failed to parse block height from key: %v", err.Error()),
-				})
-				return
-			}
-
-			// skip blocks until we reach start height
-			if itemHeight < height {
-				continue
-			} else if itemHeight == height {
-				hashes := merkle.GetBundleHashes(bundle)
-				response := types.TrustlessDataItem{Value: dataItem, Proof: merkle.GetHashesCompact(hashes, &dataItem)}
-				c.JSON(http.StatusOK, response)
-				return
-			}
-		}
 	} else if slotStr != "" {
-		var bundle *types.Bundle
-
 		slot, err := strconv.Atoi(slotStr)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -317,60 +150,18 @@ func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
 			})
 			return
 		}
-		if !apiServer.noCache {
-			file, err := apiServer.blobsAdapter.Get(int64(slot), indexer.EthBlobIndexSlot)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": err.Error(),
-				})
-				return
-			}
-			apiServer.resolveFile(c, file)
+		file, err := apiServer.blobsAdapter.Get(int64(slot), indexer.EthBlobIndexSlot)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
 			return
 		}
-
-		bundle = bundles.GetDecompressedBundleBySlot(c, slot, chainId, apiServer.endpointMap, apiServer.storageRest, poolId)
-		if bundle == nil {
-			return
-		}
-
-		for _, dataItem := range *bundle {
-			// Parse JSON into RawMessage
-			var rawMsg json.RawMessage
-			err := json.Unmarshal(dataItem.Value, &rawMsg)
-			if err != nil {
-				fmt.Println("Error:", err)
-				return
-			}
-
-			// Create a struct to unmarshal into
-			var blobData types.BlobValue
-
-			// Unmarshal the RawMessage into the struct
-			err = json.Unmarshal(rawMsg, &blobData)
-			if err != nil {
-				fmt.Println("Error:", err)
-				return
-			}
-
-			// skip blocks until we reach start height
-			if blobData.SlotNumber < slot {
-				continue
-			} else if blobData.SlotNumber == slot {
-				hashes := merkle.GetBundleHashes(bundle)
-				response := types.TrustlessDataItem{Value: dataItem, Proof: merkle.GetHashesCompact(hashes, &dataItem)}
-				c.JSON(http.StatusOK, response)
-				return
-			}
-		}
-	} else {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("required to specify block_height or slot_number"),
-		})
+		apiServer.resolveFile(c, file)
+		return
 	}
-
 	c.JSON(http.StatusBadRequest, gin.H{
-		"error": fmt.Sprintf("failed to find data item in bundle"),
+		"error": "required to specify block_height or slot_number",
 	})
 }
 

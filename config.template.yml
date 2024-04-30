@@ -14,7 +14,6 @@ database: # config for the database
     user: "admin"
     password: "root"
 server: # configuration when running `start`
-    no-cache: false # keep this false on production! If set to true, the server will query the chain data live on request and download & build the relevant data 
     port: 4242 # port of the server
     redirect: false # will redirect to the CDN defined in `storage` if set to false the server will fetch the content on request and serve it directly
 storage:
