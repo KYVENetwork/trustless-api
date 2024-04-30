@@ -124,6 +124,7 @@ type TrustlessDataItem struct {
 	Proof    []MerkleNode `json:"proof"`
 	PoolId   int64        `json:"poolId"`
 	BundleId int64        `json:"bundleId"`
+	ChainId  string       `json:"chainId"`
 }
 
 type MerkleNode struct {

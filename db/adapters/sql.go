@@ -22,11 +22,11 @@ var (
 )
 
 type SQLAdapter struct {
-	db            *gorm.DB
-	saveDataItem  files.SaveDataItem
-	indexer       indexer.Indexer
 	dataItemTable string
+	db            *gorm.DB
+	indexer       indexer.Indexer
 	indexTable    string
+	saveDataItem  files.SaveDataItem
 }
 
 func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) SQLAdapter {
@@ -70,8 +70,7 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 }
 
 func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.TrustlessDataItem, errgroup *errgroup.Group, mutex *sync.Mutex) {
-	// NOTE: i know that channels are probably the solution for what is just did here
-	// but i was in a hurry and just wanted to test it out and it works
+	// TODO(@Jamin): Cleanup/Optimize
 	errgroup.Go(func() error {
 		file, err := adapter.saveDataItem.Save(dataitem)
 

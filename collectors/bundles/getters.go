@@ -9,8 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetDecompressedBundleByHeight(c *gin.Context, height int, restEndpoint string, storageRest string, poolId int64) *types.Bundle {
-	compressedBundle, err := GetBundleByKey(height, restEndpoint, poolId)
+func GetDecompressedBundleByHeight(c *gin.Context, height int, chainId string, endpointMap map[string]string, storageRest string, poolId int64) *types.Bundle {
+	compressedBundle, err := GetBundleByKey(height, chainId, endpointMap, poolId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -41,8 +41,8 @@ func GetDecompressedBundleByHeight(c *gin.Context, height int, restEndpoint stri
 
 }
 
-func GetDecompressedBundleBySlot(c *gin.Context, slot int, restEndpoint string, storageRest string, poolId int64) *types.Bundle {
-	compressedBundle, err := GetBundleBySlot(slot, restEndpoint, poolId)
+func GetDecompressedBundleBySlot(c *gin.Context, slot int, chainId string, endpointMap map[string]string, storageRest string, poolId int64) *types.Bundle {
+	compressedBundle, err := GetBundleBySlot(slot, endpointMap[chainId], poolId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),

@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"io"
 	"os"
 
@@ -17,22 +16,4 @@ func TrustlessApiLogger(moduleName string) zerolog.Logger {
 
 	logger := zerolog.New(customConsoleWriter).With().Str("module", moduleName).Timestamp().Logger()
 	return logger
-}
-
-func LogFormatter(keyvals ...interface{}) zerolog.Logger {
-	writer := io.MultiWriter(os.Stdout)
-	customConsoleWriter := zerolog.ConsoleWriter{Out: writer}
-	customConsoleWriter.FormatCaller = func(i interface{}) string {
-		return "\x1b[36m[APP]\x1b[0m"
-	}
-
-	logger := zerolog.New(customConsoleWriter).With()
-
-	if len(keyvals) > 1 {
-		for i := 0; i < len(keyvals); i = i + 2 {
-			logger = logger.Str(fmt.Sprintf("%v", keyvals[i]), fmt.Sprintf("%v", keyvals[i+1]))
-		}
-	}
-
-	return logger.Timestamp().Logger()
 }

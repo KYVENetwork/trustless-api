@@ -1,9 +1,9 @@
 package commands
 
 import (
+	"github.com/KYVENetwork/trustless-api/config"
 	"strings"
 
-	"github.com/KYVENetwork/trustless-api/config"
 	"github.com/KYVENetwork/trustless-api/server"
 	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/spf13/cobra"
@@ -15,14 +15,17 @@ func init() {
 
 	startCmd.Flags().IntVar(&port, "port", 4242, "API server port")
 
-	startCmd.Flags().StringVar(&restEndpoint, "rest-endpoint", "", "KYVE API endpoint to retrieve validated bundles")
+	startCmd.Flags().StringVar(&mainnetEndpoint, "mainnet-endpoint", utils.RestEndpointMainnet, "KYVE API endpoint to retrieve validated bundles")
+
+	startCmd.Flags().StringVar(&kaonEndpoint, "kaon-endpoint", utils.RestEndpointKaon, "KYVE Testnet API endpoint to retrieve validated bundles")
+
+	startCmd.Flags().StringVar(&korelliaEndpoint, "korellia-endpoint", utils.RestEndpointKorellia, "KYVE Devnet API endpoint to retrieve validated bundles")
 
 	startCmd.Flags().StringVar(&storageRest, "storage-rest", "", "storage endpoint for requesting bundle data")
 
 	startCmd.Flags().BoolVar(&noCache, "no-cache", false, "Query bundles directly on request, don't use any cache")
 
 	viper.BindPFlag("server.no-cache", startCmd.Flags().Lookup("no-cache"))
-	viper.BindPFlag("chain-id", startCmd.Flags().Lookup("chain-id"))
 	viper.BindPFlag("server.port", startCmd.Flags().Lookup("port"))
 	rootCmd.AddCommand(startCmd)
 }
@@ -31,10 +34,13 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the Trustless API",
 	Run: func(cmd *cobra.Command, args []string) {
-		chainId := viper.GetString("chain-id")
-		endpoint := utils.GetChainRest(chainId, restEndpoint)
-		storageRest = strings.TrimSuffix(storageRest, "/")
 		config.LoadConfig(configPath)
-		server.StartApiServer(chainId, endpoint, storageRest)
+		endpointMap := map[string]string{
+			"kyve-1":     mainnetEndpoint,
+			"kaon-1":     kaonEndpoint,
+			"korellia-2": korelliaEndpoint,
+		}
+		storageRest = strings.TrimSuffix(storageRest, "/")
+		server.StartApiServer(endpointMap, storageRest)
 	},
 }
