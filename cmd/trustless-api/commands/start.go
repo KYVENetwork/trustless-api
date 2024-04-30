@@ -1,8 +1,9 @@
 package commands
 
 import (
-	"github.com/KYVENetwork/trustless-api/config"
 	"strings"
+
+	"github.com/KYVENetwork/trustless-api/config"
 
 	"github.com/KYVENetwork/trustless-api/server"
 	"github.com/KYVENetwork/trustless-api/utils"

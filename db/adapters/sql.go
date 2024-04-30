@@ -22,11 +22,12 @@ var (
 )
 
 type SQLAdapter struct {
-	dataItemTable string
 	db            *gorm.DB
-	indexer       indexer.Indexer
-	indexTable    string
 	saveDataItem  files.SaveDataItem
+	indexer       indexer.Indexer
+	dataItemTable string
+	indexTable    string
+	mutex         sync.Mutex
 }
 
 func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) SQLAdapter {
@@ -70,7 +71,6 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 }
 
 func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.TrustlessDataItem, errgroup *errgroup.Group, mutex *sync.Mutex) {
-	// TODO(@Jamin): Cleanup/Optimize
 	errgroup.Go(func() error {
 		file, err := adapter.saveDataItem.Save(dataitem)
 
@@ -106,10 +106,12 @@ func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.Trustless
 }
 
 func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
+	adapter.mutex.Lock()
+	defer adapter.mutex.Unlock()
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
 		var mutex sync.Mutex
 		var g errgroup.Group
-		g.SetLimit(16) // TODO: make this a config var
+		g.SetLimit(8) // TODO: make this a config var
 		for index := range *dataitems {
 			dataitem := &(*dataitems)[index]
 			adapter.insertDataItem(tx, dataitem, &g, &mutex)
@@ -122,7 +124,6 @@ func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 }
 
 func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile, error) {
-
 	start := time.Now()
 
 	result := db.DataItemDocument{}
