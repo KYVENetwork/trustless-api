@@ -138,7 +138,7 @@ func (crawler *ChildCrawler) CrawlBundles() {
 
 	lastBundle := poolInfo.Pool.Data.TotalBundles
 
-	for i := int64(0); i < 20; i++ {
+	for i := int64(0); i < lastBundle; i++ {
 		if crawler.adapter.Exists(i) {
 			continue
 		}

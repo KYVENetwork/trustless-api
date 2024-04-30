@@ -84,6 +84,11 @@ func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) ([]types.Merk
 	leafHash := utils.CalculateSHA256Hash(*leafObj)
 	leaf := hex.EncodeToString(leafHash[:])
 
+	if len(tree) == 0 {
+		// was not able to find leaf in merkle tree
+		return []types.MerkleNode{}, fmt.Errorf("failed to create tree")
+	}
+
 	// first find the leaf index
 	var leafIndex int = -1
 	for index, currentLeaf := range tree[0] {
