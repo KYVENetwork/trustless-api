@@ -106,6 +106,7 @@ func LoadEndpoints() {
 	err := viper.UnmarshalKey("endpoints", &config)
 	if err != nil {
 		logger.Fatal().Msg("Failed to parse endpoints")
+		return
 	}
 	Endpoints = config
 }

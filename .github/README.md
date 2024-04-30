@@ -34,34 +34,98 @@ trustless-api start
 The following config serves as an example, utilizing a Postgres database and an S3 bucket. You can find the template configuration here: `.config.template.yml`
 
 ```yml
-chain-id: kaon-1 # the chain-id which is being used, chain endpoint & storage endpoints are based on that
-crawler: # the pools that will be crawled when running `crawler`
-    pools:
-        - poolid: 21        # pool id form the desired pool, depends on the chain-id
-          indexer: EthBlobs # what indexer to use, available indexer: EthBlobs
-database: # config for the database
-    type: postgres      # supported databases: sqlite (default), postgres
-    dbname: indexer     # the database name, if you use sqlite this will the the database file. default: ./database.db
+# === POOLS ===
+# An array that defines what pools should be crawled and how they are served.
+# - chainid: is the chain id of the pool, e. g. kyve-1, koan-1, korellia-2
+# - poolid: respective poolId
+# - indexer: defines what indexer to use, the indexer also defines how to access the data
+#            e. g. EthBlobs will provide following URLs: "/beacon/blob_sidecars?block_height={block_height}", "/beacon/blob_sidecars?slot_number={slot_number}"
+# - slug: what slug should be used when serving the pools. The slug is a unique prefix for each pool when requesting its data.
+#         e. g. with the slug 'ethereum' and the indexer EthBlobs the resulting url will be: "/ethereum/beacon/blob_sidecars?..."
+# =============
+pools:
+    - chainid: kaon-1
+      indexer: EthBlobs
+      poolid: 21
+      slug: ethereum
+    - chainid: korellia-2
+      indexer: Height
+      poolid: 105
+      slug: linea
+
+# === DATABASE ===
+# database configuration
+# ================
+database:
+    # supported databases: sqlite (default), postgres
+    type: sqlite 
+    # the database name, if you use sqlite this will the the database file. default: ./database.db
+    dbname: indexer 
     # following attributes are only relevant when using postgres, you don't need them for sqlite
     host: "localhost"
-    port: 5432 # IMPORTANT: this is postgres database port, not the port the app will use to serve
+    # IMPORTANT: this is postgres database port, not the port the app will use to serve
+    port: 5432 
     user: "admin"
     password: "root"
-server: # configuration when running `start`
-    no-cache: false # keep this false on production! If set to true, the server will query the chain data live on request and download & build the relevant data 
-    port: 4242 # port of the server
-    redirect: false # will redirect to the CDN defined in `storage` if set to false the server will fetch the content on request and serve it directly
+
+# === SERVER ===
+# server configuration. The server will use the pools config to know what pools to serve
+# ==============
+server: 
+    # port of the server
+    port: 4242 
+    # will redirect to the CDN defined in `storage` if set to false the server will fetch the content on request and serve it directly
+    redirect: false 
+
+# === STORAGE ===
+# storage configuration.
+# ===============
 storage:
-    type: s3 # the type of storage to use. available options: local (default), s3
-    path: ./data # only relevant when using local storage
-    # S3 configuration
-    aws-endpoint: "http://example-bucket.s3-website.us-west-2.amazonaws.com/" # your R2 or AWS endpoint
-    bucketname: "example-bucket" # your bucket name
-    cdn: "https://example.domain/" # CDN where to fetch the data, default will be the aws-endpoint
+    # the type of storage to use. available options: local (default), s3
+    type: local 
+    # only relevant when using local storage, can be left empty when using AWS
+    path: ./data 
+    
+    # S3 CONFIG
+    # The following configs are only relevent when using S3
+
+    # your R2 or AWS endpoint
+    aws-endpoint: "http://example-bucket.s3-website.us-west-2.amazonaws.com/" 
+    # your bucket name
+    bucketname: "example-bucket" 
+    # CDN where to fetch the data, default will be the aws-endpoint
+    cdn: "https://example.domain/" 
+    # your access key id and your acces key secret
     credentials:
-        keyid: "<access_key_id>" # your access key id
-        keysecret: "<access_key_secret>" #your access key secret
-    region: auto # default: auto
+        keyid: "<access_key_id>" 
+        keysecret: "<access_key_secret>"
+    # what region to use for the aws config. default: auto
+    region: auto 
+
+# === ENDPOINTS ===
+# specify custom endpoints & fallback
+# endpoints for each storage provider and chain
+# if you dont provide any endpoints, official endpoints will be set as default
+# =================
+endpoints:
+    storage:
+        1:
+            - https://arweave.net
+            # define as many fallback endpoints as you want
+            # - https://arweave.net
+        2:
+            - https://arweave.net
+        3:
+            - https://storage.kyve.network
+    chains:
+        kaon-1:
+            - https://api.kaon.kyve.network
+            # same here, define your fallback endpoints
+            # - https://api.kaon.kyve.network
+        korellia-2:
+            - https://api.korellia.kyve.network
+        kyve-1:
+            - https://api.kyve.network
 ```
 
 ## How it works
@@ -76,7 +140,7 @@ These steps are independent at the code level, meaning that it is necessary to f
 
 As previously mentioned, the `crawler` is responsible for retrieving all bundles from the KYVE chain and storing each data item. The crawler process knows which pools to query based on the `config.yml` file provided. You can find a template configuration under `config.template.yml.`
 
-The config file contains all `poolId`s that should be crawled. The crawler itself functions like a master, starting one Goroutine per `poolId` that is responsible for crawling that specific `poolId`.
+The config file contains all `poolId`s that should be crawled. The crawler itself functions like a master, starting one go-routine per `poolId` that is responsible for crawling that specific `poolId`.
 
 Each go-routine (referred to as a ChildCrawler from here on) performs the following tasks: 
 - it retrieves the pool info and looks up for the latest bundle
@@ -99,7 +163,7 @@ Finally, we start saving the trustless data items.
 <img width="50%" src="../assets/crawler.png" alt="Crawler sketch"/>
 
 ### Indexer
-We have to generate indices on each data item, because we want to quickly retrieve the trustless data item based on a specific key that corresponse to that exact data item. For each data item, there must be at least one index, but here can be more than one. The crawler will generate indices based on the `Indexer` defined in the `config.yml`.
+We have to generate indices on each data item, because we want to quickly retrieve the trustless data item based on a specific key that corresponse to that exact data item. For each data item, there must be at least one index, but there can be more than one. The crawler will generate indices based on the `indexer` defined in the `config.yml`.
 
 The whole purpose of the Indexer is to return the possible indices of a specific data item, that then will be stored and later queried in the database.
 
@@ -112,7 +176,7 @@ The `EthBlobsIndexer` generates all necessary indices to query for blobs:
 This means, the `EthBlobsIndexer` will take a trustless data item as an argument and return the specific indices for that data item.
 
 ```go
-func (*EthBlobIndexer) GetDataItemIndices(dataitem *types.TrustlessDataItem) ([]int64, error) {
+func (*EthBlobsIndexer) GetDataItemIndices(dataitem *types.TrustlessDataItem) ([]int64, error) {
     // process blob data
     ...
     var indices []int64 = []int64{
@@ -159,19 +223,19 @@ type Adapter interface {
 As you can see, we make use of only three methods to interact with the database. When inserting the data items it is important to submit them all with only one transactions, otherwise it might be possible that we fail to save some data items of a bundle resulting in incomplete data.
 
 When inserting a data item, the adapter is responsible for the following:
-- first upload/save the trustless data item to a location (this will be done via a File Adapter, see next chapter)
+- first upload/save the trustless data item to a location (this will be done via a FileAdapter, see next chapter)
 - write all necessary information about the data item and its location into the database
 - and finally insert every index that exists for that specific data item (in case of EthBlobs this would be the `block_height` and `slot_number`)
 
 ### File Adapter
 
-The Trustless API can save the turstless data items to various locations, therefore we need to account for different file types. The File Adapter is responsible for that.
+The Trustless API can save the turstless data items to various locations, therefore we need to account for different file types. The FileAdapter is responsible for that.
 
-Currently there are only two File Adapter: 
+Currently there are only two FileAdapter: 
 - local file
 - s3 file
 
-A file adapter is only responsible for saving a trustless data item. The corresponding interface looks like the following:
+A FileAdapter is only responsible for saving a trustless data item. The corresponding interface looks like the following:
 
 ```go
 type SaveDataItem interface {
@@ -181,7 +245,7 @@ type SaveDataItem interface {
 
 ### How the server works in detail
 
-The crawler has done the difficult part of indexing each bundle, now the server is able to simple retrieve the requested data item from the database.
+The crawler has done the difficult part of indexing each bundle, now the server is able to simply retrieve the requested data item from the database.
 
 Once a user requests a data item with a key, the server looks up the data item location of that specific key together with the keyIndex. It then resolves the location and either returns the data item directly or redirects to the data item. This behaviour can be set in the config.
 

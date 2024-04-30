@@ -21,17 +21,17 @@ var (
 )
 
 type Crawler struct {
-	children []*BundleCrawler
+	children []*ChildCrawler
 }
 
-type BundleCrawler struct {
+type ChildCrawler struct {
 	chainId  string
 	adapter  db.Adapter
 	poolId   int64
 	crawling sync.Mutex
 }
 
-func (crawler *BundleCrawler) insertBundleDataItems(bundleId int64) error {
+func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	start := time.Now()
 
 	compressedBundle, err := bundles.GetFinalizedBundle(crawler.chainId, crawler.poolId, bundleId)
@@ -73,7 +73,7 @@ func (crawler *BundleCrawler) insertBundleDataItems(bundleId int64) error {
 	return nil
 }
 
-func (crawler *BundleCrawler) bundleWorker(buffer <-chan int64, errChannel chan<- error, ctx context.Context) {
+func (crawler *ChildCrawler) bundleWorker(buffer <-chan int64, errChannel chan<- error, ctx context.Context) {
 	for {
 		bundleId, ok := <-buffer
 		if !ok {
@@ -91,7 +91,7 @@ func (crawler *BundleCrawler) bundleWorker(buffer <-chan int64, errChannel chan<
 	}
 }
 
-func (crawler *BundleCrawler) CrawlBundles() {
+func (crawler *ChildCrawler) CrawlBundles() {
 
 	if !crawler.crawling.TryLock() {
 		logger.Info().Msg("Still crawling bundles!")
@@ -141,18 +141,18 @@ func (crawler *BundleCrawler) CrawlBundles() {
 	logger.Info().Int64("bundleId", lastBundle-1).Msg("Finished crawling to bundle.")
 }
 
-func (crawler *BundleCrawler) Start() {
+func (crawler *ChildCrawler) Start() {
 	scheduler := gocron.NewScheduler(time.UTC)
 	scheduler.Every(30).Seconds().Do(crawler.CrawlBundles)
 	scheduler.StartBlocking()
 }
 
-func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId int64) BundleCrawler {
-	return BundleCrawler{adapter: adapter, poolId: poolId, chainId: chainId}
+func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId int64) ChildCrawler {
+	return ChildCrawler{adapter: adapter, poolId: poolId, chainId: chainId}
 }
 
 func Create() Crawler {
-	var bundleCrawler []*BundleCrawler
+	var bundleCrawler []*ChildCrawler
 	for _, bc := range config.GetPoolsConfig() {
 		adapter := bc.GetDatabaseAdapter()
 		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId)
