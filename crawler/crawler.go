@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -28,8 +29,6 @@ type BundleCrawler struct {
 	adapter  db.Adapter
 	poolId   int64
 	crawling sync.Mutex
-	buffer   chan int64
-	err      chan error
 }
 
 func (crawler *BundleCrawler) insertBundleDataItems(bundleId int64) error {
@@ -56,7 +55,10 @@ func (crawler *BundleCrawler) insertBundleDataItems(bundleId int64) error {
 	start = time.Now()
 	var trustlessDataItems []types.TrustlessDataItem
 	for _, dataitem := range bundle {
-		proof := merkle.GetHashesCompact(leafs, &dataitem)
+		proof, err := merkle.GetHashesCompact(leafs, &dataitem)
+		if err != nil {
+			return err
+		}
 		trustlessDataItem := types.TrustlessDataItem{Value: dataitem, Proof: proof, BundleId: bundleId, PoolId: crawler.poolId, ChainId: crawler.chainId}
 		trustlessDataItems = append(trustlessDataItems, trustlessDataItem)
 	}
@@ -71,23 +73,48 @@ func (crawler *BundleCrawler) insertBundleDataItems(bundleId int64) error {
 	return nil
 }
 
-func (crawler *BundleCrawler) bundleWorker() {
+func (crawler *BundleCrawler) bundleWorker(buffer <-chan int64, errChannel chan<- error, ctx context.Context) {
 	for {
-		bundleId := <-crawler.buffer
+		bundleId, ok := <-buffer
+		if !ok {
+			return
+		}
 		err := crawler.insertBundleDataItems(bundleId)
-		if err != nil {
-			crawler.err <- err
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			if err != nil {
+				errChannel <- err
+			}
 		}
 	}
 }
 
-func (crawler *BundleCrawler) crawlBundles() {
+func (crawler *BundleCrawler) CrawlBundles() {
+
 	if !crawler.crawling.TryLock() {
 		logger.Info().Msg("Still crawling bundles!")
 		return
 	}
 
+	buffer := make(chan int64, 8)
+	errChannel := make(chan error)
+	ctx, cancle := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+
+	defer cancle()
+	defer close(buffer)
+	defer close(errChannel)
 	defer crawler.crawling.Unlock()
+
+	for i := 0; i < cap(buffer); i++ {
+		wg.Add(1)
+		go func() {
+			crawler.bundleWorker(buffer, errChannel, ctx)
+			wg.Done()
+		}()
+	}
 
 	poolInfo, err := pool.GetPoolInfo(crawler.chainId, crawler.poolId)
 	if err != nil {
@@ -97,38 +124,31 @@ func (crawler *BundleCrawler) crawlBundles() {
 
 	lastBundle := poolInfo.Pool.Data.TotalBundles
 
-	for i := int64(0); i < lastBundle; i++ {
+	for i := int64(0); i < 50; i++ {
 		if crawler.adapter.Exists(i) {
 			continue
 		}
-		logger.Info().Msg(fmt.Sprintf("Inserting data items: %v/%v", i, lastBundle))
-		crawler.buffer <- i
+		logger.Info().Msg(fmt.Sprintf("Inserting data items: %v/%v", i, lastBundle-1))
+		buffer <- i
 		select {
-		case <-crawler.err:
+		case <-errChannel:
 			logger.Error().Err(err).Msg("Failed to process bundle...")
 			return
 		default:
 		}
-
 	}
-	logger.Info().Int64("bundleId", lastBundle).Msg("Finished crawling to bundle.")
+
+	logger.Info().Int64("bundleId", lastBundle-1).Msg("Finished crawling to bundle.")
 }
 
 func (crawler *BundleCrawler) Start() {
 	scheduler := gocron.NewScheduler(time.UTC)
-	scheduler.Every(3).Minutes().Do(crawler.crawlBundles)
-
-	for i := 0; i < cap(crawler.buffer); i++ {
-		go crawler.bundleWorker()
-	}
-
+	scheduler.Every(30).Seconds().Do(crawler.CrawlBundles)
 	scheduler.StartBlocking()
 }
 
 func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId int64) BundleCrawler {
-	buffer := make(chan int64, 8)
-	err := make(chan error)
-	return BundleCrawler{adapter: adapter, poolId: poolId, buffer: buffer, err: err, chainId: chainId}
+	return BundleCrawler{adapter: adapter, poolId: poolId, chainId: chainId}
 }
 
 func Create() Crawler {
@@ -147,8 +167,12 @@ func Create() Crawler {
 func (c *Crawler) Start() {
 	var wg sync.WaitGroup
 	for _, bc := range c.children {
+		current := bc
 		wg.Add(1)
-		go bc.Start()
+		go func() {
+			current.Start()
+			wg.Done()
+		}()
 	}
 	wg.Wait()
 }

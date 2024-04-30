@@ -77,7 +77,7 @@ func GetBundleHashesHex(bundle *types.Bundle) []string {
 	return utils.BytesToHex(hashes)
 }
 
-func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) []types.MerkleNode {
+func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) ([]types.MerkleNode, error) {
 	var tree [][]string
 	buildMerkleTree(hashes, &tree)
 
@@ -95,7 +95,7 @@ func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) []types.Merkl
 
 	if leafIndex == -1 {
 		// was not able to find leaf in merkle tree
-		return []types.MerkleNode{}
+		return []types.MerkleNode{}, fmt.Errorf("failed to find leaf in hashes")
 	}
 
 	var compactHashes []types.MerkleNode
@@ -117,7 +117,7 @@ func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) []types.Merkl
 		}
 	}
 
-	return compactHashes
+	return compactHashes, nil
 }
 
 func IsBundleValid(bundleId int64, poolId int64, chainId string) bool {
@@ -158,5 +158,5 @@ func IsBundleValid(bundleId int64, poolId int64, chainId string) bool {
 	}
 	logger.Info().Str("hash", summary.MerkleRoot).Msg("Bundle valid!")
 
-	return false
+	return true
 }
