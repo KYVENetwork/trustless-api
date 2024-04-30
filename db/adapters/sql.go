@@ -19,7 +19,6 @@ import (
 
 var (
 	logger = utils.TrustlessApiLogger("DB")
-	mu     sync.Mutex
 )
 
 type SQLAdapter struct {
