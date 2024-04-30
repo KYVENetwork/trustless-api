@@ -7,6 +7,7 @@ import (
 
 type Indexer interface {
 	GetDataItemIndices(dataitem *types.TrustlessDataItem) ([]int64, error)
+	GetBindings() map[string]map[string]int64
 }
 
 var (

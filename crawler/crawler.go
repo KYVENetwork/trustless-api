@@ -57,7 +57,7 @@ func (crawler *BundleCrawler) insertBundleDataItems(bundleId int64) error {
 	var trustlessDataItems []types.TrustlessDataItem
 	for _, dataitem := range bundle {
 		proof := merkle.GetHashesCompact(leafs, &dataitem)
-		trustlessDataItem := types.TrustlessDataItem{Value: dataitem, Proof: proof, BundleId: bundleId, PoolId: crawler.poolId}
+		trustlessDataItem := types.TrustlessDataItem{Value: dataitem, Proof: proof, BundleId: bundleId, PoolId: crawler.poolId, ChainId: crawler.chainId}
 		trustlessDataItems = append(trustlessDataItems, trustlessDataItem)
 	}
 	err = crawler.adapter.Save(&trustlessDataItems)

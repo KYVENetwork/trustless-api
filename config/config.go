@@ -16,6 +16,7 @@ type PoolsConfig struct {
 	ChainId string
 	Indexer string
 	PoolId  int64
+	Slug    string
 }
 
 type ConfigEndpoints struct {

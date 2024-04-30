@@ -150,3 +150,7 @@ func (adapter *SQLAdapter) Exists(bundleId int64) bool {
 	}
 	return count > 0
 }
+
+func (adapter *SQLAdapter) GetIndexer() indexer.Indexer {
+	return adapter.indexer
+}

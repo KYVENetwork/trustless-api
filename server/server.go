@@ -30,13 +30,23 @@ type ApiServer struct {
 	redirect     bool
 }
 
+type ServePool struct {
+	slug    string
+	adapter db.Adapter
+	indexer indexer.Indexer
+}
+
 func StartApiServer() *ApiServer {
 	var blobsAdapter, lineaAdapter db.Adapter
 	port := viper.GetInt("server.port")
 	redirect := viper.GetBool("server.redirect")
 
-	blobsAdapter = config.GetDatabaseAdapter(nil, &indexer.EthBlobIndexer, 21)
-	lineaAdapter = config.GetDatabaseAdapter(nil, &indexer.HeightIndexer, 108)
+	var pools []ServePool
+	for _, p := range config.GetPoolsConfig() {
+		adapter := p.GetDatabaseAdapter()
+		indexer := adapter.GetIndexer()
+		pools = append(pools, ServePool{indexer: indexer, adapter: adapter, slug: p.Slug})
+	}
 
 	apiServer := &ApiServer{
 		blobsAdapter: blobsAdapter,
@@ -56,9 +66,23 @@ func StartApiServer() *ApiServer {
 		MaxAge: cachecontrol.Duration(30 * 24 * time.Hour),
 	}))
 
-	r.GET("/celestia/GetSharesByNamespace", apiServer.GetSharesByNamespace)
-	r.GET("/beacon/blob_sidecars", apiServer.BlobSidecars)
-	r.GET("/linea", apiServer.LineaHeight)
+	for _, pool := range pools {
+		paths := pool.indexer.GetBindings()
+		currentAdapter := pool.adapter
+		for p, para := range paths {
+			path := fmt.Sprintf("%v%v", pool.slug, p)
+			params := para
+			r.GET(path, func(ctx *gin.Context) {
+				for param, indexId := range params {
+					paramValue := ctx.Query(param)
+					if paramValue != "" {
+						apiServer.GetIndex(ctx, currentAdapter, param, indexId)
+						break
+					}
+				}
+			})
+		}
+	}
 
 	if err := r.Run(fmt.Sprintf(":%v", port)); err != nil {
 		logger.Error().Str("err", err.Error()).Msg("failed to run api server")
@@ -67,10 +91,10 @@ func StartApiServer() *ApiServer {
 	return apiServer
 }
 
-func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
-	heightStr := c.Query("height")
+func (apiServer *ApiServer) GetIndex(c *gin.Context, adapter db.Adapter, queryName string, indexId int64) {
+	keyStr := c.Query(queryName)
+	key, err := strconv.Atoi(keyStr)
 
-	height, err := strconv.Atoi(heightStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -78,27 +102,7 @@ func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
 		return
 	}
 
-	file, err := apiServer.lineaAdapter.Get(int64(height), indexer.HeightIndexHeight)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-	apiServer.resolveFile(c, file)
-}
-
-func (apiServer *ApiServer) LineaHeight(c *gin.Context) {
-	heightStr := c.Query("block_height")
-	height, err := strconv.Atoi(heightStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	file, err := apiServer.lineaAdapter.Get(int64(height), indexer.HeightIndexHeight)
+	file, err := adapter.Get(int64(key), int(indexId))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -106,59 +110,6 @@ func (apiServer *ApiServer) LineaHeight(c *gin.Context) {
 		return
 	}
 	apiServer.resolveFile(c, file)
-}
-
-func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
-	heightStr := c.Query("block_height")
-	slotStr := c.Query("slot_number")
-
-	if heightStr != "" && slotStr != "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "it's not allowed to specify block_height and slot_number",
-		})
-		return
-	}
-
-	if heightStr != "" {
-		height, err := strconv.Atoi(heightStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		file, err := apiServer.blobsAdapter.Get(int64(height), indexer.EthBlobIndexHeight)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-		apiServer.resolveFile(c, file)
-		return
-
-	} else if slotStr != "" {
-		slot, err := strconv.Atoi(slotStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-		file, err := apiServer.blobsAdapter.Get(int64(slot), indexer.EthBlobIndexSlot)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-		apiServer.resolveFile(c, file)
-		return
-	}
-	c.JSON(http.StatusBadRequest, gin.H{
-		"error": "required to specify block_height or slot_number",
-	})
 }
 
 func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {

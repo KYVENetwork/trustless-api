@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/KYVENetwork/trustless-api/files"
+	"github.com/KYVENetwork/trustless-api/indexer"
 	"github.com/KYVENetwork/trustless-api/types"
 )
 
@@ -25,6 +26,7 @@ type Adapter interface {
 	Save(dataitem *[]types.TrustlessDataItem) error
 	Get(dataitemKey int64, indexId int) (files.SavedFile, error)
 	Exists(bundle int64) bool
+	GetIndexer() indexer.Indexer
 }
 
 func GetTableNames(poolId int64) (string, string) {
