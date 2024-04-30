@@ -102,6 +102,13 @@ func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) []types.Merkl
 	var level = 0 // we start at level 0
 	var currentIndex = leafIndex
 
+	// Selects the sibling required to reconstruct the Merkle root from the lowest level
+	if (currentIndex % 2) == 0 {
+		currentIndex++
+	} else {
+		currentIndex--
+	}
+
 	for level < len(tree) {
 		// even means the leaf is on the left side
 		if currentIndex%2 == 0 {
