@@ -72,6 +72,8 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 
 func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.TrustlessDataItem, errgroup *errgroup.Group, mutex *sync.Mutex) {
 	errgroup.Go(func() error {
+		// save the data item unrelated without locking the mutex
+		// this is the only part that should be done in parallel, everything else has to be done sequential -> lock mutex
 		file, err := adapter.saveDataItem.Save(dataitem)
 
 		mutex.Lock()
@@ -84,7 +86,7 @@ func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.Trustless
 		item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolID: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
 		err = tx.Table(adapter.dataItemTable).Create(&item).Error
 		if err != nil {
-			logger.Error().Err(err).Msg("Failed to save dataitem")
+			logger.Error().Err(err).Msg("Failed to insert dataitem into db")
 			return err
 		}
 
@@ -97,7 +99,7 @@ func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.Trustless
 		for keyIndex, key := range keys {
 			err = tx.Table(adapter.indexTable).Create(&db.IndexDocument{DataItemID: item.ID, IndexID: keyIndex, Key: key}).Error
 			if err != nil {
-				logger.Error().Err(err).Msg("Failed to add index")
+				logger.Error().Err(err).Msg("Failed to insert index into db")
 				return err
 			}
 		}
@@ -111,7 +113,7 @@ func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
 		var mutex sync.Mutex
 		var g errgroup.Group
-		g.SetLimit(8) // TODO: make this a config var
+		g.SetLimit(8)
 		for index := range *dataitems {
 			dataitem := &(*dataitems)[index]
 			adapter.insertDataItem(tx, dataitem, &g, &mutex)

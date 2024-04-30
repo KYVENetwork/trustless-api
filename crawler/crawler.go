@@ -31,6 +31,10 @@ type ChildCrawler struct {
 	crawling sync.Mutex
 }
 
+// this is a helper function that will be called from multiple go routines
+//
+// downloads the bundle, creates the inclusion proof (merkle tree)
+// and inserts the bundle into the database
 func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	start := time.Now()
 
@@ -73,6 +77,9 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	return nil
 }
 
+// the bundle worker is responsible for receiving bundleIds & process them
+// only receives bundleIds from `buffer` & only sends errors to the `errChannel`
+// if the context was cancled, the worker will close
 func (crawler *ChildCrawler) bundleWorker(buffer <-chan int64, errChannel chan<- error, ctx context.Context) {
 	for {
 		bundleId, ok := <-buffer
@@ -80,6 +87,7 @@ func (crawler *ChildCrawler) bundleWorker(buffer <-chan int64, errChannel chan<-
 			return
 		}
 		err := crawler.insertBundleDataItems(bundleId)
+		// we have to check if the context was cancled, because if so, the error channel is closed
 		select {
 		case <-ctx.Done():
 			return
@@ -98,16 +106,21 @@ func (crawler *ChildCrawler) CrawlBundles() {
 		return
 	}
 
+	// create channel for bundleIds, we only create 8 as we only want to process 8 bundles simultaneously
 	buffer := make(chan int64, 8)
-	errChannel := make(chan error)
+	errChannel := make(chan error, 8)
+	// create context to know when to cancle each go-routine
 	ctx, cancle := context.WithCancel(context.Background())
+
+	cleanUp := func() {
+		cancle()
+		close(buffer)
+		close(errChannel)
+		crawler.crawling.Unlock()
+	}
+
 	var wg sync.WaitGroup
-
-	defer cancle()
-	defer close(buffer)
-	defer close(errChannel)
-	defer crawler.crawling.Unlock()
-
+	// create bundle worker according to the buffers size
 	for i := 0; i < cap(buffer); i++ {
 		wg.Add(1)
 		go func() {
@@ -119,12 +132,13 @@ func (crawler *ChildCrawler) CrawlBundles() {
 	poolInfo, err := pool.GetPoolInfo(crawler.chainId, crawler.poolId)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to get latest bundle")
+		cleanUp()
 		return
 	}
 
 	lastBundle := poolInfo.Pool.Data.TotalBundles
 
-	for i := int64(0); i < 50; i++ {
+	for i := int64(0); i < 20; i++ {
 		if crawler.adapter.Exists(i) {
 			continue
 		}
@@ -133,11 +147,23 @@ func (crawler *ChildCrawler) CrawlBundles() {
 		select {
 		case <-errChannel:
 			logger.Error().Err(err).Msg("Failed to process bundle...")
+			cleanUp()
 			return
 		default:
 		}
 	}
 
+	close(buffer)
+	// wait until every worker is finished
+	wg.Wait()
+	select {
+	case <-errChannel:
+		logger.Error().Err(err).Msg("Failed to process bundle...")
+		cancle()
+		close(errChannel)
+		return
+	default:
+	}
 	logger.Info().Int64("bundleId", lastBundle-1).Msg("Finished crawling to bundle.")
 }
 

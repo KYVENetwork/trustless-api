@@ -20,5 +20,7 @@ var (
 )
 
 type SaveDataItem interface {
+	// returns a SavedFile
+	// saves an dataitem on some form of FileStorage, this can be any storage like: S3, local, etc.
 	Save(dataitem *types.TrustlessDataItem) (SavedFile, error)
 }
