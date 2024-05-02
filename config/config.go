@@ -53,6 +53,7 @@ func loadDefaults() {
 	// storage
 	viper.SetDefault("storage.type", "local")
 	viper.SetDefault("storage.path", "./data")
+	viper.SetDefault("storage.compression", "gzip")
 	viper.SetDefault("storage.cdn", "")
 	viper.SetDefault("storage.aws-endpoint", "")
 	viper.SetDefault("storage.region", "auto")

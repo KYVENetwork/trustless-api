@@ -16,13 +16,20 @@ import (
 )
 
 type S3FileInterface struct {
-	client *s3.Client
-	bucket string
+	client      *s3.Client
+	bucket      string
+	compression string
 }
 
-// Init preparses the session for the s3.Client
+// Init prepares the session for the s3.Client
 func (saveFile *S3FileInterface) Init() {
 
+	gzip := viper.GetString("storage.compression") == "gzip"
+	if gzip {
+		saveFile.compression = "compress, gzip"
+	} else {
+		saveFile.compression = ""
+	}
 	awsEndpoint := viper.GetString("storage.aws-endpoint")
 	accessKeyId := viper.GetString("storage.credentials.keyid")
 	accessKeySecret := viper.GetString("storage.credentials.keysecret")
@@ -61,10 +68,11 @@ func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedF
 	filepath := fmt.Sprintf("%v/%v/%v.json", dataitem.PoolId, dataitem.BundleId, dataitem.Value.Key)
 
 	_, err = saveFile.client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket:      aws.String(saveFile.bucket),
-		Key:         aws.String(filepath),
-		Body:        reader,
-		ContentType: aws.String("application/json"), // set content type to application/json
+		Bucket:          aws.String(saveFile.bucket),
+		Key:             aws.String(filepath),
+		Body:            reader,
+		ContentEncoding: aws.String(saveFile.compression),
+		ContentType:     aws.String("application/json"), // set content type to application/json
 	})
 
 	if err != nil {

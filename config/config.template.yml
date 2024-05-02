@@ -49,6 +49,9 @@ storage:
     type: local 
     # only relevant when using local storage, can be left empty when using AWS
     path: ./data 
+    # what compression to use when storing/uploading the data
+    # available options: gzip (default), none
+    compression: gzip
     
     # S3 CONFIG
     # The following configs are only relevent when using S3
@@ -57,7 +60,7 @@ storage:
     aws-endpoint: "http://example-bucket.s3-website.us-west-2.amazonaws.com/" 
     # your bucket name
     bucketname: "example-bucket" 
-    # CDN where to fetch the data, default will be the aws-endpoint
+    # CDN where to fetch the data
     cdn: "https://example.domain/" 
     # your access key id and your acces key secret
     credentials:
