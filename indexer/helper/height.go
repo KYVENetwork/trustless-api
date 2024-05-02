@@ -11,7 +11,7 @@ type HeightIndexer struct{}
 func (eth *HeightIndexer) GetBindings() map[string]map[string]int64 {
 	return map[string]map[string]int64{
 		"/value": {
-			"block_height": 0,
+			"block_height": IndexBlockHeight,
 		},
 	}
 }

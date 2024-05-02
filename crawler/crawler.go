@@ -14,6 +14,7 @@ import (
 	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/go-co-op/gocron"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -56,7 +57,6 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 
 	leafs := merkle.GetBundleHashes(&bundle)
 
-	start = time.Now()
 	var trustlessDataItems []types.TrustlessDataItem
 	for _, dataitem := range bundle {
 		proof, err := merkle.GetHashesCompact(leafs, &dataitem)
@@ -66,37 +66,16 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 		trustlessDataItem := types.TrustlessDataItem{Value: dataitem, Proof: proof, BundleId: bundleId, PoolId: crawler.poolId, ChainId: crawler.chainId}
 		trustlessDataItems = append(trustlessDataItems, trustlessDataItem)
 	}
+	start = time.Now()
 	err = crawler.adapter.Save(&trustlessDataItems)
 	if err != nil {
 		fmt.Println(bundleId)
 		return err
 	}
 	elapsed = time.Since(start)
-	logger.Debug().Msg(fmt.Sprintf("Inserting data items took: %v", elapsed))
+	logger.Debug().Int("size", len(trustlessDataItems)).Msg(fmt.Sprintf("Inserting data items took: %v", elapsed))
 
 	return nil
-}
-
-// the bundle worker is responsible for receiving bundleIds & process them
-// only receives bundleIds from `buffer` & only sends errors to the `errChannel`
-// if the context was cancled, the worker will close
-func (crawler *ChildCrawler) bundleWorker(buffer <-chan int64, errChannel chan<- error, ctx context.Context) {
-	for {
-		bundleId, ok := <-buffer
-		if !ok {
-			return
-		}
-		err := crawler.insertBundleDataItems(bundleId)
-		// we have to check if the context was cancled, because if so, the error channel is closed
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			if err != nil {
-				errChannel <- err
-			}
-		}
-	}
 }
 
 func (crawler *ChildCrawler) CrawlBundles() {
@@ -106,33 +85,14 @@ func (crawler *ChildCrawler) CrawlBundles() {
 		return
 	}
 
-	// create channel for bundleIds, we only create 8 as we only want to process 8 bundles simultaneously
-	buffer := make(chan int64, 8)
-	errChannel := make(chan error, 8)
-	// create context to know when to cancle each go-routine
-	ctx, cancle := context.WithCancel(context.Background())
-
-	cleanUp := func() {
-		cancle()
-		close(buffer)
-		close(errChannel)
-		crawler.crawling.Unlock()
-	}
-
-	var wg sync.WaitGroup
-	// create bundle worker according to the buffers size
-	for i := 0; i < cap(buffer); i++ {
-		wg.Add(1)
-		go func() {
-			crawler.bundleWorker(buffer, errChannel, ctx)
-			wg.Done()
-		}()
-	}
+	// create new error group with context
+	// because we want to stop the crawling processes as soon as one request fails and start over again
+	group, ctx := errgroup.WithContext(context.Background())
+	group.SetLimit(4)
 
 	poolInfo, err := pool.GetPoolInfo(crawler.chainId, crawler.poolId)
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to get latest bundle")
-		cleanUp()
 		return
 	}
 
@@ -143,27 +103,27 @@ func (crawler *ChildCrawler) CrawlBundles() {
 			continue
 		}
 		logger.Info().Msg(fmt.Sprintf("Inserting data items: %v/%v", i, lastBundle-1))
-		buffer <- i
+		localIndex := i
+
+		group.Go(func() error {
+			return crawler.insertBundleDataItems(localIndex)
+		})
+
+		// if the context was cancled we don't we return
 		select {
-		case <-errChannel:
+		case <-ctx.Done():
+			err := group.Wait() // get the error
 			logger.Error().Err(err).Msg("Failed to process bundle...")
-			cleanUp()
 			return
 		default:
 		}
 	}
 
-	close(buffer)
-	// wait until every worker is finished
-	wg.Wait()
-	select {
-	case <-errChannel:
+	// wait until all bundles are uploaded
+	if err := group.Wait(); err != nil {
 		logger.Error().Err(err).Msg("Failed to process bundle...")
-		cancle()
-		close(errChannel)
-		return
-	default:
 	}
+
 	logger.Info().Int64("bundleId", lastBundle-1).Msg("Finished crawling to bundle.")
 }
 

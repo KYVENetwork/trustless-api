@@ -19,6 +19,7 @@ import (
 
 var (
 	logger = utils.TrustlessApiLogger("DB")
+	mutex  sync.Mutex
 )
 
 type SQLAdapter struct {
@@ -27,7 +28,6 @@ type SQLAdapter struct {
 	indexer       indexer.Indexer
 	dataItemTable string
 	indexTable    string
-	mutex         sync.Mutex
 }
 
 func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) SQLAdapter {
@@ -108,12 +108,12 @@ func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.Trustless
 }
 
 func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
-	adapter.mutex.Lock()
-	defer adapter.mutex.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
 		var mutex sync.Mutex
 		var g errgroup.Group
-		g.SetLimit(8)
+		g.SetLimit(32)
 		for index := range *dataitems {
 			dataitem := &(*dataitems)[index]
 			adapter.insertDataItem(tx, dataitem, &g, &mutex)
@@ -130,13 +130,18 @@ func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile,
 
 	result := db.DataItemDocument{}
 	query := db.IndexDocument{IndexID: indexId, Key: dataitemKey}
+
+	// because we are using custom table names we can't leverage gorms preloading
+	// therefore we have to write our own join query
 	joinString := fmt.Sprintf("join %v on %v.id = %v.data_item_id", adapter.dataItemTable, adapter.dataItemTable, adapter.indexTable)
 	rows := adapter.db.Table(adapter.indexTable).Joins(joinString).Where(&query).Scan(&result)
+
 	elapsed := time.Since(start)
 	logger.Debug().Msg(fmt.Sprintf("data item lookup took: %v", elapsed))
 	if rows.Error != nil {
 		return files.SavedFile{}, rows.Error
 	}
+	// data item is not found, if there are no affected row or the key is zero
 	if rows.RowsAffected == 0 || dataitemKey == 0 {
 		return files.SavedFile{}, fmt.Errorf("data item not found")
 	}

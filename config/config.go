@@ -84,9 +84,9 @@ func LoadConfig(configPath string) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
 	viper.SetConfigFile(configPath)
-	err := viper.ReadInConfig()
-	if err != nil {
-		logger.Info().Msg("No config found! Will create config with default values!")
+
+	if _, err := os.Stat(configPath); err != nil {
+		logger.Info().Msg("no config found! will create one with default values.")
 		fo, err := os.Create(configPath)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("Failed to create config file")
@@ -94,8 +94,11 @@ func LoadConfig(configPath string) {
 		}
 
 		fo.Write(DefaultTempalte)
-		// read the default config
-		viper.ReadInConfig()
+	}
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to load config.")
 	}
 
 	LoadEndpoints()

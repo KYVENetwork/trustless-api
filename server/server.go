@@ -1,8 +1,10 @@
 package server
 
 import (
+	"bytes"
 	_ "embed"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strconv"
 	"time"
@@ -22,7 +24,7 @@ var (
 )
 
 //go:embed index.tmpl
-var embeddedHTML []byte
+var embeddedHTML string
 
 type ApiServer struct {
 	blobsAdapter db.Adapter
@@ -31,9 +33,9 @@ type ApiServer struct {
 }
 
 type ServePool struct {
-	slug    string
-	adapter db.Adapter
-	indexer indexer.Indexer
+	Slug    string
+	Adapter db.Adapter
+	Indexer indexer.Indexer
 }
 
 func StartApiServer() *ApiServer {
@@ -45,7 +47,7 @@ func StartApiServer() *ApiServer {
 	for _, p := range config.GetPoolsConfig() {
 		adapter := p.GetDatabaseAdapter()
 		indexer := adapter.GetIndexer()
-		pools = append(pools, ServePool{indexer: indexer, adapter: adapter, slug: p.Slug})
+		pools = append(pools, ServePool{Indexer: indexer, Adapter: adapter, Slug: p.Slug})
 	}
 
 	apiServer := &ApiServer{
@@ -57,8 +59,13 @@ func StartApiServer() *ApiServer {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
+	t, _ := template.New("").Parse(embeddedHTML)
+	var templateBytes bytes.Buffer
+	t.Execute(&templateBytes, pools)
+	bytes := templateBytes.Bytes()
+
 	r.GET("/", func(c *gin.Context) {
-		c.Data(http.StatusOK, "text/html", embeddedHTML)
+		c.Data(http.StatusOK, "text/html", bytes)
 	})
 
 	// Enable caching
@@ -67,19 +74,23 @@ func StartApiServer() *ApiServer {
 	}))
 
 	for _, pool := range pools {
-		paths := pool.indexer.GetBindings()
-		currentAdapter := pool.adapter
+		paths := pool.Indexer.GetBindings()
+		currentAdapter := pool.Adapter
 		for p, para := range paths {
-			path := fmt.Sprintf("%v%v", pool.slug, p)
+			path := fmt.Sprintf("%v%v", pool.Slug, p)
 			params := para
 			r.GET(path, func(ctx *gin.Context) {
 				for param, indexId := range params {
 					paramValue := ctx.Query(param)
 					if paramValue != "" {
 						apiServer.GetIndex(ctx, currentAdapter, param, indexId)
-						break
+						return
 					}
 				}
+				ctx.JSON(http.StatusBadRequest, gin.H{
+					"error":     fmt.Errorf("unkown parameter"),
+					"available": currentAdapter.GetIndexer().GetBindings(),
+				})
 			})
 		}
 	}

@@ -24,7 +24,7 @@ database:
     # supported databases: sqlite (default), postgres
     type: sqlite 
     # the database name, if you use sqlite this will the the database file. default: ./database.db
-    dbname: indexer 
+    dbname: indexer.db 
     # following attributes are only relevant when using postgres, you don't need them for sqlite
     host: "localhost"
     # IMPORTANT: this is postgres database port, not the port the app will use to serve

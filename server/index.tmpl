@@ -63,15 +63,16 @@
         <h1>KYVE Data Services</h1>
         <div class="query-section">
             <h3>Supported queries:</h3>
-            <div class="query-group">
-                <h5>Ethereum Blobs</h5>
-                <a href="/beacon/blob_sidecars?block_height=_">/beacon/blob_sidecars?block_height=_</a>
-                <a href="/beacon/blob_sidecars?slot_number=_">/beacon/blob_sidecars?slot_number=_</a>
-            </div>
-            <div class="query-group">
-                <h5>Celestia Blobs</h5>
-                <a href="/celestia/GetSharesByNamespace?height=_&namespace=_">/celestia/GetSharesByNamespace?height=_&namespace=_</a>
-            </div>
+             {{ range $element := . }} 
+                <div class="query-group">
+                    <h5>{{ $element.Slug }}</h5>
+                    {{ range $key, $value := $element.Indexer.GetBindings }}
+                        {{ range $param, $indexId := $value }}
+                            <a href="{{$element.Slug}}{{$key}}?{{$param}}=_"> {{ $element.Slug }}{{ $key }}?{{$param}}=_</a>
+                        {{ end }}
+                    {{ end }}
+                </div>
+             {{ end }}
         </div>
     </div>
 </body>

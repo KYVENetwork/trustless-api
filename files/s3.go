@@ -20,6 +20,7 @@ type S3FileInterface struct {
 	bucket string
 }
 
+// Init preparses the session for the s3.Client
 func (saveFile *S3FileInterface) Init() {
 
 	awsEndpoint := viper.GetString("storage.aws-endpoint")
@@ -63,7 +64,7 @@ func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedF
 		Bucket:      aws.String(saveFile.bucket),
 		Key:         aws.String(filepath),
 		Body:        reader,
-		ContentType: aws.String("application/json"),
+		ContentType: aws.String("application/json"), // set content type to application/json
 	})
 
 	if err != nil {

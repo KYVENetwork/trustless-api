@@ -13,24 +13,33 @@ type SaveLocalFileInterface struct{}
 
 func (saveFile *SaveLocalFileInterface) Save(dataitem *types.TrustlessDataItem) (SavedFile, error) {
 
+	// unmarshal item
 	json, err := json.Marshal(dataitem)
 
 	if err != nil {
 		return SavedFile{}, err
 	}
+
 	path := viper.GetString("storage.path")
 	dir := fmt.Sprintf("%v/%v/%v", path, dataitem.PoolId, dataitem.BundleId)
-	err = os.MkdirAll(dir, 0777)
+
+	// create directories if we need them
+	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return SavedFile{}, err
 	}
-	filepath := fmt.Sprintf("%v/%v.json", dir, dataitem.Value.Key)
 
+	filepath := fmt.Sprintf("%v/%v.json", dir, dataitem.Value.Key)
+	// create the file
 	file, err := os.Create(filepath)
 	if err != nil {
 		return SavedFile{}, err
 	}
-	file.Write(json)
+
+	_, err = file.Write(json)
+	if err != nil {
+		return SavedFile{}, err
+	}
 
 	return SavedFile{Type: LocalFile, Path: filepath}, nil
 }
