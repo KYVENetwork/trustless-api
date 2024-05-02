@@ -13,13 +13,19 @@ import (
 func GetFinalizedBundle(chainId string, poolId int64, bundleId int64) (*types.FinalizedBundle, error) {
 	restEndpoint := config.Endpoints.Chains[chainId]
 
-	//TODO: make backoff with fallback urls
-	raw, err := utils.GetFromUrlWithBackoff(fmt.Sprintf(
-		"%s/kyve/v1/bundles/%d/%d",
-		restEndpoint[0],
-		poolId,
-		bundleId,
-	))
+	var raw []byte
+	var err error
+	for _, r := range restEndpoint {
+		raw, err = utils.GetFromUrlWithBackoff(fmt.Sprintf(
+			"%s/kyve/v1/bundles/%d/%d",
+			r,
+			poolId,
+			bundleId,
+		))
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
 		return nil, err
 	}

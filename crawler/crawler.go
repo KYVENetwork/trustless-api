@@ -69,7 +69,6 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	start = time.Now()
 	err = crawler.adapter.Save(&trustlessDataItems)
 	if err != nil {
-		fmt.Println(bundleId)
 		return err
 	}
 	elapsed = time.Since(start)

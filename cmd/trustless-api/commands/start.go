@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/KYVENetwork/trustless-api/config"
 
 	"github.com/KYVENetwork/trustless-api/server"
@@ -9,7 +12,9 @@ import (
 )
 
 func init() {
-	startCmd.Flags().StringVar(&configPath, "config", "./config.yml", "sets the config that is used")
+	home, _ := os.UserHomeDir()
+	defaultPath := fmt.Sprintf("%v/.trustless-api/config.yml", home)
+	startCmd.Flags().StringVar(&configPath, "config", defaultPath, "sets the config that is used")
 
 	startCmd.Flags().IntVar(&port, "port", 4242, "API server port")
 

@@ -3,6 +3,7 @@ package config
 import (
 	_ "embed"
 	"os"
+	"path/filepath"
 
 	"github.com/KYVENetwork/trustless-api/db"
 	"github.com/KYVENetwork/trustless-api/db/adapters"
@@ -86,7 +87,9 @@ func LoadConfig(configPath string) {
 	viper.SetConfigFile(configPath)
 
 	if _, err := os.Stat(configPath); err != nil {
-		logger.Info().Msg("no config found! will create one with default values.")
+		dirPath := filepath.Dir(configPath)
+		logger.Info().Str("path", configPath).Msg("no config found! will create one with default values.")
+		os.MkdirAll(dirPath, os.ModePerm)
 		fo, err := os.Create(configPath)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("Failed to create config file")

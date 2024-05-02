@@ -1,13 +1,18 @@
 package commands
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/KYVENetwork/trustless-api/config"
 	"github.com/KYVENetwork/trustless-api/crawler"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	crawlerCmd.Flags().StringVar(&configPath, "config", "./config.yml", "sets the config that is used")
+	home, _ := os.UserHomeDir()
+	defaultPath := fmt.Sprintf("%v/.trustless-api/config.yml", home)
+	crawlerCmd.Flags().StringVar(&configPath, "config", defaultPath, "sets the config that is used")
 
 	rootCmd.AddCommand(crawlerCmd)
 }

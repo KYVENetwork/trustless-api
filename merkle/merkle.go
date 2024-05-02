@@ -128,7 +128,7 @@ func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) ([]types.Merk
 func IsBundleValid(bundleId int64, poolId int64, chainId string) bool {
 	compressedBundle, err := bundles.GetFinalizedBundle(chainId, poolId, bundleId)
 	if err != nil {
-		fmt.Println(err)
+		logger.Fatal().Err(err).Msg("failed to fetch bundle")
 		return false
 	}
 
