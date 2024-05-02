@@ -87,10 +87,15 @@ func LoadConfig(configPath string) {
 	viper.SetConfigType("yml")
 	viper.SetConfigFile(configPath)
 
+	// if the config file does not exist yet
 	if _, err := os.Stat(configPath); err != nil {
-		dirPath := filepath.Dir(configPath)
 		logger.Info().Str("path", configPath).Msg("no config found! will create one with default values.")
+
+		// first get the config directory and create it if it doesnt exit yet
+		dirPath := filepath.Dir(configPath)
 		os.MkdirAll(dirPath, os.ModePerm)
+
+		// finally write the embedded template config
 		fo, err := os.Create(configPath)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("Failed to create config file")
@@ -118,6 +123,7 @@ func LoadEndpoints() {
 	Endpoints = config
 }
 
+// returns the SaveDataItem interface that is configured in the config file
 func GetSaveDataItemAdapter() files.SaveDataItem {
 	switch viper.GetString("storage.type") {
 	case "local":
@@ -139,6 +145,7 @@ func GetPoolsConfig() []PoolsConfig {
 	return config
 }
 
+// returns the correct db.Adapter that is configured in the config file
 func GetDatabaseAdapter(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) db.Adapter {
 	switch viper.GetString("database.type") {
 	case "sqlite":
@@ -152,6 +159,8 @@ func GetDatabaseAdapter(saveDataItem files.SaveDataItem, indexer indexer.Indexer
 	return nil
 }
 
+// returns the db.Adapter for each pool config
+// as each pool has its own adapter
 func (c PoolsConfig) GetDatabaseAdapter() db.Adapter {
 	var saveFile files.SaveDataItem = GetSaveDataItemAdapter()
 	var idx indexer.Indexer = nil

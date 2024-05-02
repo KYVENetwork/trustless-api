@@ -15,6 +15,9 @@ var (
 	logger = utils.TrustlessApiLogger("merkle")
 )
 
+// builds a merkle tree based of the hashes
+// each level will be inserted in `tree`,
+// where the first item are the leafs and the last element are the two leafs that make the root
 func buildMerkleTree(hashes *[][32]byte, tree *[][]string) {
 	if len(*hashes) == 1 {
 		return
@@ -77,6 +80,11 @@ func GetBundleHashesHex(bundle *types.Bundle) []string {
 	return utils.BytesToHex(hashes)
 }
 
+// GetHashesCompact creates a compact merkle tree for the given leaf
+// this function will construct a merkle tree based on the hashes and
+// construct only the necessary hashes for building the merkle tree
+//
+// the hash of the `leafObj` has to be included in the hashes array
 func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) ([]types.MerkleNode, error) {
 	var tree [][]string
 	buildMerkleTree(hashes, &tree)

@@ -102,6 +102,10 @@ func StartApiServer() *ApiServer {
 	return apiServer
 }
 
+// GetIndex will search the database for the given query and serve the correct data item if one is found
+// if the desired data item does not exist, or the key can not be parsed, it serves an error
+// `queryName` - is the name of the key that will be used e. g. block_height
+// `indexId` - is the corresponding Id for the key e. g. block_height -> 0
 func (apiServer *ApiServer) GetIndex(c *gin.Context, adapter db.Adapter, queryName string, indexId int64) {
 	keyStr := c.Query(queryName)
 	key, err := strconv.Atoi(keyStr)
@@ -123,6 +127,8 @@ func (apiServer *ApiServer) GetIndex(c *gin.Context, adapter db.Adapter, queryNa
 	apiServer.resolveFile(c, file)
 }
 
+// serves the content of a SavedFile
+// will either redirect to the link in the SavedFile or serve it directly
 func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
 	switch file.Type {
 	case files.LocalFile:

@@ -21,6 +21,8 @@ var (
 	logger = utils.TrustlessApiLogger("crawler")
 )
 
+// Crawler is a master of mulitple child crawler
+// One child crawler is responsible for crawling a specifc pool
 type Crawler struct {
 	children []*ChildCrawler
 }
@@ -77,6 +79,11 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	return nil
 }
 
+// Crawls the latest bundles and processes them.
+// Gets the latest pool info of the selected pool and calls `insertBundleDataItems` for each bundle that has not been processed yet.
+// Will return as soon as some insertion fails
+//
+// NOTE: this function is thread safe, meaning it will return instanly if the crawler has not finished crawling the bundles yet
 func (crawler *ChildCrawler) CrawlBundles() {
 
 	if !crawler.crawling.TryLock() {
@@ -126,6 +133,9 @@ func (crawler *ChildCrawler) CrawlBundles() {
 	logger.Info().Int64("bundleId", lastBundle-1).Msg("Finished crawling to bundle.")
 }
 
+// starts the crawling processes
+// creates a scheduler that invokes CrawlBundles
+// this function is blocking
 func (crawler *ChildCrawler) Start() {
 	scheduler := gocron.NewScheduler(time.UTC)
 	scheduler.Every(30).Seconds().Do(crawler.CrawlBundles)
@@ -136,6 +146,7 @@ func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId int64) Child
 	return ChildCrawler{adapter: adapter, poolId: poolId, chainId: chainId}
 }
 
+// Creates a crawler based on the config file
 func Create() Crawler {
 	var bundleCrawler []*ChildCrawler
 	for _, bc := range config.GetPoolsConfig() {
@@ -149,6 +160,8 @@ func Create() Crawler {
 	}
 }
 
+// starts the crawling process for each child crawler
+// this function is blocking
 func (c *Crawler) Start() {
 	var wg sync.WaitGroup
 	for _, bc := range c.children {

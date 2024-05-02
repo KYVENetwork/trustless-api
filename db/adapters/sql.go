@@ -70,6 +70,8 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 	return SQLAdapter{db: database, saveDataItem: saveDataItem, indexer: indexer, dataItemTable: dataItemTable, indexTable: indexTable}
 }
 
+// inserts one data item into the transaction/db
+// this function will add a go-routine to the error group that will insert the data item
 func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.TrustlessDataItem, errgroup *errgroup.Group, mutex *sync.Mutex) {
 	errgroup.Go(func() error {
 		// save the data item unrelated without locking the mutex
@@ -107,7 +109,12 @@ func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.Trustless
 	})
 }
 
+// inserts the dataitems provided into the database.
+// the entire array is inserted as one transaction ensuring we don't have incomplete data
+//
+// NOTE: this function is thread safe
 func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
+	// lock the entire module as we might have multiple data base adapter instances at the same time
 	mutex.Lock()
 	defer mutex.Unlock()
 	return adapter.db.Transaction(func(tx *gorm.DB) error {

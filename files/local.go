@@ -63,6 +63,8 @@ func (saveFile *SaveLocalFileInterface) Save(dataitem *types.TrustlessDataItem) 
 	return SavedFile{Type: LocalFile, Path: filepath}, nil
 }
 
+// loads a trustless dataitem from the local device storage
+// if the file ends with .gz it will automatically be decompressed
 func LoadLocalFile(link string) (types.TrustlessDataItem, error) {
 
 	file, err := os.ReadFile(link)
