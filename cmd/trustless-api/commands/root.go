@@ -12,11 +12,8 @@ var (
 )
 
 var (
-	bundleId   int64
-	chainId    string
 	configPath string
 	port       int
-	poolId     int64
 )
 
 // RootCmd is the root command for trustless-api.

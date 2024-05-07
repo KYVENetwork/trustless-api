@@ -43,7 +43,13 @@ func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId 
 	database.Table(dataItemTable).AutoMigrate(&db.DataItemDocument{})
 	database.Table(indexTable).AutoMigrate(&db.IndexDocument{})
 
-	return SQLAdapter{db: database, saveDataItem: saveDataItem, indexer: indexer, dataItemTable: dataItemTable, indexTable: indexTable}
+	return SQLAdapter{
+		db:            database,
+		saveDataItem:  saveDataItem,
+		indexer:       indexer,
+		dataItemTable: dataItemTable,
+		indexTable:    indexTable,
+	}
 }
 
 func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) SQLAdapter {
@@ -67,102 +73,155 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 	database.Table(dataItemTable).AutoMigrate(&db.DataItemDocument{})
 	database.Table(indexTable).AutoMigrate(&db.IndexDocument{})
 
-	return SQLAdapter{db: database, saveDataItem: saveDataItem, indexer: indexer, dataItemTable: dataItemTable, indexTable: indexTable}
-}
-
-// inserts one data item into the transaction/db
-// this function will add a go-routine to the error group that will insert the data item
-func (adapter *SQLAdapter) insertDataItem(tx *gorm.DB, dataitem *types.TrustlessDataItem, errgroup *errgroup.Group, mutex *sync.Mutex) {
-	errgroup.Go(func() error {
-		// save the data item unrelated without locking the mutex
-		// this is the only part that should be done in parallel, everything else has to be done sequential -> lock mutex
-		file, err := adapter.saveDataItem.Save(dataitem)
-
-		mutex.Lock()
-		defer mutex.Unlock()
-
-		if err != nil {
-			logger.Error().Err(err).Msg("Failed to save dataitem")
-			return err
-		}
-		item := db.DataItemDocument{BundleID: dataitem.BundleId, PoolID: dataitem.PoolId, FileType: file.Type, FilePath: file.Path}
-		err = tx.Table(adapter.dataItemTable).Create(&item).Error
-		if err != nil {
-			logger.Error().Err(err).Msg("Failed to insert dataitem into db")
-			return err
-		}
-
-		keys, err := adapter.indexer.GetDataItemIndices(dataitem)
-		if err != nil {
-			logger.Error().Err(err).Msg("Failed to get dataitem indices")
-			return err
-		}
-
-		for keyIndex, key := range keys {
-			err = tx.Table(adapter.indexTable).Create(&db.IndexDocument{DataItemID: item.ID, IndexID: keyIndex, Key: key}).Error
-			if err != nil {
-				logger.Error().Err(err).Msg("Failed to insert index into db")
-				return err
-			}
-		}
-		return nil
-	})
+	return SQLAdapter{
+		db:            database,
+		saveDataItem:  saveDataItem,
+		indexer:       indexer,
+		dataItemTable: dataItemTable,
+		indexTable:    indexTable,
+	}
 }
 
 // inserts the dataitems provided into the database.
 // the entire array is inserted as one transaction ensuring we don't have incomplete data
 //
 // NOTE: this function is thread safe
-func (adapter *SQLAdapter) Save(dataitems *[]types.TrustlessDataItem) error {
+func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
+
+	dataitems, err := adapter.indexer.IndexBundle(bundle)
+	if err != nil {
+		return err
+	}
+
+	type Result struct {
+		item *types.TrustlessDataItem
+		file files.SavedFile
+	}
+
+	var result []Result
+	var m sync.Mutex
+	var g errgroup.Group
+	g.SetLimit(viper.GetInt("storage.threads"))
+	for index := range *dataitems {
+		localIndex := index
+		g.Go(func() error {
+			localDataitem := &(*dataitems)[localIndex]
+			file, err := adapter.saveDataItem.Save(localDataitem)
+			if err != nil {
+				logger.Error().
+					Err(err).
+					Int64("bundleId", localDataitem.BundleId).
+					Int64("poolId", localDataitem.PoolId).
+					Msg("failed to save data item")
+				return err
+			}
+			m.Lock()
+			defer m.Unlock()
+			result = append(result, Result{
+				file: file,
+				item: localDataitem,
+			})
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
 	// lock the entire module as we might have multiple data base adapter instances at the same time
 	mutex.Lock()
 	defer mutex.Unlock()
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
-		var mutex sync.Mutex
-		var g errgroup.Group
-		g.SetLimit(32)
-		for index := range *dataitems {
-			dataitem := &(*dataitems)[index]
-			adapter.insertDataItem(tx, dataitem, &g, &mutex)
-		}
-		if err := g.Wait(); err != nil {
-			return err
+		for _, r := range result {
+			file := r.file
+			dataitem := r.item
+			item := db.DataItemDocument{
+				BundleID: dataitem.BundleId,
+				PoolID:   dataitem.PoolId,
+				FileType: file.Type,
+				FilePath: file.Path,
+			}
+			err := tx.Table(adapter.dataItemTable).Create(&item).Error
+			if err != nil {
+				logger.Error().
+					Err(err).
+					Int64("bundleId", dataitem.BundleId).
+					Int64("poolId", dataitem.PoolId).
+					Msg("Failed to insert dataitem into db")
+				return err
+			}
+
+			for componentId, key := range dataitem.Keys {
+				index := db.IndexDocument{
+					DataItemID:  item.ID,
+					ComponentID: uint(componentId),
+					Value:       key,
+					IndexID:     dataitem.IndexId,
+				}
+				err = tx.Table(adapter.indexTable).Create(&index).Error
+				if err != nil {
+					logger.Error().
+						Err(err).
+						Int64("bundleId", dataitem.BundleId).
+						Int64("poolId", dataitem.PoolId).
+						Msg("Failed to insert index into db")
+					return err
+				}
+			}
 		}
 		return nil
 	})
 }
 
-func (adapter *SQLAdapter) Get(dataitemKey int64, indexId int) (files.SavedFile, error) {
+func (adapter *SQLAdapter) Get(indexId int, keys ...string) (files.SavedFile, error) {
 	start := time.Now()
+	template := `SELECT *
+	FROM   %v d
+		   JOIN %v i
+			 ON d.id = i.data_item_id
+	WHERE  i.value IN ?
+	AND i.index_id = %v
+	GROUP  BY i.data_item_id
+	HAVING Count(*) = %v`
+	query := fmt.Sprintf(template, adapter.dataItemTable, adapter.indexTable, indexId, len(keys))
 
 	result := db.DataItemDocument{}
-	query := db.IndexDocument{IndexID: indexId, Key: dataitemKey}
-
-	// because we are using custom table names we can't leverage gorms preloading
-	// therefore we have to write our own join query
-	joinString := fmt.Sprintf("join %v on %v.id = %v.data_item_id", adapter.dataItemTable, adapter.dataItemTable, adapter.indexTable)
-	rows := adapter.db.Table(adapter.indexTable).Joins(joinString).Where(&query).Scan(&result)
-
+	rows := adapter.db.Raw(query, keys).Scan(&result)
 	elapsed := time.Since(start)
 	logger.Debug().Msg(fmt.Sprintf("data item lookup took: %v", elapsed))
+
 	if rows.Error != nil {
 		return files.SavedFile{}, rows.Error
 	}
-	// data item is not found, if there are no affected row or the key is zero
-	if rows.RowsAffected == 0 || dataitemKey == 0 {
+
+	// data item is not found
+	if rows.RowsAffected == 0 {
 		return files.SavedFile{}, fmt.Errorf("data item not found")
 	}
+
 	return files.SavedFile{Path: result.FilePath, Type: result.FileType}, nil
 }
 
-func (adapter *SQLAdapter) Exists(bundleId int64) bool {
-	query := db.DataItemDocument{BundleID: bundleId}
-	var count int64
-	err := adapter.db.Table(adapter.dataItemTable).Where(&query).Count(&count).Error
-	if err != nil {
-		return false
-	}
-	return count > 0
+func (adapter *SQLAdapter) GetMissingBundles(lastBundle int64) []int64 {
+	template := `WITH recursive ids AS
+	(
+		   SELECT 1 AS id
+		   UNION ALL
+		   SELECT id + 1
+		   FROM   ids
+		   WHERE  id < %v )
+	SELECT id
+	FROM   ids
+	WHERE  id NOT IN
+		   (
+					SELECT   bundle_id AS id
+					FROM     %v
+					WHERE    bundle_id <= %v
+					GROUP BY bundle_id )`
+	query := fmt.Sprintf(template, lastBundle, adapter.dataItemTable, lastBundle)
+	var ids []int64
+	adapter.db.Raw(query).Scan(&ids)
+	return ids
 }
 
 func (adapter *SQLAdapter) GetIndexer() indexer.Indexer {

@@ -6,14 +6,14 @@ import (
 	"github.com/KYVENetwork/trustless-api/types"
 )
 
-func GetDecompressedBundle(finalizedBundle types.FinalizedBundle) (types.Bundle, error) {
+func GetDecompressedBundle(finalizedBundle types.FinalizedBundle) ([]types.DataItem, error) {
 
 	decompressedBundle, err := GetDataFromFinalizedBundle(finalizedBundle)
 	if err != nil {
 		return nil, err
 	}
 
-	var bundle types.Bundle
+	var bundle []types.DataItem
 	if err := json.Unmarshal(decompressedBundle, &bundle); err != nil {
 		return nil, err
 	}

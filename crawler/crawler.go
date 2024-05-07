@@ -10,10 +10,10 @@ import (
 	"github.com/KYVENetwork/trustless-api/collectors/pool"
 	"github.com/KYVENetwork/trustless-api/config"
 	"github.com/KYVENetwork/trustless-api/db"
-	"github.com/KYVENetwork/trustless-api/merkle"
 	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/go-co-op/gocron"
+	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -43,38 +43,33 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 
 	compressedBundle, err := bundles.GetFinalizedBundle(crawler.chainId, crawler.poolId, bundleId)
 	if err != nil {
-		logger.Error().Msg("Something went wrong when retrieving the bundle...")
+		logger.Error().Int64("poolId", crawler.poolId).Msg("Something went wrong when retrieving the bundle...")
 		return err
 	}
 
-	bundle, err := bundles.GetDecompressedBundle(*compressedBundle)
+	dataitems, err := bundles.GetDecompressedBundle(*compressedBundle)
 
 	if err != nil {
-		logger.Error().Msg("Something went wrong when retrieving the bundle...")
+		logger.Error().Int64("poolId", crawler.poolId).Msg("Something went wrong when retrieving the bundle...")
 		return err
 	}
 
 	elapsed := time.Since(start)
-	logger.Debug().Msg(fmt.Sprintf("Downloading bundle took: %v", elapsed))
+	logger.Debug().Int64("poolId", crawler.poolId).Msg(fmt.Sprintf("Downloading bundle took: %v", elapsed))
 
-	leafs := merkle.GetBundleHashes(&bundle)
-
-	var trustlessDataItems []types.TrustlessDataItem
-	for _, dataitem := range bundle {
-		proof, err := merkle.GetHashesCompact(leafs, &dataitem)
-		if err != nil {
-			return err
-		}
-		trustlessDataItem := types.TrustlessDataItem{Value: dataitem, Proof: proof, BundleId: bundleId, PoolId: crawler.poolId, ChainId: crawler.chainId}
-		trustlessDataItems = append(trustlessDataItems, trustlessDataItem)
+	bundle := types.Bundle{
+		DataItems: dataitems,
+		PoolId:    crawler.poolId,
+		BundleId:  bundleId,
+		ChainId:   crawler.chainId,
 	}
 	start = time.Now()
-	err = crawler.adapter.Save(&trustlessDataItems)
+	err = crawler.adapter.Save(&bundle)
 	if err != nil {
 		return err
 	}
 	elapsed = time.Since(start)
-	logger.Debug().Int("size", len(trustlessDataItems)).Msg(fmt.Sprintf("Inserting data items took: %v", elapsed))
+	logger.Debug().Int64("poolId", crawler.poolId).Msg(fmt.Sprintf("Inserting data items took: %v", elapsed))
 
 	return nil
 }
@@ -87,14 +82,14 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 func (crawler *ChildCrawler) CrawlBundles() {
 
 	if !crawler.crawling.TryLock() {
-		logger.Info().Msg("Still crawling bundles!")
+		logger.Info().Int64("poolId", crawler.poolId).Msg("Still crawling bundles!")
 		return
 	}
 
 	// create new error group with context
 	// because we want to stop the crawling processes as soon as one request fails and start over again
 	group, ctx := errgroup.WithContext(context.Background())
-	group.SetLimit(4)
+	group.SetLimit(viper.GetInt("crawler.threads"))
 
 	poolInfo, err := pool.GetPoolInfo(crawler.chainId, crawler.poolId)
 	if err != nil {
@@ -102,15 +97,12 @@ func (crawler *ChildCrawler) CrawlBundles() {
 		return
 	}
 
-	lastBundle := poolInfo.Pool.Data.TotalBundles
+	lastBundle := poolInfo.Pool.Data.TotalBundles - 1
+	missingBundles := crawler.adapter.GetMissingBundles(lastBundle)
 
-	for i := int64(0); i < lastBundle; i++ {
-		if crawler.adapter.Exists(i) {
-			continue
-		}
-		logger.Info().Msg(fmt.Sprintf("Inserting data items: %v/%v", i, lastBundle-1))
+	for _, i := range missingBundles {
+		logger.Info().Int64("poolId", crawler.poolId).Msg(fmt.Sprintf("Inserting data items: %v/%v", i, lastBundle))
 		localIndex := i
-
 		group.Go(func() error {
 			return crawler.insertBundleDataItems(localIndex)
 		})
@@ -119,7 +111,7 @@ func (crawler *ChildCrawler) CrawlBundles() {
 		select {
 		case <-ctx.Done():
 			err := group.Wait() // get the error
-			logger.Error().Err(err).Msg("Failed to process bundle...")
+			logger.Error().Int64("poolId", crawler.poolId).Err(err).Msg("Failed to process bundle...")
 			return
 		default:
 		}
@@ -130,7 +122,7 @@ func (crawler *ChildCrawler) CrawlBundles() {
 		logger.Error().Err(err).Msg("Failed to process bundle...")
 	}
 
-	logger.Info().Int64("bundleId", lastBundle-1).Msg("Finished crawling to bundle.")
+	logger.Info().Int64("bundleId", lastBundle).Int64("poolId", crawler.poolId).Msg("Finished crawling to bundle.")
 }
 
 // starts the crawling processes

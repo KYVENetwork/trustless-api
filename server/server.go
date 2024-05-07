@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/KYVENetwork/trustless-api/config"
@@ -80,17 +79,25 @@ func StartApiServer() *ApiServer {
 			path := fmt.Sprintf("%v%v", pool.Slug, p)
 			params := para
 			r.GET(path, func(ctx *gin.Context) {
+				selectedParams := []string{}
+				selectedIndex := -1
+
+				// TODO: check if all the params have a value
 				for param, indexId := range params {
-					paramValue := ctx.Query(param)
-					if paramValue != "" {
-						apiServer.GetIndex(ctx, currentAdapter, param, indexId)
-						return
+					if ctx.Query(param) != "" {
+						selectedIndex = int(indexId)
+						selectedParams = append(selectedParams, ctx.Query(param))
 					}
 				}
-				ctx.JSON(http.StatusBadRequest, gin.H{
-					"error":     fmt.Errorf("unkown parameter"),
-					"available": currentAdapter.GetIndexer().GetBindings(),
-				})
+
+				if len(selectedParams) == 0 {
+					ctx.JSON(http.StatusBadRequest, gin.H{
+						"error":     fmt.Errorf("unkown parameter"),
+						"available": currentAdapter.GetIndexer().GetBindings(),
+					})
+				} else {
+					apiServer.GetIndex(ctx, currentAdapter, selectedParams, selectedIndex)
+				}
 			})
 		}
 	}
@@ -106,18 +113,8 @@ func StartApiServer() *ApiServer {
 // if the desired data item does not exist, or the key can not be parsed, it serves an error
 // `queryName` - is the name of the key that will be used e. g. block_height
 // `indexId` - is the corresponding Id for the key e. g. block_height -> 0
-func (apiServer *ApiServer) GetIndex(c *gin.Context, adapter db.Adapter, queryName string, indexId int64) {
-	keyStr := c.Query(queryName)
-	key, err := strconv.Atoi(keyStr)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	file, err := adapter.Get(int64(key), int(indexId))
+func (apiServer *ApiServer) GetIndex(c *gin.Context, adapter db.Adapter, params []string, indexId int) {
+	file, err := adapter.Get(indexId, params...)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),

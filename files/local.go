@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/spf13/viper"
@@ -33,6 +34,7 @@ func (saveFile *SaveLocalFileInterface) Save(dataitem *types.TrustlessDataItem) 
 		return SavedFile{}, err
 	}
 	var filepath string
+	filename := strings.Join(dataitem.Keys, "-")
 	switch viper.GetString("storage.compression") {
 	case "gzip":
 		var compressed bytes.Buffer
@@ -44,9 +46,9 @@ func (saveFile *SaveLocalFileInterface) Save(dataitem *types.TrustlessDataItem) 
 			return SavedFile{}, err
 		}
 		b = compressed.Bytes()
-		filepath = fmt.Sprintf("%v/%v.gz", dir, dataitem.Value.Key)
+		filepath = fmt.Sprintf("%v/%v.gz", dir, filename)
 	default:
-		filepath = fmt.Sprintf("%v/%v.json", dir, dataitem.Value.Key)
+		filepath = fmt.Sprintf("%v/%v.json", dir, filename)
 	}
 
 	// create the file

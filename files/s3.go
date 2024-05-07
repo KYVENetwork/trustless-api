@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -45,6 +48,9 @@ func (saveFile *S3FileInterface) Init() {
 		config.WithEndpointResolverWithOptions(r2Resolver),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyId, accessKeySecret, "")),
 		config.WithRegion(region),
+		config.WithRetryer(func() aws.Retryer {
+			return retry.AddWithMaxBackoffDelay(retry.NewStandard(), time.Second*10)
+		}),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -65,7 +71,7 @@ func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedF
 	}
 	reader := bytes.NewReader(json)
 
-	filepath := fmt.Sprintf("%v/%v/%v.json", dataitem.PoolId, dataitem.BundleId, dataitem.Value.Key)
+	filepath := fmt.Sprintf("%v/%v/%v.json", dataitem.PoolId, dataitem.BundleId, strings.Join(dataitem.Keys, "-"))
 
 	_, err = saveFile.client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:          aws.String(saveFile.bucket),

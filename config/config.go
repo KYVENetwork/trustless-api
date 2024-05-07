@@ -50,6 +50,8 @@ var (
 )
 
 func loadDefaults() {
+	viper.SetDefault("crawler.threads", 16)
+
 	// storage
 	viper.SetDefault("storage.type", "local")
 	viper.SetDefault("storage.path", "./data")
@@ -60,6 +62,7 @@ func loadDefaults() {
 	viper.SetDefault("storage.bucketname", "")
 	viper.SetDefault("storage.credentials.keyid", "")
 	viper.SetDefault("storage.credentials.keysecret", "")
+	viper.SetDefault("storage.threads", 2)
 
 	// database
 	viper.SetDefault("database.type", "sqlite")
@@ -169,6 +172,8 @@ func (c PoolsConfig) GetDatabaseAdapter() db.Adapter {
 		idx = &indexer.EthBlobIndexer
 	case "Height":
 		idx = &indexer.HeightIndexer
+	case "Celestia":
+		idx = &indexer.CelestiaIndexer
 	}
 
 	if idx == nil {

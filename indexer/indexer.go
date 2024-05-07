@@ -7,8 +7,12 @@ import (
 
 type Indexer interface {
 
-	// returns an array of indices for the given data item
-	GetDataItemIndices(dataitem *types.TrustlessDataItem) ([]int64, error)
+	// TODO: right now this is super stupid as we save the same response twice if we have two indices on the same file
+	//
+	// this is the whole purpose of the indexer to reduce redundancy
+	// it is probably the best if the database receives a form of saved file, that includes all relevant information
+	// including all indicies on that file
+	IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error)
 
 	// GetBindings returns a map of urls of query params to index
 	// NOTE: that the index should point to the correct index that is returned in GetDataItemIndices()
@@ -38,8 +42,8 @@ type Indexer interface {
 
 var (
 	EthBlobIndexer     = helper.EthBlobsIndexer{}
+	HeightIndexer      = helper.HeightIndexer{}
 	EthBlobIndexHeight = helper.IndexBlockHeight
 	EthBlobIndexSlot   = helper.IndexSlotNumber
-	HeightIndexer      = helper.HeightIndexer{}
-	HeightIndexHeight  = helper.IndexBlockHeight
+	CelestiaIndexer    = helper.CelestiaIndexer{}
 )
