@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-
 	"github.com/KYVENetwork/trustless-api/collectors/bundles"
 	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/KYVENetwork/trustless-api/utils"
@@ -67,16 +66,22 @@ func GetMerkleRoot(hashes [][32]byte) [32]byte {
 	return GetMerkleRoot(computedHashes)
 }
 
-func GetBundleHashes(bundle *types.Bundle) *[][32]byte {
+func GetBundleHashes(bundle *types.Bundle, proofType string) *[][32]byte {
 	var hashes [][32]byte
-	for _, dataitem := range *bundle {
-		hashes = append(hashes, utils.CalculateSHA256Hash(dataitem))
+	for _, dataItem := range *bundle {
+		switch proofType {
+		case "celestia":
+			hashes = append(hashes, celestiaDataItemToSha256(dataItem))
+		default:
+			hashes = append(hashes, utils.CalculateSHA256Hash(dataItem))
+		}
+
 	}
 	return &hashes
 }
 
-func GetBundleHashesHex(bundle *types.Bundle) []string {
-	hashes := GetBundleHashes(bundle)
+func GetBundleHashesHex(bundle *types.Bundle, proofType string) []string {
+	hashes := GetBundleHashes(bundle, proofType)
 	return utils.BytesToHex(hashes)
 }
 
@@ -85,11 +90,19 @@ func GetBundleHashesHex(bundle *types.Bundle) []string {
 // construct only the necessary hashes for building the merkle tree
 //
 // the hash of the `leafObj` has to be included in the hashes array
-func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) ([]types.MerkleNode, error) {
+func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem, proofType string) ([]types.MerkleNode, error) {
 	var tree [][]string
 	buildMerkleTree(hashes, &tree)
 
-	leafHash := utils.CalculateSHA256Hash(*leafObj)
+	var leafHash [32]byte
+
+	switch proofType {
+	case "celestia":
+		// TODO: Add the leafs of the namespaced shares hashes to the compact hashes array
+		leafHash = celestiaDataItemToSha256(*leafObj)
+	default:
+		leafHash = utils.CalculateSHA256Hash(*leafObj)
+	}
 	leaf := hex.EncodeToString(leafHash[:])
 
 	if len(tree) == 0 {
@@ -133,7 +146,7 @@ func GetHashesCompact(hashes *[][32]byte, leafObj *types.DataItem) ([]types.Merk
 	return compactHashes, nil
 }
 
-func IsBundleValid(bundleId int64, poolId int64, chainId string) bool {
+func IsBundleValid(bundleId int64, poolId int64, chainId string, proofType string) bool {
 	compressedBundle, err := bundles.GetFinalizedBundle(chainId, poolId, bundleId)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to fetch bundle")
@@ -162,7 +175,7 @@ func IsBundleValid(bundleId int64, poolId int64, chainId string) bool {
 		return false
 	}
 
-	hashes := GetBundleHashes(&bundle)
+	hashes := GetBundleHashes(&bundle, proofType)
 	rootHash := GetMerkleRoot(*hashes)
 	hexHash := hex.EncodeToString(rootHash[:])
 	if hexHash != summary.MerkleRoot {

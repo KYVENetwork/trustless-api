@@ -28,10 +28,11 @@ type Crawler struct {
 }
 
 type ChildCrawler struct {
-	chainId  string
-	adapter  db.Adapter
-	poolId   int64
-	crawling sync.Mutex
+	adapter   db.Adapter
+	chainId   string
+	crawling  sync.Mutex
+	poolId    int64
+	proofType string
 }
 
 // this is a helper function that will be called from multiple go routines
@@ -57,11 +58,13 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	elapsed := time.Since(start)
 	logger.Debug().Msg(fmt.Sprintf("Downloading bundle took: %v", elapsed))
 
-	leafs := merkle.GetBundleHashes(&bundle)
+	var leafs *[][32]byte
+
+	leafs = merkle.GetBundleHashes(&bundle, crawler.proofType)
 
 	var trustlessDataItems []types.TrustlessDataItem
 	for _, dataitem := range bundle {
-		proof, err := merkle.GetHashesCompact(leafs, &dataitem)
+		proof, err := merkle.GetHashesCompact(leafs, &dataitem, crawler.proofType)
 		if err != nil {
 			return err
 		}
@@ -142,8 +145,8 @@ func (crawler *ChildCrawler) Start() {
 	scheduler.StartBlocking()
 }
 
-func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId int64) ChildCrawler {
-	return ChildCrawler{adapter: adapter, poolId: poolId, chainId: chainId}
+func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId int64, proofType string) ChildCrawler {
+	return ChildCrawler{adapter: adapter, poolId: poolId, chainId: chainId, proofType: proofType}
 }
 
 // Creates a crawler based on the config file
@@ -151,7 +154,7 @@ func Create() Crawler {
 	var bundleCrawler []*ChildCrawler
 	for _, bc := range config.GetPoolsConfig() {
 		adapter := bc.GetDatabaseAdapter()
-		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId)
+		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId, bc.ProofType)
 		bundleCrawler = append(bundleCrawler, &newCrawler)
 	}
 

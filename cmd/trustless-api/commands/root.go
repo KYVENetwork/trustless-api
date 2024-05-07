@@ -17,6 +17,7 @@ var (
 	configPath string
 	port       int
 	poolId     int64
+	proofType  string
 )
 
 // RootCmd is the root command for trustless-api.

@@ -11,6 +11,8 @@ import (
 func init() {
 	merkleCmd.Flags().StringVar(&chainId, "chain-id", utils.DefaultChainId, fmt.Sprintf("KYVE chain id [\"%s\",\"%s\", \"%s\"]", utils.ChainIdMainnet, utils.ChainIdKaon, utils.ChainIdKorellia))
 
+	merkleCmd.Flags().StringVar(&proofType, "proof-type", "", "Proof type of the Merkle tree construction (e.g. 'celestia')")
+
 	merkleCmd.Flags().Int64Var(&bundleId, "bundle-id", 0, "Bundle ID to check")
 	if err := merkleCmd.MarkFlagRequired("bundle-id"); err != nil {
 		panic(fmt.Errorf("flag 'bundle-id' should be required: %w", err))
@@ -27,6 +29,6 @@ var merkleCmd = &cobra.Command{
 	Use:   "merkle",
 	Short: "Construct and verify the merkle tree of the given bundle",
 	Run: func(cmd *cobra.Command, args []string) {
-		merkle.IsBundleValid(bundleId, poolId, chainId)
+		merkle.IsBundleValid(bundleId, poolId, chainId, proofType)
 	},
 }

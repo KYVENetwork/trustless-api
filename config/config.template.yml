@@ -11,10 +11,12 @@ pools:
     - chainid: kaon-1
       indexer: EthBlobs
       poolid: 21
+      proofType: default
       slug: ethereum
     - chainid: korellia-2
       indexer: Height
       poolid: 105
+      proofType: default
       slug: linea
 
 # === DATABASE ===

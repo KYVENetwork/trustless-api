@@ -41,8 +41,18 @@ type DataItem struct {
 	Value json.RawMessage `json:"value"`
 }
 
-type Shares struct {
-	SharesByNamespace []map[string]interface{} `json:"sharesByNamespace"`
+type CelestiaDataItem struct {
+	Key   string        `json:"key"`
+	Value CelestiaValue `json:"value"`
+}
+
+type CelestiaValue struct {
+	SharesByNamespace []NamespacedShares `json:"sharesByNamespace"`
+}
+
+type NamespacedShares struct {
+	NamespaceId string            `json:"namespace_id"`
+	Data        []json.RawMessage `json:"data"`
 }
 
 type Bundle = []DataItem

@@ -14,10 +14,11 @@ import (
 )
 
 type PoolsConfig struct {
-	ChainId string
-	Indexer string
-	PoolId  int64
-	Slug    string
+	ChainId   string
+	Indexer   string
+	PoolId    int64
+	ProofType string
+	Slug      string
 }
 
 type ConfigEndpoints struct {
@@ -45,8 +46,7 @@ var (
 var DefaultTempalte []byte
 
 var (
-	EthBlobsConfig = PoolsConfig{PoolId: 21, Indexer: "EthBlobs", ChainId: "kaon-1"}
-	LineaConfig    = PoolsConfig{PoolId: 105, Indexer: "Height", ChainId: "korellia-2"}
+	LineaConfig = PoolsConfig{PoolId: 111, Indexer: "Height", ChainId: "korellia-2", ProofType: "celestia"}
 )
 
 func loadDefaults() {
@@ -73,7 +73,7 @@ func loadDefaults() {
 	viper.SetDefault("server.port", 4242)
 	viper.SetDefault("server.redirect", true)
 
-	var pools []PoolsConfig = []PoolsConfig{EthBlobsConfig, LineaConfig}
+	var pools []PoolsConfig = []PoolsConfig{LineaConfig}
 	viper.SetDefault("pools", pools)
 
 	viper.SetDefault("endpoints", Endpoints)
