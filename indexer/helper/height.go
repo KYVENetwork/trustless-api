@@ -10,10 +10,13 @@ import (
 
 type HeightIndexer struct{}
 
-func (eth *HeightIndexer) GetBindings() map[string]map[string]int64 {
-	return map[string]map[string]int64{
+func (eth *HeightIndexer) GetBindings() map[string][]types.ParameterIndex {
+	return map[string][]types.ParameterIndex{
 		"/value": {
-			"block_height": IndexBlockHeight,
+			{
+				IndexId:   IndexBlockHeight,
+				Parameter: []string{"height"},
+			},
 		},
 	}
 }
@@ -37,7 +40,9 @@ func (*HeightIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataI
 			BundleId: bundle.BundleId,
 			PoolId:   bundle.PoolId,
 			ChainId:  bundle.ChainId,
-			Keys:     []string{dataitem.Key},
+			Indices: []types.Index{
+				{Index: dataitem.Key, IndexId: IndexBlockHeight},
+			},
 		}
 		trustlessItems = append(trustlessItems, trustlessDataItem)
 	}

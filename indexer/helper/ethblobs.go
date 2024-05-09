@@ -16,16 +16,22 @@ const (
 	IndexSlotNumber  = 1
 )
 
-func (eth *EthBlobsIndexer) GetBindings() map[string]map[string]int64 {
-	return map[string]map[string]int64{
+func (eth *EthBlobsIndexer) GetBindings() map[string][]types.ParameterIndex {
+	return map[string][]types.ParameterIndex{
 		"/beacon/blob_sidecars": {
-			"block_height": IndexBlockHeight,
-			"slot_number":  IndexSlotNumber,
+			{
+				IndexId:   IndexBlockHeight,
+				Parameter: []string{"block_height"},
+			},
+			{
+				IndexId:   IndexSlotNumber,
+				Parameter: []string{"slot_number"},
+			},
 		},
 	}
 }
 
-func (*EthBlobsIndexer) getDataItemKeys(dataitem *types.DataItem) ([]string, error) {
+func (*EthBlobsIndexer) getDataItemIndices(dataitem *types.DataItem) ([]types.Index, error) {
 	// Create a struct to unmarshal into
 	var blobData types.BlobValue
 
@@ -34,9 +40,9 @@ func (*EthBlobsIndexer) getDataItemKeys(dataitem *types.DataItem) ([]string, err
 	if err != nil {
 		return nil, err
 	}
-	var indices []string = []string{
-		dataitem.Key,
-		fmt.Sprintf("%v", blobData.SlotNumber),
+	var indices []types.Index = []types.Index{
+		{Index: dataitem.Key, IndexId: IndexBlockHeight},
+		{Index: fmt.Sprintf("%v", blobData.SlotNumber), IndexId: IndexSlotNumber},
 	}
 
 	return indices, nil
@@ -51,7 +57,7 @@ func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 		if err != nil {
 			return nil, err
 		}
-		keys, err := e.getDataItemKeys(&dataitem)
+		Indices, err := e.getDataItemIndices(&dataitem)
 		if err != nil {
 			return nil, err
 		}
@@ -67,19 +73,7 @@ func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 			BundleId: bundle.BundleId,
 			PoolId:   bundle.PoolId,
 			ChainId:  bundle.ChainId,
-			Keys:     []string{keys[0]},
-			IndexId:  IndexBlockHeight,
-		}
-		trustlessItems = append(trustlessItems, trustlessDataItem)
-
-		trustlessDataItem = types.TrustlessDataItem{
-			Value:    raw,
-			Proof:    proof,
-			BundleId: bundle.BundleId,
-			PoolId:   bundle.PoolId,
-			ChainId:  bundle.ChainId,
-			Keys:     []string{keys[1]},
-			IndexId:  IndexSlotNumber,
+			Indices:  Indices,
 		}
 		trustlessItems = append(trustlessItems, trustlessDataItem)
 	}

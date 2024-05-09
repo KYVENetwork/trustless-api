@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/KYVENetwork/trustless-api/types"
@@ -70,8 +69,8 @@ func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedF
 		return SavedFile{}, err
 	}
 	reader := bytes.NewReader(json)
-
-	filepath := fmt.Sprintf("%v/%v/%v.json", dataitem.PoolId, dataitem.BundleId, strings.Join(dataitem.Keys, "-"))
+	filename := dataitem.Indices[0].Index
+	filepath := fmt.Sprintf("%v/%v/%v.json", dataitem.PoolId, dataitem.BundleId, filename)
 
 	_, err = saveFile.client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:          aws.String(saveFile.bucket),

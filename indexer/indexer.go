@@ -37,13 +37,11 @@ type Indexer interface {
 	// 		"slot_number":  IndexSlotNumber,
 	// 	},
 	// }
-	GetBindings() map[string]map[string]int64
+	GetBindings() map[string][]types.ParameterIndex
 }
 
 var (
-	EthBlobIndexer     = helper.EthBlobsIndexer{}
-	HeightIndexer      = helper.HeightIndexer{}
-	EthBlobIndexHeight = helper.IndexBlockHeight
-	EthBlobIndexSlot   = helper.IndexSlotNumber
-	CelestiaIndexer    = helper.CelestiaIndexer{}
+	EthBlobIndexer  = helper.EthBlobsIndexer{}
+	HeightIndexer   = helper.HeightIndexer{}
+	CelestiaIndexer = helper.CelestiaIndexer{}
 )

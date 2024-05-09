@@ -17,15 +17,14 @@ type DataItemDocument struct {
 }
 
 type IndexDocument struct {
-	ComponentID uint   `gorm:"primarykey"`
-	DataItemID  uint   `gorm:"primarykey"`
-	Value       string `gorm:"primarykey"`
-	IndexID     int
+	Value      string `gorm:"primarykey"`
+	IndexID    int    `gorm:"primarykey"`
+	DataItemID uint
 }
 
 type Adapter interface {
 	Save(dataitem *types.Bundle) error
-	Get(indexId int, keys ...string) (files.SavedFile, error)
+	Get(indexId int, key string) (files.SavedFile, error)
 	GetMissingBundles(lastBundle int64) []int64
 	GetIndexer() indexer.Indexer
 }

@@ -151,12 +151,11 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 				return err
 			}
 
-			for componentId, key := range dataitem.Keys {
+			for _, index := range dataitem.Indices {
 				index := db.IndexDocument{
-					DataItemID:  item.ID,
-					ComponentID: uint(componentId),
-					Value:       key,
-					IndexID:     dataitem.IndexId,
+					DataItemID: item.ID,
+					Value:      index.Index,
+					IndexID:    index.IndexId,
 				}
 				err = tx.Table(adapter.indexTable).Create(&index).Error
 				if err != nil {
@@ -173,20 +172,16 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 	})
 }
 
-func (adapter *SQLAdapter) Get(indexId int, keys ...string) (files.SavedFile, error) {
+func (adapter *SQLAdapter) Get(indexId int, key string) (files.SavedFile, error) {
 	start := time.Now()
-	template := `SELECT *
-	FROM   %v d
-		   JOIN %v i
-			 ON d.id = i.data_item_id
-	WHERE  i.value IN ?
-	AND i.index_id = %v
-	GROUP  BY i.data_item_id
-	HAVING Count(*) = %v`
-	query := fmt.Sprintf(template, adapter.dataItemTable, adapter.indexTable, indexId, len(keys))
 
 	result := db.DataItemDocument{}
-	rows := adapter.db.Raw(query, keys).Scan(&result)
+	query := db.IndexDocument{IndexID: indexId, Value: key}
+
+	// because we are using custom table names we can't leverage gorms preloading
+	// therefore we have to write our own join query
+	joinString := fmt.Sprintf("join %v on %v.id = %v.data_item_id", adapter.dataItemTable, adapter.dataItemTable, adapter.indexTable)
+	rows := adapter.db.Table(adapter.indexTable).Joins(joinString).Where(&query).Scan(&result)
 	elapsed := time.Since(start)
 	logger.Debug().Msg(fmt.Sprintf("data item lookup took: %v", elapsed))
 

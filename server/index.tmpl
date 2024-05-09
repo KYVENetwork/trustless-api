@@ -66,10 +66,8 @@
              {{ range $element := . }} 
                 <div class="query-group">
                     <h5>{{ $element.Slug }}</h5>
-                    {{ range $key, $value := $element.Indexer.GetBindings }}
-                        {{ range $param, $indexId := $value }}
-                            <a href="{{$element.Slug}}{{$key}}?{{$param}}=_"> {{ $element.Slug }}{{ $key }}?{{$param}}=_</a>
-                        {{ end }}
+                    {{ range $key, $href := $element.Parameter }}
+                        <a href="{{ $href }}">{{ $href }}</a>
                     {{ end }}
                 </div>
              {{ end }}

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 
 	"github.com/KYVENetwork/trustless-api/merkle"
 	"github.com/KYVENetwork/trustless-api/types"
@@ -16,14 +17,19 @@ const (
 	IndexSharesByNamespace = 3
 )
 
-func (*CelestiaIndexer) GetBindings() map[string]map[string]int64 {
-	return map[string]map[string]int64{
+func (*CelestiaIndexer) GetBindings() map[string][]types.ParameterIndex {
+	return map[string][]types.ParameterIndex{
 		"/GetSharesByNamespace": {
-			"height":    IndexSharesByNamespace,
-			"namespace": IndexSharesByNamespace,
+			{
+				IndexId:   IndexSharesByNamespace,
+				Parameter: []string{"height", "namespace"},
+			},
 		},
-		"/GetShares": {
-			"height": IndexBlockHeight,
+		"/Get": {
+			{
+				IndexId:   IndexBlockHeight,
+				Parameter: []string{"height"},
+			},
 		},
 	}
 }
@@ -79,13 +85,15 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 
 		// first we insert the entire bundle for the block height key
 		trustlessDataItem := types.TrustlessDataItem{
-			Value:    raw,
-			Proof:    proof,
-			BundleId: bundle.BundleId,
-			PoolId:   bundle.PoolId,
-			ChainId:  bundle.ChainId,
-			Keys:     []string{dataitem.Key},
-			IndexId:  IndexBlockHeight,
+			Value:     raw,
+			Proof:     proof,
+			BundleId:  bundle.BundleId,
+			PoolId:    bundle.PoolId,
+			ChainId:   bundle.ChainId,
+			ProofType: "celestia",
+			Indices: []types.Index{
+				{Index: dataitem.Key, IndexId: IndexBlockHeight},
+			},
 		}
 		trustlessItems = append(trustlessItems, trustlessDataItem)
 
@@ -104,7 +112,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 				return nil, err
 			}
 
-			// NOTE: becase we also hash the key of the original data item, we have to append an extra node of with the key
+			// NOTE: becase we also hash the key of the original data item, we have to append an extra node with the key
 			keyBytes := sha256.Sum256([]byte(dataitem.Key))
 			keyHash := hex.EncodeToString(keyBytes[:])
 			totalProof := append(namespaceProof, types.MerkleNode{Left: false, Hash: keyHash})
@@ -116,15 +124,16 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 			if err != nil {
 				return nil, err
 			}
-
+			index := fmt.Sprintf("%v-%v", dataitem.Key, namespace.NamespaceId)
 			trustlessDataItem := types.TrustlessDataItem{
 				Value:    raw,
 				Proof:    totalProof,
 				BundleId: bundle.BundleId,
 				PoolId:   bundle.PoolId,
 				ChainId:  bundle.ChainId,
-				Keys:     []string{dataitem.Key, namespace.NamespaceId},
-				IndexId:  IndexSharesByNamespace,
+				Indices: []types.Index{
+					{Index: index, IndexId: IndexSharesByNamespace},
+				},
 			}
 			trustlessItems = append(trustlessItems, trustlessDataItem)
 		}
