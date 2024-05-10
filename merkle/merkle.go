@@ -78,7 +78,7 @@ func GetBundleHashesHex(bundle *[]types.DataItem) []string {
 // this function will construct a merkle tree based on the hashes and
 // construct only the necessary hashes for building the merkle tree
 //
-// the `leafObj` has to be included in the hashes array
+// the `leafHash` has to be included in the hashes array
 func GetHashesCompact(hashes *[][32]byte, leafHash *[32]byte) ([]types.MerkleNode, error) {
 	var tree [][]string
 	buildMerkleTree(hashes, &tree)

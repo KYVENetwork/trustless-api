@@ -50,7 +50,7 @@ var (
 )
 
 func loadDefaults() {
-	viper.SetDefault("crawler.threads", 16)
+	viper.SetDefault("crawler.threads", 4)
 
 	// storage
 	viper.SetDefault("storage.type", "local")
@@ -62,7 +62,7 @@ func loadDefaults() {
 	viper.SetDefault("storage.bucketname", "")
 	viper.SetDefault("storage.credentials.keyid", "")
 	viper.SetDefault("storage.credentials.keysecret", "")
-	viper.SetDefault("storage.threads", 2)
+	viper.SetDefault("storage.threads", 8)
 
 	// database
 	viper.SetDefault("database.type", "sqlite")

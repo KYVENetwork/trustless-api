@@ -25,12 +25,6 @@ func (*CelestiaIndexer) GetBindings() map[string][]types.ParameterIndex {
 				Parameter: []string{"height", "namespace"},
 			},
 		},
-		"/Get": {
-			{
-				IndexId:   IndexBlockHeight,
-				Parameter: []string{"height"},
-			},
-		},
 	}
 }
 
@@ -71,31 +65,32 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 	// now we can process all the data items inside of the bundle
 	// we want to create an index for each data item
 	// but we also want to create an index for each namespace of each data item
-	for index, dataitem := range dataItems {
+	for _, dataitem := range dataItems {
 		// this will be the roof of our proof
 		leafHash := c.celestiaDataItemToSha256(&dataitem)
 		proof, err := merkle.GetHashesCompact(&leafs, &leafHash)
 		if err != nil {
 			return nil, err
 		}
-		raw, err := json.Marshal(bundle.DataItems[index])
-		if err != nil {
-			return nil, err
-		}
 
-		// first we insert the entire bundle for the block height key
-		trustlessDataItem := types.TrustlessDataItem{
-			Value:     raw,
-			Proof:     proof,
-			BundleId:  bundle.BundleId,
-			PoolId:    bundle.PoolId,
-			ChainId:   bundle.ChainId,
-			ProofType: "celestia",
-			Indices: []types.Index{
-				{Index: dataitem.Key, IndexId: IndexBlockHeight},
-			},
-		}
-		trustlessItems = append(trustlessItems, trustlessDataItem)
+		// raw, err := json.Marshal(bundle.DataItems[index])
+		// if err != nil {
+		// 	return nil, err
+		// }
+
+		// // first we insert the entire bundle for the block height key
+		// trustlessDataItem := types.TrustlessDataItem{
+		// 	Value:    raw,
+		// 	Proof:    proof,
+		// 	BundleId: bundle.BundleId,
+		// 	PoolId:   bundle.PoolId,
+		// 	ChainId:  bundle.ChainId,
+		// 	Indices: []types.Index{
+		// 		{Index: dataitem.Key, IndexId: IndexBlockHeight},
+		// 	},
+		// 	ProofType: "celestia",
+		// }
+		// trustlessItems = append(trustlessItems, trustlessDataItem)
 
 		// then we go through every namespace and create another item just for the namespace as the key and the block height
 
@@ -124,6 +119,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 			if err != nil {
 				return nil, err
 			}
+			// create compound key with the correct order, like defined in `GetBindings`
 			index := fmt.Sprintf("%v-%v", dataitem.Key, namespace.NamespaceId)
 			trustlessDataItem := types.TrustlessDataItem{
 				Value:    raw,

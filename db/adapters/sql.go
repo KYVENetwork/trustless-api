@@ -131,6 +131,7 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 	// lock the entire module as we might have multiple data base adapter instances at the same time
 	mutex.Lock()
 	defer mutex.Unlock()
+
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
 		for _, r := range result {
 			file := r.file

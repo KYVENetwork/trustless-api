@@ -41,12 +41,21 @@ server:
     # will redirect to the CDN defined in `storage` if set to false the server will fetch the content on request and serve it directly
     redirect: false 
 
+# === SERVER ===
+# crawler configuration. Only relevant when running the crawling process
+# ==============
+crawler:
+    # how many threads are used for downloading & processing the bundles
+    threads: 4
+
 # === STORAGE ===
 # storage configuration.
 # ===============
 storage:
     # the type of storage to use. available options: local (default), s3
-    type: local 
+    type: local
+    # how many threads are used to save/upload the processed bundle. Default 8
+    threads: 8
     # only relevant when using local storage, can be left empty when using AWS
     path: ./data 
     # what compression to use when storing/uploading the data

@@ -121,13 +121,12 @@ type BundleSummary struct {
 }
 
 type TrustlessDataItem struct {
-	Value     json.RawMessage `json:"value"`
-	Proof     []MerkleNode    `json:"proof"`
-	ProofType string          `json:"proofType"`
-	PoolId    int64           `json:"poolId"`
-	BundleId  int64           `json:"bundleId"`
-	ChainId   string          `json:"chainId"`
-	Indices   []Index         `json:"-"`
+	Value    json.RawMessage `json:"value"`
+	Proof    []MerkleNode    `json:"proof"`
+	PoolId   int64           `json:"poolId"`
+	BundleId int64           `json:"bundleId"`
+	ChainId  string          `json:"chainId"`
+	Indices  []Index         `json:"-"`
 }
 
 type Index struct {

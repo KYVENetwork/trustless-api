@@ -31,7 +31,7 @@ trustless-api start
 
 ## Config
 
-The following config serves as an example, utilizing a Postgres database and an S3 bucket. You can find the template configuration here: `.config.template.yml`
+The following config serves as an example, utilizing a Postgres database and an S3 bucket. You can find the template configuration here: `./config/config.template.yml`
 
 ```yml
 # === POOLS ===
@@ -60,7 +60,7 @@ database:
     # supported databases: sqlite (default), postgres
     type: sqlite 
     # the database name, if you use sqlite this will the the database file. default: ./database.db
-    dbname: indexer 
+    dbname: indexer.db 
     # following attributes are only relevant when using postgres, you don't need them for sqlite
     host: "localhost"
     # IMPORTANT: this is postgres database port, not the port the app will use to serve
@@ -77,14 +77,26 @@ server:
     # will redirect to the CDN defined in `storage` if set to false the server will fetch the content on request and serve it directly
     redirect: false 
 
+# === SERVER ===
+# crawler configuration. Only relevant when running the crawling process
+# ==============
+crawler:
+    # how many threads are used for downloading & processing the bundles
+    threads: 4
+
 # === STORAGE ===
 # storage configuration.
 # ===============
 storage:
     # the type of storage to use. available options: local (default), s3
-    type: local 
+    type: local
+    # how many threads are used to save/upload the processed bundle. Default 8
+    threads: 8
     # only relevant when using local storage, can be left empty when using AWS
     path: ./data 
+    # what compression to use when storing/uploading the data
+    # available options: gzip (default), none
+    compression: gzip
     
     # S3 CONFIG
     # The following configs are only relevent when using S3
@@ -93,7 +105,7 @@ storage:
     aws-endpoint: "http://example-bucket.s3-website.us-west-2.amazonaws.com/" 
     # your bucket name
     bucketname: "example-bucket" 
-    # CDN where to fetch the data, default will be the aws-endpoint
+    # CDN where to fetch the data
     cdn: "https://example.domain/" 
     # your access key id and your acces key secret
     credentials:
@@ -138,7 +150,7 @@ These steps are independent at the code level, meaning that it is necessary to f
 
 ### How the crawler works in detail
 
-As previously mentioned, the `crawler` is responsible for retrieving all bundles from the KYVE chain and storing each data item. The crawler process knows which pools to query based on the `config.yml` file provided. You can find a template configuration under `config.template.yml.`
+As previously mentioned, the `crawler` is responsible for retrieving all bundles from the KYVE chain and storing each data item. The crawler process knows which pools to query based on the `config.yml` file provided. You can find a template configuration under `./config/config.template.yml.`
 
 The config file contains all `poolId`s that should be crawled. The crawler itself functions like a master, starting one go-routine per `poolId` that is responsible for crawling that specific `poolId`.
 
@@ -173,17 +185,26 @@ The `EthBlobsIndexer` generates all necessary indices to query for blobs:
 - block_height
 - slot_number
 
-This means, the `EthBlobsIndexer` will take a trustless data item as an argument and return the specific indices for that data item.
+This means, the `EthBlobsIndexer` will take a bundle, which is an array of data items, as an argument and return an array of trustless data items back. A trustless data item contains the actual data, the inclusion proof and all necessary information to verify that proof (like chainId, bundleId). Additionally it contains an array of indicies which point, these indicies will then be stored in the data base to correctly retrieve the trustless data item later on.
 
 ```go
-func (*EthBlobsIndexer) GetDataItemIndices(dataitem *types.TrustlessDataItem) ([]int64, error) {
-    // process blob data
-    ...
-    var indices []int64 = []int64{
-        int64(height),
-        int64(blobData.SlotNumber),
-    }
-    return indices, nil
+func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
+	var trustlessItems []types.TrustlessDataItem
+	for index, dataitem := range bundle.DataItems {
+        // calculate inclusion proof
+        ...
+		trustlessDataItem := types.TrustlessDataItem{
+			Value:     raw,
+			Proof:     proof,
+			BundleId:  bundle.BundleId,
+			PoolId:    bundle.PoolId,
+			ChainId:   bundle.ChainId,
+			Indices:   Indices,
+			ProofType: "default",
+		}
+		trustlessItems = append(trustlessItems, trustlessDataItem)
+	}
+	return &trustlessItems, nil
 }
 ```
 
@@ -203,9 +224,9 @@ There will be exactly two tables per pool with the following naming conventions:
 |uint, primarykey|int64|int64|int|string|
 
 **IndexDocument**
-|Key|IndexID|DataItemID|
+|Value|IndexID|DataItemID|
 |-|-|-|
-|int64, primarykey|int, primarykey|uint|
+|string, primarykey|int, primarykey|uint|
 
 We have to save the the index id, because there might be more than one index for a data item e.g. `block_height` & `slot_number`.
 
@@ -214,9 +235,10 @@ We make use of a database adapter interface to disconnect the actual database us
 Adapter interface:
 ```go
 type Adapter interface {
-    Save(dataitem *[]types.TrustlessDataItem) error
-    Get(dataitemKey int64, indexId int) (files.SavedFile, error)
-    Exists(bundle int64) bool
+	Save(bundle *types.Bundle) error
+	Get(indexId int, key string) (files.SavedFile, error)
+	GetMissingBundles(lastBundleId int64) []int64
+	GetIndexer() indexer.Indexer
 }
 ```
 
