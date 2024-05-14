@@ -86,6 +86,8 @@ func (crawler *ChildCrawler) CrawlBundles() {
 		return
 	}
 
+	defer crawler.crawling.Unlock()
+
 	// create new error group with context
 	// because we want to stop the crawling processes as soon as one request fails and start over again
 	group, ctx := errgroup.WithContext(context.Background())
