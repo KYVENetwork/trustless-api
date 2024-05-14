@@ -5,7 +5,6 @@ import (
 
 	"github.com/KYVENetwork/trustless-api/merkle"
 	"github.com/KYVENetwork/trustless-api/types"
-	"github.com/KYVENetwork/trustless-api/utils"
 )
 
 type HeightIndexer struct{}
@@ -25,8 +24,7 @@ func (*HeightIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataI
 	leafs := merkle.GetBundleHashes(&bundle.DataItems)
 	var trustlessItems []types.TrustlessDataItem
 	for index, dataitem := range bundle.DataItems {
-		leafHash := utils.CalculateSHA256Hash(dataitem)
-		proof, err := merkle.GetHashesCompact(leafs, &leafHash)
+		proof, err := merkle.GetHashesCompact(leafs, index)
 		if err != nil {
 			return nil, err
 		}

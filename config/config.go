@@ -10,6 +10,7 @@ import (
 	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/indexer"
 	"github.com/KYVENetwork/trustless-api/utils"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
@@ -50,6 +51,9 @@ var (
 )
 
 func loadDefaults() {
+	// log level
+	viper.SetDefault("log", "info")
+
 	viper.SetDefault("crawler.threads", 4)
 
 	// storage
@@ -113,10 +117,26 @@ func LoadConfig(configPath string) {
 		logger.Fatal().Err(err).Msg("failed to load config.")
 	}
 
-	LoadEndpoints()
+	loadEndpoints()
+	setLogLevel()
 }
 
-func LoadEndpoints() {
+func setLogLevel() {
+	switch viper.GetString("log") {
+	case "info":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "warning":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "debug":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case "error":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	case "none":
+		zerolog.SetGlobalLevel(zerolog.Disabled)
+	}
+}
+
+func loadEndpoints() {
 	var config ConfigEndpoints
 	err := viper.UnmarshalKey("endpoints", &config)
 	if err != nil {

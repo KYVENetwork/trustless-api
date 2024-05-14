@@ -65,10 +65,9 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 	// now we can process all the data items inside of the bundle
 	// we want to create an index for each data item
 	// but we also want to create an index for each namespace of each data item
-	for _, dataitem := range dataItems {
+	for index, dataitem := range dataItems {
 		// this will be the roof of our proof
-		leafHash := c.celestiaDataItemToSha256(&dataitem)
-		proof, err := merkle.GetHashesCompact(&leafs, &leafHash)
+		proof, err := merkle.GetHashesCompact(&leafs, index)
 		if err != nil {
 			return nil, err
 		}
@@ -101,8 +100,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 		}
 
 		for index, namespace := range dataitem.Value.SharesByNamespace {
-			leafHash = utils.CalculateSHA256Hash(namespace)
-			namespaceProof, err := merkle.GetHashesCompact(&namespaceLeafs, &leafHash)
+			namespaceProof, err := merkle.GetHashesCompact(&namespaceLeafs, index)
 			if err != nil {
 				return nil, err
 			}

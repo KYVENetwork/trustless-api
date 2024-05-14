@@ -2,7 +2,6 @@ package merkle
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/KYVENetwork/trustless-api/types"
@@ -77,31 +76,17 @@ func GetBundleHashesHex(bundle *[]types.DataItem) []string {
 // GetHashesCompact creates a compact merkle tree for the given leaf
 // this function will construct a merkle tree based on the hashes and
 // construct only the necessary hashes for building the merkle tree
-//
-// the `leafHash` has to be included in the hashes array
-func GetHashesCompact(hashes *[][32]byte, leafHash *[32]byte) ([]types.MerkleNode, error) {
+func GetHashesCompact(hashes *[][32]byte, leafIndex int) ([]types.MerkleNode, error) {
 	var tree [][]string
 	buildMerkleTree(hashes, &tree)
-
-	leaf := hex.EncodeToString(leafHash[:])
-
-	if len(tree) == 0 {
-		// was not able to find leaf in merkle tree
+	length := len(tree)
+	if length == 0 {
+		// failed to construct merkle tree
 		return []types.MerkleNode{}, fmt.Errorf("failed to create tree")
 	}
-
-	// first find the leaf index
-	var leafIndex int = -1
-	for index, currentLeaf := range tree[0] {
-		if leaf == currentLeaf {
-			leafIndex = index
-			break
-		}
-	}
-
-	if leafIndex == -1 {
-		// was not able to find leaf in merkle tree
-		return []types.MerkleNode{}, fmt.Errorf("failed to find leaf in hashes")
+	if leafIndex < 0 || leafIndex >= len(*hashes) {
+		// leafIndex not within the hashes
+		return []types.MerkleNode{}, fmt.Errorf("leafIndex out of bounds")
 	}
 
 	var compactHashes []types.MerkleNode

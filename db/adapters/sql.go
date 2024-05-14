@@ -32,7 +32,10 @@ type SQLAdapter struct {
 
 func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) SQLAdapter {
 
-	database, err := gorm.Open(sqlite.Open(viper.GetString("database.dbname")), &gorm.Config{})
+	dns := viper.GetString("database.dbname")
+	database, err := gorm.Open(sqlite.Open(dns), &gorm.Config{
+		SkipDefaultTransaction: false,
+	})
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Cannot open database.")
 	}
