@@ -12,7 +12,7 @@ import (
 // each level will be inserted in `tree`,
 // where the first item are the leafs and the last element are the two leafs that make the root
 func buildMerkleTree(hashes *[][32]byte, tree *[][]string) {
-	if len(*hashes) == 1 {
+	if len(*hashes) == 1 && len(*tree) != 0 {
 		return
 	}
 
