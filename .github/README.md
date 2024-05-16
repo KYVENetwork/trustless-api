@@ -31,9 +31,12 @@ trustless-api start
 
 ## Config
 
-The following config serves as an example, utilizing a Postgres database and an S3 bucket. You can find the template configuration here: `./config/config.template.yml`
+The following config serves as an example, utilizing a SQLite database and local storage. You can find the template configuration here: `./config/config.template.yml`
 
 ```yml
+# log level values: info, warning, debug, error, none
+log: info
+
 # === POOLS ===
 # An array that defines what pools should be crawled and how they are served.
 # - chainid: is the chain id of the pool, e. g. kyve-1, koan-1, korellia-2
@@ -185,7 +188,7 @@ The `EthBlobsIndexer` generates all necessary indices to query for blobs:
 - block_height
 - slot_number
 
-This means, the `EthBlobsIndexer` will take a bundle, which is an array of data items, as an argument and return an array of trustless data items back. A trustless data item contains the actual data, the inclusion proof and all necessary information to verify that proof (like chainId, bundleId). Additionally it contains an array of indicies which point, these indicies will then be stored in the data base to correctly retrieve the trustless data item later on.
+This means, the `EthBlobsIndexer` will take a bundle, which is an array of data items, as an argument and return an array of trustless data items back. A trustless data item contains the actual data, the inclusion proof and all necessary information to verify that proof (like chainId, bundleId). Additionally it contains an array of indicies for that specific data item, these indicies will then be stored in the data base to correctly retrieve the trustless data item later on.
 
 ```go
 func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
@@ -244,8 +247,9 @@ type Adapter interface {
 
 As you can see, we make use of only three methods to interact with the database. When inserting the data items it is important to submit them all with only one transactions, otherwise it might be possible that we fail to save some data items of a bundle resulting in incomplete data.
 
-When inserting a data item, the adapter is responsible for the following:
-- first upload/save the trustless data item to a location (this will be done via a FileAdapter, see next chapter)
+When saving a bundle, the adapter is responsible for the following:
+- convert the bundles data items into trustless data items via. an indexer
+- upload/save the trustless data items to a location (this will be done via a FileAdapter, see next chapter)
 - write all necessary information about the data item and its location into the database
 - and finally insert every index that exists for that specific data item (in case of EthBlobs this would be the `block_height` and `slot_number`)
 
