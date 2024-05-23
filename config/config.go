@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/KYVENetwork/trustless-api/db"
 	"github.com/KYVENetwork/trustless-api/db/adapters"
@@ -88,6 +89,7 @@ func loadDefaults() {
 
 func LoadConfig(configPath string) {
 
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	loadDefaults()
 	viper.SetConfigName("config")
