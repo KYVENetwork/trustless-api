@@ -204,7 +204,7 @@ func (adapter *SQLAdapter) Get(indexId int, key string) (files.SavedFile, error)
 func (adapter *SQLAdapter) GetMissingBundles(lastBundle int64) []int64 {
 	template := `WITH recursive ids AS
 	(
-		   SELECT 1 AS id
+		   SELECT 0 AS id
 		   UNION ALL
 		   SELECT id + 1
 		   FROM   ids
