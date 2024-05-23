@@ -10,7 +10,7 @@ log: info
 #         e.g. with the slug 'ethereum' and the indexer EthBlobs the resulting url will be: "/ethereum/beacon/blob_sidecars?..."
 # =============
 crawler:
-  threads: 24
+  threads: 2
 pools:
   - chainid: kaon-1
     indexer: EthBlobs
