@@ -2,10 +2,6 @@ package config
 
 import (
 	_ "embed"
-	"os"
-	"path/filepath"
-	"strings"
-
 	"github.com/KYVENetwork/trustless-api/db"
 	"github.com/KYVENetwork/trustless-api/db/adapters"
 	"github.com/KYVENetwork/trustless-api/files"
@@ -13,6 +9,9 @@ import (
 	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 type PoolsConfig struct {
@@ -118,6 +117,14 @@ func LoadConfig(configPath string) {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to load config.")
 	}
+
+	_ = viper.BindEnv("database.dbname", "DATABASE_NAME")
+	_ = viper.BindEnv("database.user", "DATABASE_USER")
+	_ = viper.BindEnv("database.port", "DATABASE_PORT")
+	_ = viper.BindEnv("database.host", "DATABASE_HOST")
+	_ = viper.BindEnv("database.password", "DATABASE_PASSWORD")
+
+	_ = viper.BindEnv("server.port", "PORT")
 
 	loadEndpoints()
 	setLogLevel()
