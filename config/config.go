@@ -127,6 +127,7 @@ func LoadConfig(configPath string) {
 	_ = viper.BindEnv("server.port", "PORT")
 
 	_ = viper.BindEnv("storage.aws-endpoint", "AWS_ENDPOINT")
+	_ = viper.BindEnv("storage.bucketname", "BUCKET_NAME")
 	_ = viper.BindEnv("storage.cdn", "CDN")
 	_ = viper.BindEnv("storage.credentials.keyid", "ACCESS_KEY_ID")
 	_ = viper.BindEnv("storage.credentials.keysecret", "SECRET_ACCESS_KEY")
