@@ -1,1 +1,1 @@
-web: ./bin/trustless-api crawler --config /app/.github/$CONFIG_FILE_NAME
+web: eval ./bin/trustless-api crawler --config /app/.github/$CONFIG_FILE_NAME
