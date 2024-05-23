@@ -1,1 +1,1 @@
-web: ./bin/trustless-api crawler --config /app/.github/config.production.yml
+web: ./bin/trustless-api crawler --config /app/.github/$CONFIG_FILE_NAME
