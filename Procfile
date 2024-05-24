@@ -1,1 +1,1 @@
-web: ./bin/trustless-rpc start --chain-id kaon-1
+web: ./bin/trustless-api start --chain-id kaon-1

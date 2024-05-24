@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -15,7 +17,7 @@ import (
 )
 
 var (
-	logger = TrustlessRpcLogger("utils")
+	logger = TrustlessApiLogger("utils")
 )
 
 func GetVersion() string {
@@ -45,9 +47,9 @@ func GetFromUrl(url string) ([]byte, error) {
 		if strings.HasPrefix(version, "v") {
 			version = strings.TrimPrefix(version, "v")
 		}
-		request.Header.Set("User-Agent", fmt.Sprintf("trustless-rpc/%v (%v / %v / %v)", version, runtime.GOOS, runtime.GOARCH, runtime.Version()))
+		request.Header.Set("User-Agent", fmt.Sprintf("trustless-api/%v (%v / %v / %v)", version, runtime.GOOS, runtime.GOARCH, runtime.Version()))
 	} else {
-		request.Header.Set("User-Agent", fmt.Sprintf("trustless-rpc/dev (%v / %v / %v)", runtime.GOOS, runtime.GOARCH, runtime.Version()))
+		request.Header.Set("User-Agent", fmt.Sprintf("trustless-api/dev (%v / %v / %v)", runtime.GOOS, runtime.GOARCH, runtime.Version()))
 	}
 
 	// Perform the request
@@ -136,4 +138,25 @@ func GetChainRest(chainId, chainRest string) string {
 	}
 
 	return ""
+}
+
+func CalculateSHA256Hash(obj interface{}) [32]byte {
+	// Serialize the object to JSON with keys sorted ascending by default
+	serializedObj, err := json.Marshal(obj)
+	if err != nil {
+		panic(err)
+	}
+
+	// Calculate the SHA -256 hash
+	sha256Hash := sha256.Sum256(serializedObj)
+
+	return sha256Hash
+}
+
+func BytesToHex(bytes *[][32]byte) []string {
+	var hexArray []string
+	for _, b := range *bytes {
+		hexArray = append(hexArray, hex.EncodeToString(b[:]))
+	}
+	return hexArray
 }

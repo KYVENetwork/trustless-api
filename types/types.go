@@ -41,11 +41,12 @@ type DataItem struct {
 	Value json.RawMessage `json:"value"`
 }
 
-type Shares struct {
-	SharesByNamespace []map[string]interface{} `json:"sharesByNamespace"`
+type Bundle struct {
+	DataItems []DataItem
+	PoolId    int64
+	BundleId  int64
+	ChainId   string
 }
-
-type Bundle = []DataItem
 
 type Pagination struct {
 	NextKey []byte `json:"next_key"`
@@ -112,4 +113,54 @@ type Entry struct {
 
 type SourceRegistry struct {
 	Entries map[string]Entry `yaml:",inline"`
+}
+
+type BundleSummary struct {
+	FromSlot   int64  `json:"from_slot,omitempty"`
+	MerkleRoot string `json:"merkle_root"`
+}
+
+type TrustlessDataItem struct {
+	Value    json.RawMessage `json:"value"`
+	Proof    []MerkleNode    `json:"proof"`
+	PoolId   int64           `json:"poolId"`
+	BundleId int64           `json:"bundleId"`
+	ChainId  string          `json:"chainId"`
+	Indices  []Index         `json:"-"`
+}
+
+type Index struct {
+	Index   string
+	IndexId int
+}
+
+type MerkleNode struct {
+	Left bool   `json:"left"`
+	Hash string `json:"hash"`
+}
+
+type BlobDocument struct {
+	BundleId int64
+	Key      int64
+	Slot     int64
+	File     string
+}
+
+type CelestiaDataItem struct {
+	Key   string        `json:"key"`
+	Value CelestiaValue `json:"value"`
+}
+
+type CelestiaValue struct {
+	SharesByNamespace []NamespacedShares `json:"sharesByNamespace"`
+}
+
+type NamespacedShares struct {
+	NamespaceId string            `json:"namespace_id"`
+	Data        []json.RawMessage `json:"data"`
+}
+
+type ParameterIndex struct {
+	IndexId   int
+	Parameter []string
 }

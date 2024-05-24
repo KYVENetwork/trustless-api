@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYVE Data Services</title>
+    <style>
+        @font-face {
+                    font-family: 'Open Sans';
+                    src: url('path_to_your_font/OpenSans-Regular.ttf') format('truetype');
+                    /* Add additional font styles if needed */
+                }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        h3 {
+            font-size: 1.8rem;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #444;
+        }
+
+        h5 {
+            font-size: 1.2rem;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        a {
+            display: block;
+            margin-bottom: 15px;
+            text-decoration: none;
+            color: #007bff;
+            transition: color 0.3s;
+        }
+
+        a:hover {
+            color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>KYVE Data Services</h1>
+        <div class="query-section">
+            <h3>Supported queries:</h3>
+             {{ range $element := . }} 
+                <div class="query-group">
+                    <h5>{{ $element.Slug }}</h5>
+                    {{ range $key, $href := $element.Parameter }}
+                        <a href="{{ $href }}">{{ $href }}</a>
+                    {{ end }}
+                </div>
+             {{ end }}
+        </div>
+    </div>
+</body>
+</html>

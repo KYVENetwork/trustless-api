@@ -10,7 +10,12 @@
 
 .idea
 
+data
+
+.env
 *.db
+*.db-journal
+config.yml
 
 # Test binary, built with `go test -c`
 *.test
@@ -25,3 +30,4 @@
 go.work
 
 build
+/release/

@@ -1,50 +1,92 @@
 package server
 
 import (
+	"bytes"
 	_ "embed"
-	"encoding/json"
 	"fmt"
-	"github.com/KYVENetwork/trustless-rpc/collectors/bundles"
-	"github.com/KYVENetwork/trustless-rpc/types"
-	"github.com/KYVENetwork/trustless-rpc/utils"
-	"github.com/gin-gonic/gin"
-	"go.eigsys.de/gin-cachecontrol/v2"
+	"html/template"
 	"net/http"
-	"strconv"
+	"strings"
 	"time"
+
+	"github.com/KYVENetwork/trustless-api/config"
+	"github.com/KYVENetwork/trustless-api/db"
+	"github.com/KYVENetwork/trustless-api/files"
+	"github.com/KYVENetwork/trustless-api/indexer"
+	"github.com/KYVENetwork/trustless-api/types"
+	"github.com/KYVENetwork/trustless-api/utils"
+	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
+	cachecontrol "go.eigsys.de/gin-cachecontrol/v2"
 )
 
 var (
-	logger = utils.TrustlessRpcLogger("server")
+	logger = utils.TrustlessApiLogger("server")
 )
+
+//go:embed index.tmpl
+var embeddedHTML string
 
 type ApiServer struct {
-	chainId      string
-	restEndpoint string
-	storageRest  string
+	blobsAdapter db.Adapter
+	lineaAdapter db.Adapter
+	redirect     bool
 }
 
-// TODO: Replace with Source-Registry integration
-var (
-	MainnetPoolMap  = make(map[string]int64)
-	KaonPoolMap     = make(map[string]int64)
-	KorelliaPoolMap = make(map[string]int64)
-)
+type ServePool struct {
+	Slug      string
+	Adapter   db.Adapter
+	Indexer   indexer.Indexer
+	Parameter []string
+}
 
-func StartApiServer(chainId, restEndpoint, storageRest string, port string) *ApiServer {
+func StartApiServer() *ApiServer {
+	var blobsAdapter, lineaAdapter db.Adapter
+	port := viper.GetInt("server.port")
+	redirect := viper.GetBool("server.redirect")
+
+	var pools []ServePool
+	for _, p := range config.GetPoolsConfig() {
+		adapter := p.GetDatabaseAdapter()
+		indexer := adapter.GetIndexer()
+
+		var parameter []string
+		for prefix, value := range indexer.GetBindings() {
+			for _, param := range value {
+				transformed := []string{}
+				for _, queryName := range param.Parameter {
+					transformed = append(transformed, fmt.Sprintf("%v=_", queryName))
+				}
+				query := strings.Join(transformed, "&")
+				parameter = append(parameter, fmt.Sprintf("%s%s?%s", p.Slug, prefix, query))
+			}
+		}
+
+		serverPool := ServePool{
+			Indexer:   indexer,
+			Adapter:   adapter,
+			Slug:      p.Slug,
+			Parameter: parameter,
+		}
+		pools = append(pools, serverPool)
+	}
+
 	apiServer := &ApiServer{
-		chainId:      chainId,
-		restEndpoint: restEndpoint,
-		storageRest:  storageRest,
+		blobsAdapter: blobsAdapter,
+		lineaAdapter: lineaAdapter,
+		redirect:     redirect,
 	}
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
-	// Define index route
-	r.LoadHTMLGlob("templates/*")
+	t, _ := template.New("").Parse(embeddedHTML)
+	var templateBytes bytes.Buffer
+	t.Execute(&templateBytes, pools)
+	bytes := templateBytes.Bytes()
+
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(200, "index.tmpl", gin.H{})
+		c.Data(http.StatusOK, "text/html", bytes)
 	})
 
 	// Enable caching
@@ -52,8 +94,24 @@ func StartApiServer(chainId, restEndpoint, storageRest string, port string) *Api
 		MaxAge: cachecontrol.Duration(30 * 24 * time.Hour),
 	}))
 
-	r.GET("/celestia/GetSharesByNamespace", apiServer.GetSharesByNamespace)
-	r.GET("/beacon/blob_sidecars", apiServer.BlobSidecars)
+	for _, pool := range pools {
+		paths := pool.Indexer.GetBindings()
+		currentAdapter := pool.Adapter
+		for p, para := range paths {
+			path := fmt.Sprintf("%v%v", pool.Slug, p)
+			params := para
+			r.GET(path, func(ctx *gin.Context) {
+				indexString, indexId, err := apiServer.findSelectedParameter(ctx, &params)
+				if err != nil {
+					ctx.JSON(http.StatusBadRequest, gin.H{
+						"error": "unkown parameter",
+					})
+					return
+				}
+				apiServer.GetIndex(ctx, currentAdapter, indexString, indexId)
+			})
+		}
+	}
 
 	if err := r.Run(fmt.Sprintf(":%v", port)); err != nil {
 		logger.Error().Str("err", err.Error()).Msg("failed to run api server")
@@ -62,247 +120,70 @@ func StartApiServer(chainId, restEndpoint, storageRest string, port string) *Api
 	return apiServer
 }
 
-func (apiServer *ApiServer) GetSharesByNamespace(c *gin.Context) {
-	heightStr := c.Query("height")
-	namespace := c.Query("namespace")
+func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]types.ParameterIndex) (string, int, error) {
+	// iterate over all params
+	// select the one where all params have a value set and return the build string from the parameter
+	for _, param := range *params {
 
-	// TODO: Replace with Source-Registry integration
-	korelliaPoolMap := map[string]int64{
-		"AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0=": 93,
-		"AAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAg=": 93,
-		"AAAAAAAAAAAAAAAAAAAAAAAAAAAABYTLU4hLOUU=": 93,
-		"AAAAAAAAAAAAAAAAAAAAAAAAAAAADBuw7+PjGs8=": 93,
-	}
-
-	var poolId int64
-
-	switch apiServer.chainId {
-	case utils.ChainIdMainnet:
-		id, exists := MainnetPoolMap[namespace]
-		if exists {
-			poolId = id
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "namespace is not supported yet; please contact the KYVE team",
-			})
-			return
-		}
-	case utils.ChainIdKaon:
-		id, exists := KaonPoolMap[namespace]
-		if exists {
-			poolId = id
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "namespace is not supported yet; please contact the KYVE team",
-			})
-			return
-		}
-	case utils.ChainIdKorellia:
-		id, exists := korelliaPoolMap[namespace]
-		if exists {
-			poolId = id
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "namespace is not supported yet; please contact the KYVE team",
-			})
-			return
-		}
-	}
-
-	height, err := strconv.Atoi(heightStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	compressedBundle, err := bundles.GetBundleByKey(height, apiServer.restEndpoint, poolId)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	decompressedBundle, err := bundles.GetDataFromFinalizedBundle(*compressedBundle, apiServer.storageRest)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("failed to decompress bundle: %v", err.Error()),
-		})
-		return
-	}
-
-	// parse bundle
-	var bundle types.Bundle
-
-	if err := json.Unmarshal(decompressedBundle, &bundle); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("failed to unmarshal bundle data: %v", err.Error()),
-		})
-		return
-	}
-
-	for _, dataItem := range bundle {
-		itemHeight, err := strconv.Atoi(dataItem.Key)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("failed to parse block height from key: %v", err.Error()),
-			})
-			return
-		}
-
-		// skip blocks until we reach start height
-		if itemHeight < height {
-			continue
-		} else if itemHeight == height {
-			var shares types.Shares
-
-			if err := json.Unmarshal(dataItem.Value, &shares); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": fmt.Sprintf("failed to unmarshal value for key %v: %v", itemHeight, err.Error()),
-				})
-				return
-			}
-
-			for _, share := range shares.SharesByNamespace {
-				for key, value := range share {
-					if key == namespace {
-						c.JSON(http.StatusOK, value)
-						return
-					}
-				}
+		query := []string{}
+		for _, queryName := range param.Parameter {
+			if c.Query(queryName) != "" {
+				query = append(query, c.Query(queryName))
 			}
 		}
+
+		if len(query) == len(param.Parameter) {
+			return strings.Join(query, "-"), param.IndexId, nil
+		}
 	}
-	c.JSON(http.StatusBadRequest, gin.H{
-		"error": fmt.Sprintf("failed to find data item in bundle"),
-	})
-	return
+
+	// no fitting parameter
+	return "", 0, fmt.Errorf("wrong parameter")
 }
 
-func (apiServer *ApiServer) BlobSidecars(c *gin.Context) {
-	heightStr := c.Query("block_height")
-	slotStr := c.Query("slot_number")
-	chainId := c.Query("l2")
-
-	// TODO: Replace with Source-Registry integration
-	KaonPoolMap["blobs"] = 21
-
-	// For backwards compatibility; will be removed soon
-	if chainId == "arbitrum" {
-		KorelliaPoolMap["blobs"] = 86
-	}
-
-	var poolId int64
-
-	switch apiServer.chainId {
-	case utils.ChainIdMainnet:
-		poolId = MainnetPoolMap["blobs"]
-	case utils.ChainIdKaon:
-		poolId = KaonPoolMap["blobs"]
-	case utils.ChainIdKorellia:
-		poolId = KorelliaPoolMap["blobs"]
-	}
-
-	if poolId == 0 {
+// GetIndex will search the database for the given query and serve the correct data item if one is found
+// if the desired data item does not exist it serves an error
+//
+// `index` - is the name of the index that will be used e. g. block_height
+// `indexId` - is the corresponding Id for the key e. g. block_height -> 0
+func (apiServer *ApiServer) GetIndex(c *gin.Context, adapter db.Adapter, index string, indexId int) {
+	file, err := adapter.Get(indexId, index)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "query is not supported yet; please contact the KYVE team",
+			"error": err.Error(),
 		})
 		return
 	}
+	apiServer.resolveFile(c, file)
+}
 
-	if heightStr != "" && slotStr != "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "it's not allowed to specify block_height and slot_number",
-		})
-		return
-	}
-
-	if heightStr != "" {
-		var bundle *types.Bundle
-
-		height, err := strconv.Atoi(heightStr)
+// serves the content of a SavedFile
+// will either redirect to the link in the SavedFile or serve it directly
+func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
+	switch file.Type {
+	case files.LocalFile:
+		file, err := files.LoadLocalFile(file.Path)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
 			})
 			return
 		}
-
-		bundle = bundles.GetDecompressedBundleByHeight(c, height, apiServer.restEndpoint, apiServer.storageRest, poolId)
-		if bundle == nil {
-			return
-		}
-
-		for _, dataItem := range *bundle {
-			itemHeight, err := strconv.Atoi(dataItem.Key)
+		c.JSON(http.StatusOK, file)
+	case files.S3File:
+		url := viper.GetString("storage.cdn")
+		if apiServer.redirect {
+			c.Redirect(301, fmt.Sprintf("%v%v", url, file.Path))
+		} else {
+			res, err := http.Get(fmt.Sprintf("%v%v", url, file.Path))
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
-					"error": fmt.Sprintf("failed to parse block height from key: %v", err.Error()),
+					"error": err.Error(),
 				})
 				return
 			}
-
-			// skip blocks until we reach start height
-			if itemHeight < height {
-				continue
-			} else if itemHeight == height {
-				c.JSON(http.StatusOK, dataItem)
-				return
-			}
+			defer res.Body.Close()
+			c.DataFromReader(200, res.ContentLength, "application/json", res.Body, nil)
 		}
-	} else if slotStr != "" {
-		var bundle *types.Bundle
-
-		slot, err := strconv.Atoi(slotStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		bundle = bundles.GetDecompressedBundleBySlot(c, slot, apiServer.restEndpoint, apiServer.storageRest, poolId)
-		if bundle == nil {
-			return
-		}
-
-		for _, dataItem := range *bundle {
-			// Parse JSON into RawMessage
-			var rawMsg json.RawMessage
-			err := json.Unmarshal(dataItem.Value, &rawMsg)
-			if err != nil {
-				fmt.Println("Error:", err)
-				return
-			}
-
-			// Create a struct to unmarshal into
-			var blobData types.BlobValue
-
-			// Unmarshal the RawMessage into the struct
-			err = json.Unmarshal(rawMsg, &blobData)
-			if err != nil {
-				fmt.Println("Error:", err)
-				return
-			}
-
-			// skip blocks until we reach start height
-			if blobData.SlotNumber < slot {
-				continue
-			} else if blobData.SlotNumber == slot {
-				c.JSON(http.StatusOK, blobData)
-				return
-			}
-		}
-	} else {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("required to specify block_height or slot_number"),
-		})
 	}
-
-	c.JSON(http.StatusBadRequest, gin.H{
-		"error": fmt.Sprintf("failed to find data item in bundle"),
-	})
-	return
 }
