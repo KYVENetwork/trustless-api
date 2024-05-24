@@ -135,6 +135,7 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 	}
 
 	// lock the entire module as we might have multiple database adapter instances at the same time
+	// TODO double check if needed
 	//mutex.Lock()
 	//defer mutex.Unlock()
 
