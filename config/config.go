@@ -126,6 +126,8 @@ func LoadConfig(configPath string) {
 
 	_ = viper.BindEnv("server.port", "PORT")
 
+	_ = viper.BindEnv("crawler.threads", "CRAWLER_THREADS")
+
 	_ = viper.BindEnv("storage.aws-endpoint", "AWS_ENDPOINT")
 	_ = viper.BindEnv("storage.bucketname", "BUCKET_NAME")
 	_ = viper.BindEnv("storage.cdn", "CDN")
