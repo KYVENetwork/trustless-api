@@ -134,47 +134,57 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 		return err
 	}
 
-	// lock the entire module as we might have multiple data base adapter instances at the same time
-	mutex.Lock()
-	defer mutex.Unlock()
+	// lock the entire module as we might have multiple database adapter instances at the same time
+	//mutex.Lock()
+	//defer mutex.Unlock()
+
+	items := make([]db.DataItemDocument, 0)
+	Indices := make([]db.IndexDocument, 0)
+
+	for _, r := range result {
+		file := r.file
+		dataitem := r.item
+		item := db.DataItemDocument{
+			BundleID: dataitem.BundleId,
+			PoolID:   dataitem.PoolId,
+			FileType: file.Type,
+			FilePath: file.Path,
+		}
+		items = append(items, item)
+
+		for _, index := range dataitem.Indices {
+			index := db.IndexDocument{
+				DataItemID: item.ID,
+				Value:      index.Index,
+				IndexID:    index.IndexId,
+			}
+			Indices = append(Indices, index)
+
+		}
+	}
 
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
-		for _, r := range result {
-			file := r.file
-			dataitem := r.item
-			item := db.DataItemDocument{
-				BundleID: dataitem.BundleId,
-				PoolID:   dataitem.PoolId,
-				FileType: file.Type,
-				FilePath: file.Path,
-			}
-			err := tx.Table(adapter.dataItemTable).Create(&item).Error
-			if err != nil {
-				logger.Error().
-					Err(err).
-					Int64("bundleId", dataitem.BundleId).
-					Int64("poolId", dataitem.PoolId).
-					Msg("Failed to insert dataitem into db")
-				return err
-			}
 
-			for _, index := range dataitem.Indices {
-				index := db.IndexDocument{
-					DataItemID: item.ID,
-					Value:      index.Index,
-					IndexID:    index.IndexId,
-				}
-				err = tx.Table(adapter.indexTable).Create(&index).Error
-				if err != nil {
-					logger.Error().
-						Err(err).
-						Int64("bundleId", dataitem.BundleId).
-						Int64("poolId", dataitem.PoolId).
-						Msg("Failed to insert index into db")
-					return err
-				}
-			}
+		err := tx.Table(adapter.dataItemTable).Create(items).Error
+		if err != nil {
+			logger.Error().
+				Err(err).
+				Int64("bundleId", bundle.BundleId).
+				Int64("poolId", bundle.PoolId).
+				Msg("Failed to insert dataitem into db")
+			return err
 		}
+
+		err = tx.Table(adapter.indexTable).Create(Indices).Error
+		if err != nil {
+			logger.Error().
+				Err(err).
+				Int64("bundleId", bundle.BundleId).
+				Int64("poolId", bundle.PoolId).
+				Msg("Failed to insert index into db")
+			return err
+		}
+
 		return nil
 	})
 }
