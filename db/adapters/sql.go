@@ -15,6 +15,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	gormLogger "gorm.io/gorm/logger"
 )
 
 var (
@@ -65,9 +66,11 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 		viper.GetString("database.port"),
 	)
 
-	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: gormLogger.Default.LogMode(gormLogger.Error),
+	})
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Cannot open datase.")
+		logger.Fatal().Err(err).Msg("Cannot open database.")
 	}
 
 	dataItemTable, indexTable := db.GetTableNames(poolId)
