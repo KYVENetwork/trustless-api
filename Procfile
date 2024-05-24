@@ -1,1 +1,2 @@
-web: ./bin/trustless-api start --chain-id kaon-1
+web: eval $START_SERVER_CMD
+worker: eval $START_WORKER_CMD
