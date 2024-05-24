@@ -2,6 +2,9 @@ package config
 
 import (
 	_ "embed"
+	"os"
+	"path/filepath"
+
 	"github.com/KYVENetwork/trustless-api/db"
 	"github.com/KYVENetwork/trustless-api/db/adapters"
 	"github.com/KYVENetwork/trustless-api/files"
@@ -9,9 +12,6 @@ import (
 	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 type PoolsConfig struct {
@@ -88,7 +88,6 @@ func loadDefaults() {
 
 func LoadConfig(configPath string) {
 
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	loadDefaults()
 	viper.SetConfigName("config")
