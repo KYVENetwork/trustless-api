@@ -135,12 +135,11 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 	}
 
 	// lock the entire module as we might have multiple database adapter instances at the same time
-	// TODO double check if needed
-	//mutex.Lock()
-	//defer mutex.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	items := make([]db.DataItemDocument, 0)
-	Indices := make([]db.IndexDocument, 0)
+	indices := make([]db.IndexDocument, 0)
 
 	for _, r := range result {
 		file := r.file
@@ -152,20 +151,11 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 			FilePath: file.Path,
 		}
 		items = append(items, item)
-
-		for _, index := range dataitem.Indices {
-			index := db.IndexDocument{
-				DataItemID: item.ID,
-				Value:      index.Index,
-				IndexID:    index.IndexId,
-			}
-			Indices = append(Indices, index)
-
-		}
 	}
 
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
 
+		// first insert the dataitems, the ID will be written into the array
 		err := tx.Table(adapter.dataItemTable).Create(items).Error
 		if err != nil {
 			logger.Error().
@@ -176,7 +166,19 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 			return err
 		}
 
-		err = tx.Table(adapter.indexTable).Create(Indices).Error
+		// then set the data item ID for each index document
+		for i, item := range items {
+			for _, index := range result[i].item.Indices {
+				index := db.IndexDocument{
+					DataItemID: item.ID,
+					Value:      index.Index,
+					IndexID:    index.IndexId,
+				}
+				indices = append(indices, index)
+			}
+		}
+
+		err = tx.Table(adapter.indexTable).Create(indices).Error
 		if err != nil {
 			logger.Error().
 				Err(err).
