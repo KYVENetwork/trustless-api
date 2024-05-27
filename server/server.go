@@ -91,7 +91,7 @@ func StartApiServer() *ApiServer {
 
 	// Enable caching
 	r.Use(cachecontrol.New(cachecontrol.Config{
-		MaxAge: cachecontrol.Duration(30 * 24 * time.Hour),
+		MaxAge: cachecontrol.Duration(24 * time.Hour),
 	}))
 
 	for _, pool := range pools {
