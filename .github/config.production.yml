@@ -43,7 +43,7 @@ server:
   # port of the server
   port: 80
   # will redirect to the CDN defined in `storage` if set to false the server will fetch the content on request and serve it directly
-  redirect: true
+  redirect: false
 
 # === STORAGE ===
 # storage configuration.
