@@ -1,9 +1,7 @@
 package files
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -60,29 +58,29 @@ func (saveFile *S3FileInterface) Init() {
 }
 
 func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedFile, error) {
-	if saveFile.client == nil {
-		saveFile.Init()
-	}
+	// if saveFile.client == nil {
+	// 	saveFile.Init()
+	// }
 
-	json, err := json.Marshal(dataitem)
-	if err != nil {
-		return SavedFile{}, err
-	}
-	reader := bytes.NewReader(json)
+	// json, err := json.Marshal(dataitem)
+	// if err != nil {
+	// 	return SavedFile{}, err
+	// }
+	// reader := bytes.NewReader(json)
 	filename := dataitem.Indices[0].Index
 	filepath := fmt.Sprintf("%v/%v/%v.json", dataitem.PoolId, dataitem.BundleId, filename)
 
-	_, err = saveFile.client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket:          aws.String(saveFile.bucket),
-		Key:             aws.String(filepath),
-		Body:            reader,
-		ContentEncoding: aws.String(saveFile.compression),
-		ContentType:     aws.String("application/json"), // set content type to application/json
-	})
+	// _, err = saveFile.client.PutObject(context.TODO(), &s3.PutObjectInput{
+	// 	Bucket:          aws.String(saveFile.bucket),
+	// 	Key:             aws.String(filepath),
+	// 	Body:            reader,
+	// 	ContentEncoding: aws.String(saveFile.compression),
+	// 	ContentType:     aws.String("application/json"), // set content type to application/json
+	// })
 
-	if err != nil {
-		return SavedFile{}, err
-	}
+	// if err != nil {
+	// 	return SavedFile{}, err
+	// }
 
 	return SavedFile{Type: S3File, Path: filepath}, nil
 }
