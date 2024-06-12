@@ -15,6 +15,14 @@ const (
 )
 
 const (
+	IndexBlockHeight            = 0
+	IndexSlotNumber             = 1
+	IndexSharesByNamespace      = 3
+	IndexTendermintBlock        = 4
+	IndexTendermintBlockResults = 5
+)
+
+const (
 	BundlesPageLimit  = 100
 	BackoffMaxRetries = 10
 )

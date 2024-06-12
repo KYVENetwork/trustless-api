@@ -164,3 +164,13 @@ type ParameterIndex struct {
 	IndexId   int
 	Parameter []string
 }
+
+type TendermintDataItem struct {
+	Key   string          `json:"key"`
+	Value TendermintValue `json:"value"`
+}
+
+type TendermintValue struct {
+	Block        json.RawMessage `json:"block"`
+	BlockResults json.RawMessage `json:"block_results"`
+}
