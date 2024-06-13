@@ -9,16 +9,19 @@ log: info
 #            e. g. EthBlobs will provide following URLs: "/beacon/blob_sidecars?block_height={block_height}", "/beacon/blob_sidecars?slot_number={slot_number}"
 # - slug: what slug should be used when serving the pools. The slug is a unique prefix for each pool when requesting its data.
 #         e. g. with the slug 'ethereum' and the indexer EthBlobs the resulting url will be: "/ethereum/beacon/blob_sidecars?..."
+# - bundleStartId: Bundle-ID of the first bundle that should be indexed (Default: 0 -> means all bundles will be indexed).
 # =============
 pools:
     - chainid: kaon-1
       indexer: EthBlobs
       poolid: 21
       slug: ethereum
+      bundleStartId: 0
     - chainid: korellia-2
-      indexer: Height
-      poolid: 105
-      slug: linea
+      indexer: Tendermint
+      poolid: 113
+      slug: injective
+      bundleStartId: 141
 
 # === DATABASE ===
 # database configuration

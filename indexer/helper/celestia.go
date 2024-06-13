@@ -13,33 +13,15 @@ import (
 
 type CelestiaIndexer struct{}
 
-const (
-	IndexSharesByNamespace = 3
-)
-
 func (*CelestiaIndexer) GetBindings() map[string][]types.ParameterIndex {
 	return map[string][]types.ParameterIndex{
 		"/GetSharesByNamespace": {
 			{
-				IndexId:   IndexSharesByNamespace,
+				IndexId:   utils.IndexSharesByNamespace,
 				Parameter: []string{"height", "namespace"},
 			},
 		},
 	}
-}
-
-func (*CelestiaIndexer) celestiaDataItemToSha256(dataItem *types.CelestiaDataItem) [32]byte {
-
-	var shareHashes [][32]byte
-	for _, namespacedShares := range dataItem.Value.SharesByNamespace {
-		shareHashes = append(shareHashes, utils.CalculateSHA256Hash(namespacedShares))
-	}
-
-	merkleRoot := merkle.GetMerkleRoot(shareHashes)
-	keyBytes := sha256.Sum256([]byte(dataItem.Key))
-	combined := append(keyBytes[:], merkleRoot[:]...)
-
-	return sha256.Sum256(combined)
 }
 
 func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
@@ -105,7 +87,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 				return nil, err
 			}
 
-			// NOTE: becase we also hash the key of the original data item, we have to append an extra node with the key
+			// Because we also hash the key of the original data item, we have to append an extra leaf with the key
 			keyBytes := sha256.Sum256([]byte(dataitem.Key))
 			keyHash := hex.EncodeToString(keyBytes[:])
 			totalProof := append(namespaceProof, types.MerkleNode{Left: false, Hash: keyHash})
@@ -126,7 +108,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 				PoolId:   bundle.PoolId,
 				ChainId:  bundle.ChainId,
 				Indices: []types.Index{
-					{Index: index, IndexId: IndexSharesByNamespace},
+					{Index: index, IndexId: utils.IndexSharesByNamespace},
 				},
 			}
 			trustlessItems = append(trustlessItems, trustlessDataItem)
@@ -134,4 +116,18 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 	}
 
 	return &trustlessItems, nil
+}
+
+func (*CelestiaIndexer) celestiaDataItemToSha256(dataItem *types.CelestiaDataItem) [32]byte {
+
+	var shareHashes [][32]byte
+	for _, namespacedShares := range dataItem.Value.SharesByNamespace {
+		shareHashes = append(shareHashes, utils.CalculateSHA256Hash(namespacedShares))
+	}
+
+	merkleRoot := merkle.GetMerkleRoot(shareHashes)
+	keyBytes := sha256.Sum256([]byte(dataItem.Key))
+	combined := append(keyBytes[:], merkleRoot[:]...)
+
+	return sha256.Sum256(combined)
 }

@@ -16,10 +16,17 @@ pools:
     indexer: EthBlobs
     poolid: 21
     slug: ethereum
+    bundleStartId: 0
   - chainid: korellia-2
     indexer: Celestia
     poolid: 111
     slug: celestia
+    bundleStartId: 0
+  - chainid: korellia-2
+    indexer: Tendermint
+    poolid: 113
+    slug: injective
+    bundleStartId: 141
 
 # === DATABASE ===
 # database configuration

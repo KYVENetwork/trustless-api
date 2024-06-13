@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/KYVENetwork/trustless-api/types"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -69,7 +70,8 @@ func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedF
 		return SavedFile{}, err
 	}
 	reader := bytes.NewReader(json)
-	filename := dataitem.Indices[0].Index
+
+	filename := utils.GetUniqueDataitemName(dataitem)
 	filepath := fmt.Sprintf("%v/%v/%v.json", dataitem.PoolId, dataitem.BundleId, filename)
 
 	_, err = saveFile.client.PutObject(context.TODO(), &s3.PutObjectInput{

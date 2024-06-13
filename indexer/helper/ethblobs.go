@@ -3,6 +3,7 @@ package helper
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/KYVENetwork/trustless-api/utils"
 
 	"github.com/KYVENetwork/trustless-api/merkle"
 	"github.com/KYVENetwork/trustless-api/types"
@@ -10,20 +11,15 @@ import (
 
 type EthBlobsIndexer struct{}
 
-const (
-	IndexBlockHeight = 0
-	IndexSlotNumber  = 1
-)
-
 func (eth *EthBlobsIndexer) GetBindings() map[string][]types.ParameterIndex {
 	return map[string][]types.ParameterIndex{
 		"/beacon/blob_sidecars": {
 			{
-				IndexId:   IndexBlockHeight,
+				IndexId:   utils.IndexBlockHeight,
 				Parameter: []string{"block_height"},
 			},
 			{
-				IndexId:   IndexSlotNumber,
+				IndexId:   utils.IndexSlotNumber,
 				Parameter: []string{"slot_number"},
 			},
 		},
@@ -40,8 +36,8 @@ func (*EthBlobsIndexer) getDataItemIndices(dataitem *types.DataItem) ([]types.In
 		return nil, err
 	}
 	var indices []types.Index = []types.Index{
-		{Index: dataitem.Key, IndexId: IndexBlockHeight},
-		{Index: fmt.Sprintf("%v", blobData.SlotNumber), IndexId: IndexSlotNumber},
+		{Index: dataitem.Key, IndexId: utils.IndexBlockHeight},
+		{Index: fmt.Sprintf("%v", blobData.SlotNumber), IndexId: utils.IndexSlotNumber},
 	}
 
 	return indices, nil

@@ -217,10 +217,10 @@ func (adapter *SQLAdapter) Get(indexId int, key string) (files.SavedFile, error)
 	return files.SavedFile{Path: result.FilePath, Type: result.FileType}, nil
 }
 
-func (adapter *SQLAdapter) GetMissingBundles(lastBundle int64) []int64 {
+func (adapter *SQLAdapter) GetMissingBundles(bundleStartId, lastBundle int64) []int64 {
 	template := `WITH recursive ids AS
 	(
-		   SELECT 0 AS id
+		   SELECT %v AS id
 		   UNION ALL
 		   SELECT id + 1
 		   FROM   ids
@@ -233,7 +233,7 @@ func (adapter *SQLAdapter) GetMissingBundles(lastBundle int64) []int64 {
 					FROM     %v
 					WHERE    bundle_id <= %v
 					GROUP BY bundle_id )`
-	query := fmt.Sprintf(template, lastBundle, adapter.dataItemTable, lastBundle)
+	query := fmt.Sprintf(template, bundleStartId, lastBundle, adapter.dataItemTable, lastBundle)
 	var ids []int64
 	adapter.db.Raw(query).Scan(&ids)
 	return ids

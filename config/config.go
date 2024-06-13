@@ -15,10 +15,11 @@ import (
 )
 
 type PoolsConfig struct {
-	ChainId string
-	Indexer string
-	PoolId  int64
-	Slug    string
+	BundleStartId int64
+	ChainId       string
+	Indexer       string
+	PoolId        int64
+	Slug          string
 }
 
 type ConfigEndpoints struct {
@@ -44,11 +45,6 @@ var (
 
 //go:embed config.template.yml
 var DefaultTempalte []byte
-
-var (
-	EthBlobsConfig = PoolsConfig{PoolId: 21, Indexer: "EthBlobs", ChainId: "kaon-1"}
-	LineaConfig    = PoolsConfig{PoolId: 105, Indexer: "Height", ChainId: "korellia-2"}
-)
 
 func loadDefaults() {
 	// log level
@@ -80,7 +76,7 @@ func loadDefaults() {
 	viper.SetDefault("server.port", 4242)
 	viper.SetDefault("server.redirect", true)
 
-	var pools []PoolsConfig = []PoolsConfig{EthBlobsConfig, LineaConfig}
+	var pools []PoolsConfig
 	viper.SetDefault("pools", pools)
 
 	viper.SetDefault("endpoints", Endpoints)
@@ -162,7 +158,7 @@ func loadEndpoints() {
 	Endpoints = config
 }
 
-// returns the SaveDataItem interface that is configured in the config file
+// GetSaveDataItemAdapter returns the SaveDataItem interface that is configured in the config file
 func GetSaveDataItemAdapter() files.SaveDataItem {
 	switch viper.GetString("storage.type") {
 	case "local":
@@ -171,20 +167,20 @@ func GetSaveDataItemAdapter() files.SaveDataItem {
 		return &files.S3FileAdapter
 	}
 
-	logger.Fatal().Str("type", viper.GetString("storage.type")).Msg("Unkown storage type")
+	logger.Fatal().Str("type", viper.GetString("storage.type")).Msg("Unknown storage type")
 	return nil
 }
 
 func GetPoolsConfig() []PoolsConfig {
 	var config []PoolsConfig
 	err := viper.UnmarshalKey("pools", &config)
-	if err != nil {
+	if err != nil || len(config) == 0 {
 		logger.Fatal().Msg("Failed to parse pools")
 	}
 	return config
 }
 
-// returns the correct db.Adapter that is configured in the config file
+// GetDatabaseAdapter returns the correct db.Adapter that is configured in the config file
 func GetDatabaseAdapter(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) db.Adapter {
 	switch viper.GetString("database.type") {
 	case "sqlite":
@@ -198,11 +194,11 @@ func GetDatabaseAdapter(saveDataItem files.SaveDataItem, indexer indexer.Indexer
 	return nil
 }
 
-// returns the db.Adapter for each pool config
+// GetDatabaseAdapter returns the db.Adapter for each pool config
 // as each pool has its own adapter
 func (c PoolsConfig) GetDatabaseAdapter() db.Adapter {
 	var saveFile files.SaveDataItem = GetSaveDataItemAdapter()
-	var idx indexer.Indexer = nil
+	var idx indexer.Indexer
 	switch c.Indexer {
 	case "EthBlobs":
 		idx = &indexer.EthBlobIndexer
@@ -210,10 +206,10 @@ func (c PoolsConfig) GetDatabaseAdapter() db.Adapter {
 		idx = &indexer.HeightIndexer
 	case "Celestia":
 		idx = &indexer.CelestiaIndexer
-	}
-
-	if idx == nil {
-		logger.Fatal().Str("type", c.Indexer).Msg("Cannot resolve indexer")
+	case "Tendermint":
+		idx = &indexer.TendermintIndexer
+	default:
+		logger.Fatal().Str("type", c.Indexer).Msg("failed to resolve indexer")
 		return nil
 	}
 

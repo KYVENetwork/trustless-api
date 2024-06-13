@@ -2,6 +2,7 @@ package helper
 
 import (
 	"encoding/json"
+	"github.com/KYVENetwork/trustless-api/utils"
 
 	"github.com/KYVENetwork/trustless-api/merkle"
 	"github.com/KYVENetwork/trustless-api/types"
@@ -13,7 +14,7 @@ func (eth *HeightIndexer) GetBindings() map[string][]types.ParameterIndex {
 	return map[string][]types.ParameterIndex{
 		"/value": {
 			{
-				IndexId:   IndexBlockHeight,
+				IndexId:   utils.IndexBlockHeight,
 				Parameter: []string{"height"},
 			},
 		},
@@ -39,7 +40,7 @@ func (*HeightIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataI
 			PoolId:   bundle.PoolId,
 			ChainId:  bundle.ChainId,
 			Indices: []types.Index{
-				{Index: dataitem.Key, IndexId: IndexBlockHeight},
+				{Index: dataitem.Key, IndexId: utils.IndexBlockHeight},
 			},
 		}
 		trustlessItems = append(trustlessItems, trustlessDataItem)

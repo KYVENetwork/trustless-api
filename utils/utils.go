@@ -14,6 +14,8 @@ import (
 	runtimeDebug "runtime/debug"
 	"strings"
 	"time"
+
+	"github.com/KYVENetwork/trustless-api/types"
 )
 
 var (
@@ -159,4 +161,14 @@ func BytesToHex(bytes *[][32]byte) []string {
 		hexArray = append(hexArray, hex.EncodeToString(b[:]))
 	}
 	return hexArray
+}
+
+func GetUniqueDataitemName(item *types.TrustlessDataItem) string {
+	var output string
+
+	for _, index := range item.Indices {
+		output += fmt.Sprintf("%v-%v", index.Index, index.IndexId)
+	}
+
+	return output
 }

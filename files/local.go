@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/KYVENetwork/trustless-api/types"
+	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/spf13/viper"
 )
 
@@ -33,7 +34,7 @@ func (saveFile *SaveLocalFileInterface) Save(dataitem *types.TrustlessDataItem) 
 		return SavedFile{}, err
 	}
 	var filepath string
-	filename := dataitem.Indices[0].Index
+	filename := utils.GetUniqueDataitemName(dataitem)
 	switch viper.GetString("storage.compression") {
 	case "gzip":
 		var compressed bytes.Buffer
