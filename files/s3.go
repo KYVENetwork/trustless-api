@@ -71,8 +71,6 @@ func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedF
 	}
 	reader := bytes.NewReader(json)
 
-	//
-
 	filename := utils.GetUniqueDataitemName(dataitem)
 	filepath := fmt.Sprintf("%v/%v/%v.json", dataitem.PoolId, dataitem.BundleId, filename)
 
