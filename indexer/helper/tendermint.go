@@ -3,6 +3,7 @@ package helper
 import (
 	"crypto/sha256"
 	"encoding/json"
+
 	"github.com/KYVENetwork/trustless-api/utils"
 
 	"github.com/KYVENetwork/trustless-api/merkle"
@@ -65,11 +66,6 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle) (*[]types.Trustles
 			return nil, err
 		}
 
-		indices, err := t.getDataItemIndices(&dataItem)
-		if err != nil {
-			return nil, err
-		}
-
 		createTrustlessDataItem := func(value []byte, indexId int) types.TrustlessDataItem {
 			return types.TrustlessDataItem{
 				Value:    value,
@@ -77,7 +73,12 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle) (*[]types.Trustles
 				BundleId: bundle.BundleId,
 				PoolId:   bundle.PoolId,
 				ChainId:  bundle.ChainId,
-				Indices:  indices,
+				Indices: []types.Index{
+					{
+						Index:   dataItem.Key,
+						IndexId: indexId,
+					},
+				},
 			}
 		}
 
@@ -86,15 +87,6 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle) (*[]types.Trustles
 		trustlessItems = append(trustlessItems, createTrustlessDataItem(blockResultsValue, utils.IndexTendermintBlockResults))
 	}
 	return &trustlessItems, nil
-}
-
-func (*TendermintIndexer) getDataItemIndices(dataItem *types.TendermintDataItem) ([]types.Index, error) {
-	var indices []types.Index = []types.Index{
-		{Index: dataItem.Key, IndexId: utils.IndexTendermintBlock},
-		{Index: dataItem.Key, IndexId: utils.IndexTendermintBlockResults},
-	}
-
-	return indices, nil
 }
 
 func (*TendermintIndexer) tendermintDataItemToSha256(dataItem *types.DataItem) [32]byte {
