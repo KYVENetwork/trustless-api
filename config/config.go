@@ -15,10 +15,11 @@ import (
 )
 
 type PoolsConfig struct {
-	ChainId string
-	Indexer string
-	PoolId  int64
-	Slug    string
+	BundleStartId int64
+	ChainId       string
+	Indexer       string
+	PoolId        int64
+	Slug          string
 }
 
 type ConfigEndpoints struct {
@@ -44,11 +45,6 @@ var (
 
 //go:embed config.template.yml
 var DefaultTempalte []byte
-
-var (
-	EthBlobsConfig = PoolsConfig{PoolId: 21, Indexer: "EthBlobs", ChainId: "kaon-1"}
-	LineaConfig    = PoolsConfig{PoolId: 105, Indexer: "Height", ChainId: "korellia-2"}
-)
 
 func loadDefaults() {
 	// log level
@@ -80,7 +76,7 @@ func loadDefaults() {
 	viper.SetDefault("server.port", 4242)
 	viper.SetDefault("server.redirect", true)
 
-	var pools []PoolsConfig = []PoolsConfig{EthBlobsConfig, LineaConfig}
+	var pools []PoolsConfig
 	viper.SetDefault("pools", pools)
 
 	viper.SetDefault("endpoints", Endpoints)
@@ -171,14 +167,14 @@ func GetSaveDataItemAdapter() files.SaveDataItem {
 		return &files.S3FileAdapter
 	}
 
-	logger.Fatal().Str("type", viper.GetString("storage.type")).Msg("Unkown storage type")
+	logger.Fatal().Str("type", viper.GetString("storage.type")).Msg("Unknown storage type")
 	return nil
 }
 
 func GetPoolsConfig() []PoolsConfig {
 	var config []PoolsConfig
 	err := viper.UnmarshalKey("pools", &config)
-	if err != nil {
+	if err != nil || len(config) == 0 {
 		logger.Fatal().Msg("Failed to parse pools")
 	}
 	return config

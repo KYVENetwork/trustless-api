@@ -87,7 +87,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 				return nil, err
 			}
 
-			// NOTE: becase we also hash the key of the original data item, we have to append an extra node with the key
+			// Because we also hash the key of the original data item, we have to append an extra leaf with the key
 			keyBytes := sha256.Sum256([]byte(dataitem.Key))
 			keyHash := hex.EncodeToString(keyBytes[:])
 			totalProof := append(namespaceProof, types.MerkleNode{Left: false, Hash: keyHash})
