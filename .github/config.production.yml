@@ -27,6 +27,11 @@ pools:
     poolid: 113
     slug: injective
     bundleStartId: 141
+  - chainid: korellia-2
+    indexer: Height
+    poolid: 118
+    slug: avail
+    bundleStartId: 0
 
 # === DATABASE ===
 # database configuration
