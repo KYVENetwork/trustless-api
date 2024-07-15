@@ -66,7 +66,7 @@ storage:
   compression: gzip
 
   # S3 CONFIG
-  # The following configs are only relevent when using S3
+  # The following configs are only relevant when using S3
 
   # your R2 or AWS endpoint
   aws-endpoint: "REDACTED"
@@ -74,7 +74,7 @@ storage:
   bucketname: "REDACTED"
   # CDN where to fetch the data
   cdn: "REDACTED"
-  # your access key id and your acces key secret
+  # your access key id and your access key secret
   credentials:
     keyid: "REDACTED"
     keysecret: "REDACTED"
