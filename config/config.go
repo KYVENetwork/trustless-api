@@ -44,7 +44,7 @@ var (
 )
 
 //go:embed config.template.yml
-var DefaultTempalte []byte
+var DefaultTemplate []byte
 
 func loadDefaults() {
 	// log level
@@ -83,7 +83,6 @@ func loadDefaults() {
 }
 
 func LoadConfig(configPath string) {
-
 	viper.AutomaticEnv()
 	loadDefaults()
 	viper.SetConfigName("config")
@@ -105,7 +104,7 @@ func LoadConfig(configPath string) {
 			return
 		}
 
-		fo.Write(DefaultTempalte)
+		fo.Write(DefaultTemplate)
 	}
 
 	err := viper.ReadInConfig()

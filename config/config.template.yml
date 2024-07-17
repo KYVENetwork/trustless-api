@@ -69,7 +69,7 @@ storage:
     compression: gzip
     
     # S3 CONFIG
-    # The following configs are only relevent when using S3
+    # The following configs are only relevant when using S3
 
     # your R2 or AWS endpoint
     aws-endpoint: "http://example-bucket.s3-website.us-west-2.amazonaws.com/" 
