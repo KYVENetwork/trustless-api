@@ -32,6 +32,11 @@ pools:
     poolid: 118
     slug: avail
     bundleStartId: 0
+  - chainid: korellia-2
+    indexer: Tendermint
+    poolid: 128
+    slug: andromeda
+    bundleStartId: 0
 
 # === DATABASE ===
 # database configuration
