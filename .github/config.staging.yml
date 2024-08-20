@@ -37,6 +37,11 @@ pools:
     poolid: 128
     slug: andromeda
     bundleStartId: 0
+  - chainid: korellia-2
+    indexer: Height
+    poolid: 131
+    slug: cronos-zkevm
+    bundleStartId: 0
 
 # === DATABASE ===
 # database configuration
