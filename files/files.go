@@ -20,7 +20,8 @@ var (
 )
 
 type SaveDataItem interface {
-	// returns a SavedFile
-	// saves an dataitem on some form of FileStorage, this can be any storage like: S3, local, etc.
-	Save(dataitem *types.TrustlessDataItem) (SavedFile, error)
+	// Save returns a SavedFile.
+	// It saves a data item on some form of FileStorage, this can be any storage like: S3, local, etc.
+	// If proofAttached is disabled, only ValueWithoutProof is written.
+	Save(dataItem *types.TrustlessDataItem, proofAttached bool) (SavedFile, error)
 }

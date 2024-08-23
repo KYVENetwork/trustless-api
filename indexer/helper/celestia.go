@@ -24,7 +24,8 @@ func (*CelestiaIndexer) GetBindings() map[string][]types.ParameterIndex {
 	}
 }
 
-func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
+// TODO: Handle proofAttached = false
+func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.TrustlessDataItem, error) {
 
 	// convert data items to celestia data items
 	// we can also construct the high level leafs at this point

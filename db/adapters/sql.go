@@ -88,13 +88,12 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 	}
 }
 
-// inserts the dataitems provided into the database.
-// the entire array is inserted as one transaction ensuring we don't have incomplete data
+// Save inserts the data items provided into the database.
+// The entire array is inserted as one transaction ensuring we don't have incomplete data.
 //
-// NOTE: this function is thread safe
-func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
-
-	dataitems, err := adapter.indexer.IndexBundle(bundle)
+// NOTE: This function is thread safe.
+func (adapter *SQLAdapter) Save(bundle *types.Bundle, proofAttached bool) error {
+	dataItems, err := adapter.indexer.IndexBundle(bundle, proofAttached)
 	if err != nil {
 		return err
 	}
@@ -108,16 +107,16 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 	var m sync.Mutex
 	var g errgroup.Group
 	g.SetLimit(viper.GetInt("storage.threads"))
-	for index := range *dataitems {
+	for index := range *dataItems {
 		localIndex := index
 		g.Go(func() error {
-			localDataitem := &(*dataitems)[localIndex]
-			file, err := adapter.saveDataItem.Save(localDataitem)
+			localDataItem := &(*dataItems)[localIndex]
+			file, err := adapter.saveDataItem.Save(localDataItem, proofAttached)
 			if err != nil {
 				logger.Error().
 					Err(err).
-					Int64("bundleId", localDataitem.BundleId).
-					Int64("poolId", localDataitem.PoolId).
+					Int64("bundleId", localDataItem.BundleId).
+					Int64("poolId", localDataItem.PoolId).
 					Msg("failed to save data item")
 				return err
 			}
@@ -125,7 +124,7 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 			defer m.Unlock()
 			result = append(result, Result{
 				file: file,
-				item: localDataitem,
+				item: localDataItem,
 			})
 			return nil
 		})
@@ -143,10 +142,10 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 
 	for _, r := range result {
 		file := r.file
-		dataitem := r.item
+		dataItem := r.item
 		item := db.DataItemDocument{
-			BundleID: dataitem.BundleId,
-			PoolID:   dataitem.PoolId,
+			BundleID: dataItem.BundleId,
+			PoolID:   dataItem.PoolId,
 			FileType: file.Type,
 			FilePath: file.Path,
 		}
@@ -154,8 +153,7 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 	}
 
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
-
-		// first insert the dataitems, the ID will be written into the array
+		// first insert the data items, the ID will be written into the array
 		err := tx.Table(adapter.dataItemTable).Create(items).Error
 		if err != nil {
 			logger.Error().
