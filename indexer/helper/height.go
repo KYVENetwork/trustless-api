@@ -21,7 +21,8 @@ func (eth *HeightIndexer) GetBindings() map[string][]types.ParameterIndex {
 	}
 }
 
-func (*HeightIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
+// TODO: Handle proofAttached = false
+func (*HeightIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.TrustlessDataItem, error) {
 	leafs := merkle.GetBundleHashes(&bundle.DataItems)
 	var trustlessItems []types.TrustlessDataItem
 	for index, dataitem := range bundle.DataItems {

@@ -20,6 +20,8 @@ type PoolsConfig struct {
 	Indexer       string
 	PoolId        int64
 	Slug          string
+
+	ProofAttached bool
 }
 
 type ConfigEndpoints struct {
