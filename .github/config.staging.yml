@@ -49,7 +49,7 @@ pools:
     bundleStartId: 0
     proofAttached: true
   - chainid: kyve-1
-    indexer: Height
+    indexer: Tendermint
     poolid: 1
     slug: osmosis
     bundleStartId: 183000
