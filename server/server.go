@@ -81,9 +81,11 @@ func StartApiServer() *ApiServer {
 	t, _ := template.New("").Parse(openapi)
 	var templateBytes bytes.Buffer
 	type OpenApi struct {
-		Paths string
+		Paths   string
+		Version string
 	}
-	t.Execute(&templateBytes, OpenApi{string(openapiPaths)})
+
+	t.Execute(&templateBytes, OpenApi{string(openapiPaths), utils.GetVersion()})
 	openapi = templateBytes.String()
 
 	// Replace HTML entity for single quote with actual single quote

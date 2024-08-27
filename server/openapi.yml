@@ -2,16 +2,11 @@ openapi: 3.0.3
 info:
   title: Trustless API - OpenAPI 3.0
   description: |-
-    This is a sample Pet Store Server based on the OpenAPI 3.0 specification.  You can find out more about
-    Swagger at [https://swagger.io](https://swagger.io). In the third iteration of the pet store, we've switched to the design first approach!
-    You can now help us improve the API whether it's by making changes to the definition itself or to the code.
-    That way, with time, we can improve the API in general, and expose some of the new features in OAS3.
-
-    _If you're looking for the Swagger 2.0/OAS 2.0 version of Petstore, then click [here](https://editor.swagger.io/?url=https://petstore.swagger.io/v2/swagger.yaml). Alternatively, you can load via the `Edit > Load Petstore OAS 2.0` menu option!_
+    The Trustless API serves validated data for free, thereby making it accessible to everyone. It provides the data via well-known endpoints and allows the seamless integration of KYVE trustless data. For example, efficiently serving Ethereum blobs without having to run an Ethereum archival node. In this case, KYVE provides a deployed endpoint, instructions on how to run your own Trustless API, and covers a variety of potential usages.
     
     Some useful links:
     - [The Trustless API repository](https://github.com/KYVENetwork/trustless-api)
-  version: 1.0.11
+  version: {{.Version}}
 externalDocs:
   description: Find out more about the Trustless API
   url: https://docs.kyve.network/access-data-sets/trustless-api/overview
