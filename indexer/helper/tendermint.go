@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+
 	"github.com/KYVENetwork/trustless-api/utils"
 
 	"github.com/KYVENetwork/trustless-api/merkle"
@@ -16,14 +17,16 @@ func (t *TendermintIndexer) GetBindings() map[string][]types.ParameterIndex {
 	return map[string][]types.ParameterIndex{
 		"/block": {
 			{
-				IndexId:   utils.IndexTendermintBlock,
-				Parameter: []string{"height"},
+				IndexId:     utils.IndexTendermintBlock,
+				Parameter:   []string{"height"},
+				Description: []string{"block height"},
 			},
 		},
 		"/block_results": {
 			{
-				IndexId:   utils.IndexTendermintBlockResults,
-				Parameter: []string{"height"},
+				IndexId:     utils.IndexTendermintBlockResults,
+				Parameter:   []string{"height"},
+				Description: []string{"block height"},
 			},
 		},
 	}

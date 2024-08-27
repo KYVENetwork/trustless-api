@@ -2,6 +2,7 @@ package helper
 
 import (
 	"encoding/json"
+
 	"github.com/KYVENetwork/trustless-api/utils"
 
 	"github.com/KYVENetwork/trustless-api/merkle"
@@ -14,8 +15,9 @@ func (eth *HeightIndexer) GetBindings() map[string][]types.ParameterIndex {
 	return map[string][]types.ParameterIndex{
 		"/value": {
 			{
-				IndexId:   utils.IndexBlockHeight,
-				Parameter: []string{"height"},
+				IndexId:     utils.IndexBlockHeight,
+				Parameter:   []string{"height"},
+				Description: []string{"height"},
 			},
 		},
 	}

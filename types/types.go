@@ -163,8 +163,9 @@ type NamespacedShares struct {
 }
 
 type ParameterIndex struct {
-	IndexId   int
-	Parameter []string
+	IndexId     int
+	Parameter   []string
+	Description []string
 }
 
 type TendermintDataItem struct {

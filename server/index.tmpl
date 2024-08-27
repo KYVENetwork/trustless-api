@@ -1,77 +1,27 @@
+
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KYVE Data Services</title>
-    <style>
-        @font-face {
-                    font-family: 'Open Sans';
-                    src: url('path_to_your_font/OpenSans-Regular.ttf') format('truetype');
-                    /* Add additional font styles if needed */
-                }
+    <head>
+        <meta charset="utf-8" />
+        <title>kyve</title>
+        <link rel="stylesheet" type="text/css" href="//unpkg.com/swagger-ui-dist@latest/swagger-ui.css" />
+        <link rel="icon" type="image/png" href="//unpkg.com/swagger-ui-dist@latest/favicon-16x16.png" />
+        <script nonce="f8e5a867-f4c5-400f-9d12-7bb1e4c2a18e">try{(function(w,d){!function(j,k,l,m){if(j.zaraz)console.error("zaraz is loaded twice");else{j[l]=j[l]||{};j[l].executed=[];j.zaraz={deferred:[],listeners:[]};j.zaraz._v="5789";j.zaraz.q=[];j.zaraz._f=function(n){return async function(){var o=Array.prototype.slice.call(arguments);j.zaraz.q.push({m:n,a:o})}};for(const p of["track","set","debug"])j.zaraz[p]=j.zaraz._f(p);j.zaraz.init=()=>{var q=k.getElementsByTagName(m)[0],r=k.createElement(m),s=k.getElementsByTagName("title")[0];s&&(j[l].t=k.getElementsByTagName("title")[0].text);j[l].x=Math.random();j[l].w=j.screen.width;j[l].h=j.screen.height;j[l].j=j.innerHeight;j[l].e=j.innerWidth;j[l].l=j.location.href;j[l].r=k.referrer;j[l].k=j.screen.colorDepth;j[l].n=k.characterSet;j[l].o=(new Date).getTimezoneOffset();if(j.dataLayer)for(const w of Object.entries(Object.entries(dataLayer).reduce(((x,y)=>({...x[1],...y[1]})),{})))zaraz.set(w[0],w[1],{scope:"page"});j[l].q=[];for(;j.zaraz.q.length;){const z=j.zaraz.q.shift();j[l].q.push(z)}r.defer=!0;for(const A of[localStorage,sessionStorage])Object.keys(A||{}).filter((C=>C.startsWith("_zaraz_"))).forEach((B=>{try{j[l]["z_"+B.slice(7)]=JSON.parse(A.getItem(B))}catch{j[l]["z_"+B.slice(7)]=A.getItem(B)}}));r.referrerPolicy="origin";r.src="/cdn-cgi/zaraz/s.js?z="+btoa(encodeURIComponent(JSON.stringify(j[l])));q.parentNode.insertBefore(r,q)};["complete","interactive"].includes(k.readyState)?zaraz.init():j.addEventListener("DOMContentLoaded",zaraz.init)}}(w,d,"zarazData","script");window.zaraz._p=async li=>new Promise((lj=>{if(li){li.e&&li.e.forEach((lk=>{try{const ll=d.querySelector("script[nonce]"),lm=ll?.nonce||ll?.getAttribute("nonce"),ln=d.createElement("script");lm&&(ln.nonce=lm);ln.innerHTML=lk;ln.onload=()=>{d.head.removeChild(ln)};d.head.appendChild(ln)}catch(lo){console.error(`Error executing script: ${lk}\n`,lo)}}));Promise.allSettled((li.f||[]).map((lp=>fetch(lp[0],lp[1]))))}lj()}));zaraz._p({"e":["(function(w,d){})(window,document)"]});})(window,document)}catch(e){throw fetch("/cdn-cgi/zaraz/t"),e;};</script>
+    </head>
+    <body>
+        <div id="swagger-ui"></div>
 
-        body {
-            font-family: 'Open Sans', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        h3 {
-            font-size: 1.8rem;
-            margin-top: 30px;
-            margin-bottom: 15px;
-            color: #444;
-        }
-
-        h5 {
-            font-size: 1.2rem;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            color: #555;
-        }
-
-        a {
-            display: block;
-            margin-bottom: 15px;
-            text-decoration: none;
-            color: #007bff;
-            transition: color 0.3s;
-        }
-
-        a:hover {
-            color: #0056b3;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>KYVE Data Services</h1>
-        <div class="query-section">
-            <h3>Supported queries:</h3>
-             {{ range $element := . }} 
-                <div class="query-group">
-                    <h5>{{ $element.Slug }}</h5>
-                    {{ range $key, $href := $element.Parameter }}
-                        <a href="{{ $href }}">{{ $href }}</a>
-                    {{ end }}
-                </div>
-             {{ end }}
-        </div>
-    </div>
-</body>
+        <script src="//unpkg.com/swagger-ui-dist@latest/swagger-ui-bundle.js"></script>
+        <script>
+            
+            window.onload = function() {
+              window.ui = SwaggerUIBundle({
+                url: "/openapi.yml",
+                dom_id: "#swagger-ui",
+                deepLinking: true,
+                layout: "BaseLayout",
+              });
+            }
+        </script>
+    </body>
 </html>

@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: Trustless API - OpenAPI 3.0
+  description: |-
+    The Trustless API serves validated data for free, thereby making it accessible to everyone. It provides the data via well-known endpoints and allows the seamless integration of KYVE trustless data. For example, efficiently serving Ethereum blobs without having to run an Ethereum archival node. In this case, KYVE provides a deployed endpoint, instructions on how to run your own Trustless API, and covers a variety of potential usages.
+    
+    References:
+    - [Trustless API GitHub Repository](https://github.com/KYVENetwork/trustless-api)
+  version: {{.Version}}
+externalDocs:
+  description: Find out more about the Trustless API
+  url: https://docs.kyve.network/access-data-sets/trustless-api/overview
+{{.Paths}}
+components:
+  schemas:
+    NoProofResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: -1
+        jsonrpc:
+          type: string
+          example: "2.0"
+        result:
+          type: object
+          example: {}
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "data item not found"
+    TrustlessResponse:
+      type: object
+      properties:
+        value:
+          $ref: '#/components/schemas/DataItem'
+        proof:
+          type: array
+          items:
+            $ref: '#/components/schemas/Proof'
+        poolId:
+          type: integer
+          format: int64
+          example: 10
+        bundleId:
+          type: integer
+          format: int64
+          example: 10
+        chainId:
+          type: string
+          example: "kyve-1"
+    DataItem:
+      type: object
+      properties:
+        key:
+          type: string
+          example: "19426589"
+        value:
+          type: object
+          example: {}
+    Proof:
+      type: object
+      properties:
+        left:
+          type: boolean
+          example: true
+        hash:
+          type: string
+          example: "c97955538f7953eaede664e638073d59917a45f14426d41260ed8924ca1904ff"
