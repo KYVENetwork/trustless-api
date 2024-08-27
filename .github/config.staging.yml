@@ -17,31 +17,43 @@ pools:
     poolid: 21
     slug: ethereum
     bundleStartId: 0
+    proofAttached: true
   - chainid: korellia-2
     indexer: Celestia
     poolid: 111
     slug: celestia
     bundleStartId: 0
+    proofAttached: true
   - chainid: korellia-2
     indexer: Tendermint
     poolid: 113
     slug: injective
     bundleStartId: 141
+    proofAttached: true
   - chainid: korellia-2
     indexer: Height
     poolid: 118
     slug: avail
     bundleStartId: 0
+    proofAttached: true
   - chainid: korellia-2
     indexer: Tendermint
     poolid: 128
     slug: andromeda
     bundleStartId: 0
+    proofAttached: true
   - chainid: korellia-2
     indexer: Height
     poolid: 131
     slug: cronos-zkevm
     bundleStartId: 0
+    proofAttached: true
+  - chainid: kyve-1
+    indexer: Tendermint
+    poolid: 1
+    slug: osmosis
+    bundleStartId: 183000
+    proofAttached: false
 
 # === DATABASE ===
 # database configuration

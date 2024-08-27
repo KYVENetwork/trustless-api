@@ -33,12 +33,14 @@ type ChildCrawler struct {
 	chainId       string
 	crawling      sync.Mutex
 	poolId        int64
+
+	proofAttached bool
 }
 
-// this is a helper function that will be called from multiple go routines
+// This is a helper function that will be called from multiple go routines.
 //
-// downloads the bundle, creates the inclusion proof (merkle tree)
-// and inserts the bundle into the database
+// Downloads the bundle, creates the inclusion proof
+// and inserts the bundle into the database.
 func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	start := time.Now()
 
@@ -48,7 +50,7 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 		return err
 	}
 
-	dataitems, err := bundles.GetDecompressedBundle(*compressedBundle)
+	dataItems, err := bundles.GetDecompressedBundle(*compressedBundle)
 
 	if err != nil {
 		logger.Error().Int64("poolId", crawler.poolId).Msg("Something went wrong when retrieving the bundle...")
@@ -59,13 +61,14 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	logger.Debug().Int64("poolId", crawler.poolId).Msg(fmt.Sprintf("Downloading bundle took: %v", elapsed))
 
 	bundle := types.Bundle{
-		DataItems: dataitems,
+		DataItems: dataItems,
 		PoolId:    crawler.poolId,
 		BundleId:  bundleId,
 		ChainId:   crawler.chainId,
 	}
 	start = time.Now()
-	err = crawler.adapter.Save(&bundle)
+
+	err = crawler.adapter.Save(&bundle, crawler.proofAttached)
 	if err != nil {
 		return err
 	}
@@ -75,11 +78,11 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	return nil
 }
 
-// Crawls the latest bundles and processes them.
+// CrawlBundles crawls the latest bundles and processes them.
 // Gets the latest pool info of the selected pool and calls `insertBundleDataItems` for each bundle that has not been processed yet.
-// Will return as soon as some insertion fails
+// Will return as soon as some insertion fails.
 //
-// NOTE: this function is thread safe, meaning it will return instanly if the crawler has not finished crawling the bundles yet
+// NOTE: This function is thread safe, meaning it will return instanly if the crawler has not finished crawling the bundles yet.
 func (crawler *ChildCrawler) CrawlBundles() {
 
 	if !crawler.crawling.TryLock() {
@@ -128,25 +131,25 @@ func (crawler *ChildCrawler) CrawlBundles() {
 	logger.Info().Int64("bundleId", lastBundle).Int64("poolId", crawler.poolId).Msg("Finished crawling to bundle.")
 }
 
-// starts the crawling processes
-// creates a scheduler that invokes CrawlBundles
-// this function is blocking
+// Start starts the crawling processes and
+// creates a scheduler that invokes CrawlBundles.
+// NOTE: This function is blocking.
 func (crawler *ChildCrawler) Start() {
 	scheduler := gocron.NewScheduler(time.UTC)
 	scheduler.Every(30).Seconds().Do(crawler.CrawlBundles)
 	scheduler.StartBlocking()
 }
 
-func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId, bundleStartId int64) ChildCrawler {
-	return ChildCrawler{adapter: adapter, bundleStartId: bundleStartId, chainId: chainId, poolId: poolId}
+func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId, bundleStartId int64, proofAttached bool) ChildCrawler {
+	return ChildCrawler{adapter: adapter, bundleStartId: bundleStartId, chainId: chainId, poolId: poolId, proofAttached: proofAttached}
 }
 
-// Creates a crawler based on the config file
+// Create creates a crawler based on the config file.
 func Create() Crawler {
 	var bundleCrawler []*ChildCrawler
 	for _, bc := range config.GetPoolsConfig() {
 		adapter := bc.GetDatabaseAdapter()
-		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId, bc.BundleStartId)
+		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId, bc.BundleStartId, bc.ProofAttached)
 		bundleCrawler = append(bundleCrawler, &newCrawler)
 	}
 
@@ -155,8 +158,8 @@ func Create() Crawler {
 	}
 }
 
-// starts the crawling process for each child crawler
-// this function is blocking
+// Start starts the crawling process for each child crawler.
+// NOTE: This function is blocking.
 func (c *Crawler) Start() {
 	var wg sync.WaitGroup
 	for _, bc := range c.children {

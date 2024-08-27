@@ -126,7 +126,9 @@ type TrustlessDataItem struct {
 	PoolId   int64           `json:"poolId"`
 	BundleId int64           `json:"bundleId"`
 	ChainId  string          `json:"chainId"`
-	Indices  []Index         `json:"-"`
+
+	ValueWithoutProof json.RawMessage `json:"valueWithoutProof,omitempty"`
+	Indices           []Index         `json:"-"`
 }
 
 type Index struct {
