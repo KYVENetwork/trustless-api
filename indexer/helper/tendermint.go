@@ -19,14 +19,14 @@ func (t *TendermintIndexer) GetBindings() map[string][]types.ParameterIndex {
 			{
 				IndexId:     utils.IndexTendermintBlock,
 				Parameter:   []string{"height"},
-				Description: []string{"blockheight"},
+				Description: []string{"block height"},
 			},
 		},
 		"/block_results": {
 			{
 				IndexId:     utils.IndexTendermintBlockResults,
 				Parameter:   []string{"height"},
-				Description: []string{"blockheight"},
+				Description: []string{"block height"},
 			},
 		},
 	}

@@ -18,12 +18,12 @@ func (eth *EthBlobsIndexer) GetBindings() map[string][]types.ParameterIndex {
 			{
 				IndexId:     utils.IndexBlockHeight,
 				Parameter:   []string{"block_height"},
-				Description: []string{"ethereum blockheight, starting from 19426587"},
+				Description: []string{"Ethereum block height, starting from 19426587"},
 			},
 			{
 				IndexId:     utils.IndexSlotNumber,
 				Parameter:   []string{"slot_number"},
-				Description: []string{"ethereum slot number, starting from 8626178"},
+				Description: []string{"Ethereum slot number, starting from 8626178"},
 			},
 		},
 	}

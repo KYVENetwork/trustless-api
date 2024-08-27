@@ -4,8 +4,8 @@ info:
   description: |-
     The Trustless API serves validated data for free, thereby making it accessible to everyone. It provides the data via well-known endpoints and allows the seamless integration of KYVE trustless data. For example, efficiently serving Ethereum blobs without having to run an Ethereum archival node. In this case, KYVE provides a deployed endpoint, instructions on how to run your own Trustless API, and covers a variety of potential usages.
     
-    Some useful links:
-    - [The Trustless API repository](https://github.com/KYVENetwork/trustless-api)
+    References:
+    - [Trustless API GitHub Repository](https://github.com/KYVENetwork/trustless-api)
   version: {{.Version}}
 externalDocs:
   description: Find out more about the Trustless API

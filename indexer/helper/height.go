@@ -17,7 +17,7 @@ func (eth *HeightIndexer) GetBindings() map[string][]types.ParameterIndex {
 			{
 				IndexId:     utils.IndexBlockHeight,
 				Parameter:   []string{"height"},
-				Description: []string{"blockheight"},
+				Description: []string{"height"},
 			},
 		},
 	}
