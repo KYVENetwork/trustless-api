@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 
 	"github.com/KYVENetwork/trustless-api/utils"
 
@@ -42,11 +41,6 @@ func (t *TendermintIndexer) CalculateProof(dataItem *types.TendermintDataItem, l
 
 	var tendermintHashes [][32]byte
 
-	blockHash := utils.CalculateSHA256Hash(dataItem.Value.Block)
-
-	if dataItem.Key == "1" {
-		fmt.Println(hex.EncodeToString(blockHash[:]))
-	}
 	tendermintHashes = append(tendermintHashes, utils.CalculateSHA256Hash(dataItem.Value.Block))
 	tendermintHashes = append(tendermintHashes, utils.CalculateSHA256Hash(dataItem.Value.BlockResults))
 
@@ -110,7 +104,7 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool
 
 		createTrustlessDataItem := func(value json.RawMessage, indexId int, proof []types.MerkleNode) (types.TrustlessDataItem, error) {
 
-			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, dataItem.Key, "result", proof)
+			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", proof)
 			// if proof is not attached, we set the proof to an empty string
 			if !proofAttached {
 				encodedProof = ""
