@@ -13,6 +13,19 @@ externalDocs:
 {{.Paths}}
 components:
   schemas:
+    NoProofResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: -1
+        jsonrpc:
+          type: string
+          example: "2.0"
+        result:
+          type: object
+          example: {}
     Error:
       type: object
       properties:

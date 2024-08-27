@@ -39,10 +39,10 @@ type ApiServer struct {
 }
 
 type ServePool struct {
-	Slug      string
-	Adapter   db.Adapter
-	Indexer   indexer.Indexer
-	Parameter []string
+	Slug          string
+	Adapter       db.Adapter
+	Indexer       indexer.Indexer
+	ProofAttached bool
 }
 
 func StartApiServer() *ApiServer {
@@ -166,13 +166,18 @@ func GenerateOpenApi(pools []ServePool) ([]byte, error) {
 
 			path["parameters"] = parameters
 
+			var successResponse string = "#/components/schemas/TrustlessResponse"
+			if !p.ProofAttached {
+				successResponse = "#/components/schemas/NoProofResponse"
+			}
+
 			path["responses"] = map[int32]interface{}{
 				200: map[string]interface{}{
 					"description": "successful operation",
 					"content": map[string]interface{}{
 						"application/json": map[string]interface{}{
 							"schema": map[string]string{
-								"$ref": "#/components/schemas/TrustlessResponse",
+								"$ref": successResponse,
 							},
 						},
 					},
