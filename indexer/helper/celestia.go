@@ -56,27 +56,6 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.Tr
 			return nil, err
 		}
 
-		// raw, err := json.Marshal(bundle.DataItems[index])
-		// if err != nil {
-		// 	return nil, err
-		// }
-
-		// // first we insert the entire bundle for the block height key
-		// trustlessDataItem := types.TrustlessDataItem{
-		// 	Value:    raw,
-		// 	Proof:    proof,
-		// 	BundleId: bundle.BundleId,
-		// 	PoolId:   bundle.PoolId,
-		// 	ChainId:  bundle.ChainId,
-		// 	Indices: []types.Index{
-		// 		{Index: dataitem.Key, IndexId: IndexBlockHeight},
-		// 	},
-		// 	ProofType: "celestia",
-		// }
-		// trustlessItems = append(trustlessItems, trustlessDataItem)
-
-		// then we go through every namespace and create another item just for the namespace as the key and the block height
-
 		// first we have to construct the leafs of all the namespaces
 		var namespaceLeafs [][32]byte
 		for _, namespacedShares := range dataitem.Value.SharesByNamespace {
@@ -103,12 +82,14 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.Tr
 			}
 			// create compound key with the correct order, like defined in `GetBindings`
 			index := fmt.Sprintf("%v-%v", dataitem.Key, namespace.NamespaceId)
+
+			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "key", "value", totalProof)
+
 			trustlessDataItem := types.TrustlessDataItem{
 				Value:    raw,
-				Proof:    totalProof,
+				Proof:    encodedProof,
 				BundleId: bundle.BundleId,
 				PoolId:   bundle.PoolId,
-				ChainId:  bundle.ChainId,
 				Indices: []types.Index{
 					{Index: index, IndexId: utils.IndexSharesByNamespace},
 				},

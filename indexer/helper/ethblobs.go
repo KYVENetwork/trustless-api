@@ -60,17 +60,18 @@ func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.Tr
 			return nil, err
 		}
 
-		raw, err := json.Marshal(bundle.DataItems[index])
+		encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, dataitem.Key, "result", proof)
+
+		rpcResponse, err := utils.WrapIntoJsonRpcResponse(dataitem.Value)
 		if err != nil {
 			return nil, err
 		}
 
 		trustlessDataItem := types.TrustlessDataItem{
-			Value:    raw,
-			Proof:    proof,
+			Value:    rpcResponse,
+			Proof:    encodedProof,
 			BundleId: bundle.BundleId,
 			PoolId:   bundle.PoolId,
-			ChainId:  bundle.ChainId,
 			Indices:  indices,
 		}
 		trustlessItems = append(trustlessItems, trustlessDataItem)

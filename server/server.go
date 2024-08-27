@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	_ "embed"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -307,8 +306,9 @@ func (apiServer *ApiServer) serveFile(c *gin.Context, file []byte) {
 		return
 	}
 
-	proofBytes := utils.EncodeProof(&trustlessDataItem)
-
-	c.Header("x-kyve-proof", hex.EncodeToString(proofBytes))
+	// only send the proof if it is attached
+	if trustlessDataItem.Proof != "" {
+		c.Header("x-kyve-proof", trustlessDataItem.Proof)
+	}
 	c.JSON(http.StatusOK, trustlessDataItem.Value)
 }

@@ -60,23 +60,14 @@ func (saveFile *S3FileInterface) Init() {
 	saveFile.bucket = viper.GetString("storage.bucketname")
 }
 
-func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem, proofAttached bool) (SavedFile, error) {
+func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedFile, error) {
 	if saveFile.client == nil {
 		saveFile.Init()
 	}
 
-	var b []byte
-	var err error
-	if proofAttached {
-		b, err = json.Marshal(dataitem)
-		if err != nil {
-			return SavedFile{}, err
-		}
-	} else {
-		b, err = json.Marshal(dataitem.ValueWithoutProof)
-		if err != nil {
-			return SavedFile{}, err
-		}
+	b, err := json.Marshal(dataitem)
+	if err != nil {
+		return SavedFile{}, err
 	}
 	reader := bytes.NewReader(b)
 

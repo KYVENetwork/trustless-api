@@ -180,17 +180,23 @@ func GetUniqueDataitemName(item *types.TrustlessDataItem) string {
 // - 2  bytes: poolId (uint16)
 // - 8  bytes: bundleId (uint64)
 // - 16 bytes: chainId
+// - 16 bytes: dataItemKey
+// - 16 bytes: dataItemValueKey
 // - Array of merkle nodes:
 //   - 1 byte:  left (true/false)
 //   - 32 bytes: hash (sha256)
-func EncodeProof(dataItem *types.TrustlessDataItem) []byte {
-	bytes := make([]byte, 26) // 2 + 8 + 16 bytes for poolId, bundleId, and chainId
+//
+// returns the proof as hex string
+func EncodeProof(poolId, bundleId int64, chainId string, dataItemKey, dataItemValueKey string, proof []types.MerkleNode) string {
+	bytes := make([]byte, 58) // 2 + 8 + 16 + 16 + 16 bytes for poolId, bundleId, chainId, dataItemKey and dataItemValueKey
 
-	binary.BigEndian.PutUint16(bytes[0:2], uint16(dataItem.PoolId))
-	binary.BigEndian.PutUint64(bytes[2:10], uint64(dataItem.BundleId))
-	copy(bytes[10:26], []byte(dataItem.ChainId))
+	binary.BigEndian.PutUint16(bytes[0:2], uint16(poolId))
+	binary.BigEndian.PutUint64(bytes[2:10], uint64(bundleId))
+	copy(bytes[10:26], []byte(chainId))
+	copy(bytes[26:42], []byte(dataItemKey))
+	copy(bytes[42:58], []byte(dataItemValueKey))
 
-	for _, merkleNode := range dataItem.Proof {
+	for _, merkleNode := range proof {
 		if merkleNode.Left {
 			bytes = append(bytes, 1)
 		} else {
@@ -200,31 +206,40 @@ func EncodeProof(dataItem *types.TrustlessDataItem) []byte {
 		bytes = append(bytes, hashBytes...)
 	}
 
-	return bytes
+	return hex.EncodeToString(bytes)
 }
 
 // DecodeProof decodes the proof of a data item from a byte array
+// encodedProofString is the hex string of the proof
 // see EncodeProof for more information
-func DecodeProof(encodedProof []byte) (*types.TrustlessDataItem, error) {
-	if len(encodedProof) < 26 {
+// returns the proof as a struct
+func DecodeProof(encodedProofString string) (*types.Proof, error) {
+
+	encodedProof, err := hex.DecodeString(encodedProofString)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(encodedProof) < 58 {
 		return nil, fmt.Errorf("encoded proof is too short")
 	}
 
-	dataItem := &types.TrustlessDataItem{}
+	proof := &types.Proof{}
 
-	dataItem.PoolId = int64(binary.BigEndian.Uint16(encodedProof[0:2]))
-	dataItem.BundleId = int64(binary.BigEndian.Uint64(encodedProof[2:10]))
+	proof.PoolId = int64(binary.BigEndian.Uint16(encodedProof[0:2]))
+	proof.BundleId = int64(binary.BigEndian.Uint64(encodedProof[2:10]))
 	// Convert the byte slice to a null-terminated string
-	dataItem.ChainId = string(bytes.TrimRight(encodedProof[10:26], "\x00"))
+	proof.ChainId = string(bytes.TrimRight(encodedProof[10:26], "\x00"))
+	proof.DataItemKey = string(bytes.TrimRight(encodedProof[26:42], "\x00"))
+	proof.DataItemValueKey = string(bytes.TrimRight(encodedProof[42:58], "\x00"))
 
-	proofBytes := encodedProof[26:]
-	var proof []types.MerkleNode
+	proofBytes := encodedProof[58:]
 
 	for len(proofBytes) >= 33 {
 		merkleNode := types.MerkleNode{}
 		merkleNode.Left = proofBytes[0] == 1
 		merkleNode.Hash = hex.EncodeToString(proofBytes[1:33])
-		proof = append(proof, merkleNode)
+		proof.Hashes = append(proof.Hashes, merkleNode)
 		proofBytes = proofBytes[33:]
 	}
 
@@ -232,7 +247,20 @@ func DecodeProof(encodedProof []byte) (*types.TrustlessDataItem, error) {
 		return nil, fmt.Errorf("invalid proof encoding")
 	}
 
-	dataItem.Proof = proof
+	return proof, nil
+}
 
-	return dataItem, nil
+func WrapIntoJsonRpcResponse(result interface{}) ([]byte, error) {
+	response := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      -1,
+		"result":  result,
+	}
+
+	json, err := json.Marshal(response)
+	if err != nil {
+		return nil, err
+	}
+
+	return json, nil
 }

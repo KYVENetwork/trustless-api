@@ -16,23 +16,10 @@ import (
 
 type SaveLocalFileInterface struct{}
 
-func (saveFile *SaveLocalFileInterface) Save(dataItem *types.TrustlessDataItem, proofAttached bool) (SavedFile, error) {
-	var b []byte
-	var err error
-
-	// unmarshal item
-	if proofAttached {
-		b, err = json.Marshal(dataItem)
-
-		if err != nil {
-			return SavedFile{}, err
-		}
-	} else {
-		b, err = json.Marshal(dataItem.ValueWithoutProof)
-
-		if err != nil {
-			return SavedFile{}, err
-		}
+func (saveFile *SaveLocalFileInterface) Save(dataItem *types.TrustlessDataItem) (SavedFile, error) {
+	b, err := json.Marshal(dataItem)
+	if err != nil {
+		return SavedFile{}, err
 	}
 
 	path := viper.GetString("storage.path")

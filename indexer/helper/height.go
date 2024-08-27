@@ -36,12 +36,14 @@ func (*HeightIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.Trustl
 		if err != nil {
 			return nil, err
 		}
+
+		encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "key", "value", proof)
+
 		trustlessDataItem := types.TrustlessDataItem{
 			Value:    raw,
-			Proof:    proof,
+			Proof:    encodedProof,
 			BundleId: bundle.BundleId,
 			PoolId:   bundle.PoolId,
-			ChainId:  bundle.ChainId,
 			Indices: []types.Index{
 				{Index: dataitem.Key, IndexId: utils.IndexBlockHeight},
 			},
