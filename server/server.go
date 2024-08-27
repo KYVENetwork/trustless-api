@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
+	"html"
 	"html/template"
 	"net/http"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	cachecontrol "go.eigsys.de/gin-cachecontrol/v2"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -26,6 +28,9 @@ var (
 
 //go:embed index.tmpl
 var embeddedHTML string
+
+//go:embed openapi.yml
+var openapi string
 
 type ApiServer struct {
 	blobsAdapter db.Adapter
@@ -50,25 +55,17 @@ func StartApiServer() *ApiServer {
 		adapter := p.GetDatabaseAdapter()
 		indexer := adapter.GetIndexer()
 
-		var parameter []string
-		for prefix, value := range indexer.GetBindings() {
-			for _, param := range value {
-				transformed := []string{}
-				for _, queryName := range param.Parameter {
-					transformed = append(transformed, fmt.Sprintf("%v=_", queryName))
-				}
-				query := strings.Join(transformed, "&")
-				parameter = append(parameter, fmt.Sprintf("%s%s?%s", p.Slug, prefix, query))
-			}
-		}
-
 		serverPool := ServePool{
-			Indexer:   indexer,
-			Adapter:   adapter,
-			Slug:      p.Slug,
-			Parameter: parameter,
+			Indexer: indexer,
+			Adapter: adapter,
+			Slug:    p.Slug,
 		}
 		pools = append(pools, serverPool)
+	}
+
+	openapiPaths, err := GenerateOpenApi(pools)
+	if err != nil {
+		logger.Error().Str("err", err.Error()).Msg("failed to generate openapi")
 	}
 
 	apiServer := &ApiServer{
@@ -80,13 +77,25 @@ func StartApiServer() *ApiServer {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
-	t, _ := template.New("").Parse(embeddedHTML)
+	// generate the openapi file
+	t, _ := template.New("").Parse(openapi)
 	var templateBytes bytes.Buffer
-	t.Execute(&templateBytes, pools)
-	bytes := templateBytes.Bytes()
+	type OpenApi struct {
+		Paths string
+	}
+	t.Execute(&templateBytes, OpenApi{string(openapiPaths)})
+	openapi = templateBytes.String()
+
+	// Replace HTML entity for single quote with actual single quote
+	openapi = html.UnescapeString(openapi)
 
 	r.GET("/", func(c *gin.Context) {
-		c.Data(http.StatusOK, "text/html", bytes)
+		c.Data(http.StatusOK, "text/html", []byte(embeddedHTML))
+	})
+
+	// serve the openapi file, this is used by swagger ui to display the api
+	r.GET("/openapi.yml", func(c *gin.Context) {
+		c.Data(http.StatusOK, "application/yaml", []byte(openapi))
 	})
 
 	// Enable caching
@@ -120,6 +129,81 @@ func StartApiServer() *ApiServer {
 	return apiServer
 }
 
+func GenerateOpenApi(pools []ServePool) ([]byte, error) {
+	paths := map[string]interface{}{}
+
+	for _, p := range pools {
+		adapter := p.Adapter
+		indexer := adapter.GetIndexer()
+
+		for prefix, value := range indexer.GetBindings() {
+
+			path := map[string]interface{}{}
+			path["tags"] = []string{p.Slug}
+
+			parameters := []map[string]interface{}{}
+			for _, param := range value {
+
+				if len(param.Parameter) != len(param.Description) {
+					logger.Error().Msg("parameter and description length mismatch")
+					continue
+				}
+
+				for i, queryName := range param.Parameter {
+					currentParameter := map[string]interface{}{}
+					currentParameter["name"] = queryName
+					currentParameter["in"] = "query"
+					currentParameter["description"] = param.Description[i]
+					currentParameter["required"] = false
+					currentParameter["schema"] = map[string]interface{}{
+						"type": "string",
+					}
+					parameters = append(parameters, currentParameter)
+				}
+			}
+
+			path["parameters"] = parameters
+
+			path["responses"] = map[int32]interface{}{
+				200: map[string]interface{}{
+					"description": "successful operation",
+					"content": map[string]interface{}{
+						"application/json": map[string]interface{}{
+							"schema": map[string]string{
+								"$ref": "#/components/schemas/TrustlessResponse",
+							},
+						},
+					},
+				},
+				404: map[string]interface{}{
+					"description": "not found",
+					"content": map[string]interface{}{
+						"application/json": map[string]interface{}{
+							"schema": map[string]string{
+								"$ref": "#/components/schemas/Error",
+							},
+						},
+					},
+				},
+			}
+			// because we only support get requests we set the method to get
+			paths[fmt.Sprintf("/%v%v", p.Slug, prefix)] = map[string]interface{}{
+				"get": path,
+			}
+		}
+	}
+
+	ymlString, err := yaml.Marshal(map[string]interface{}{
+		"paths": paths,
+	})
+	if err != nil {
+		logger.Error().Str("err", err.Error()).Msg("failed to marshal paths")
+		return nil, err
+	}
+
+	return ymlString, nil
+}
+
 func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]types.ParameterIndex) (string, int, error) {
 	// iterate over all params
 	// select the one where all params have a value set and return the build string from the parameter
@@ -149,7 +233,7 @@ func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]type
 func (apiServer *ApiServer) GetIndex(c *gin.Context, adapter db.Adapter, index string, indexId int) {
 	file, err := adapter.Get(indexId, index)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"error": err.Error(),
 		})
 		return

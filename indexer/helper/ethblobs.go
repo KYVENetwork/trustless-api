@@ -3,6 +3,7 @@ package helper
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/KYVENetwork/trustless-api/utils"
 
 	"github.com/KYVENetwork/trustless-api/merkle"
@@ -15,12 +16,14 @@ func (eth *EthBlobsIndexer) GetBindings() map[string][]types.ParameterIndex {
 	return map[string][]types.ParameterIndex{
 		"/beacon/blob_sidecars": {
 			{
-				IndexId:   utils.IndexBlockHeight,
-				Parameter: []string{"block_height"},
+				IndexId:     utils.IndexBlockHeight,
+				Parameter:   []string{"block_height"},
+				Description: []string{"ethereum blockheight, starting from 19426587"},
 			},
 			{
-				IndexId:   utils.IndexSlotNumber,
-				Parameter: []string{"slot_number"},
+				IndexId:     utils.IndexSlotNumber,
+				Parameter:   []string{"slot_number"},
+				Description: []string{"ethereum slot number, starting from 8626178"},
 			},
 		},
 	}

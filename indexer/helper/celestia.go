@@ -17,8 +17,9 @@ func (*CelestiaIndexer) GetBindings() map[string][]types.ParameterIndex {
 	return map[string][]types.ParameterIndex{
 		"/GetSharesByNamespace": {
 			{
-				IndexId:   utils.IndexSharesByNamespace,
-				Parameter: []string{"height", "namespace"},
+				IndexId:     utils.IndexSharesByNamespace,
+				Parameter:   []string{"height", "namespace"},
+				Description: []string{"celestia blockheight", "celestia namespace, available namespaces: AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0=,AAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAg=,AAAAAAAAAAAAAAAAAAAAAAAAAAAABYTLU4hLOUU=,AAAAAAAAAAAAAAAAAAAAAAAAAAAADBuw7+PjGs8="},
 			},
 		},
 	}

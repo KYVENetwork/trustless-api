@@ -1,0 +1,64 @@
+openapi: 3.0.3
+info:
+  title: Trustless API - OpenAPI 3.0
+  description: |-
+    This is a sample Pet Store Server based on the OpenAPI 3.0 specification.  You can find out more about
+    Swagger at [https://swagger.io](https://swagger.io). In the third iteration of the pet store, we've switched to the design first approach!
+    You can now help us improve the API whether it's by making changes to the definition itself or to the code.
+    That way, with time, we can improve the API in general, and expose some of the new features in OAS3.
+
+    _If you're looking for the Swagger 2.0/OAS 2.0 version of Petstore, then click [here](https://editor.swagger.io/?url=https://petstore.swagger.io/v2/swagger.yaml). Alternatively, you can load via the `Edit > Load Petstore OAS 2.0` menu option!_
+    
+    Some useful links:
+    - [The Trustless API repository](https://github.com/KYVENetwork/trustless-api)
+  version: 1.0.11
+externalDocs:
+  description: Find out more about the Trustless API
+  url: https://docs.kyve.network/access-data-sets/trustless-api/overview
+{{.Paths}}
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "data item not found"
+    TrustlessResponse:
+      type: object
+      properties:
+        value:
+          $ref: '#/components/schemas/DataItem'
+        proof:
+          type: array
+          items:
+            $ref: '#/components/schemas/Proof'
+        poolId:
+          type: integer
+          format: int64
+          example: 10
+        bundleId:
+          type: integer
+          format: int64
+          example: 10
+        chainId:
+          type: string
+          example: "kyve-1"
+    DataItem:
+      type: object
+      properties:
+        key:
+          type: string
+          example: "19426589"
+        value:
+          type: object
+          example: {}
+    Proof:
+      type: object
+      properties:
+        left:
+          type: boolean
+          example: true
+        hash:
+          type: string
+          example: "c97955538f7953eaede664e638073d59917a45f14426d41260ed8924ca1904ff"
