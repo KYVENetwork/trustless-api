@@ -56,9 +56,10 @@ func StartApiServer() *ApiServer {
 		indexer := adapter.GetIndexer()
 
 		serverPool := ServePool{
-			Indexer: indexer,
-			Adapter: adapter,
-			Slug:    p.Slug,
+			Indexer:       indexer,
+			Adapter:       adapter,
+			Slug:          p.Slug,
+			ProofAttached: p.ProofAttached,
 		}
 		pools = append(pools, serverPool)
 	}
