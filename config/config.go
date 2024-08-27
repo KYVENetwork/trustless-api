@@ -75,7 +75,6 @@ func loadDefaults() {
 
 	// server
 	viper.SetDefault("server.port", 4242)
-	viper.SetDefault("server.redirect", true)
 
 	var pools []PoolsConfig
 	viper.SetDefault("pools", pools)

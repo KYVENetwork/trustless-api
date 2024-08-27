@@ -3,9 +3,12 @@ package server
 import (
 	"bytes"
 	_ "embed"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -35,7 +38,6 @@ var openapi string
 type ApiServer struct {
 	blobsAdapter db.Adapter
 	lineaAdapter db.Adapter
-	redirect     bool
 }
 
 type ServePool struct {
@@ -48,7 +50,6 @@ type ServePool struct {
 func StartApiServer() *ApiServer {
 	var blobsAdapter, lineaAdapter db.Adapter
 	port := viper.GetInt("server.port")
-	redirect := viper.GetBool("server.redirect")
 
 	var pools []ServePool
 	for _, p := range config.GetPoolsConfig() {
@@ -72,7 +73,6 @@ func StartApiServer() *ApiServer {
 	apiServer := &ApiServer{
 		blobsAdapter: blobsAdapter,
 		lineaAdapter: lineaAdapter,
-		redirect:     redirect,
 	}
 
 	gin.SetMode(gin.ReleaseMode)
@@ -167,23 +167,33 @@ func GenerateOpenApi(pools []ServePool) ([]byte, error) {
 
 			path["parameters"] = parameters
 
-			var successResponse string = "#/components/schemas/TrustlessResponse"
-			if !p.ProofAttached {
-				successResponse = "#/components/schemas/NoProofResponse"
+			var headers map[string]interface{}
+
+			if p.ProofAttached {
+				headers = map[string]interface{}{
+					"x-kyve-proof": map[string]interface{}{
+						"description": "the proof of the data item",
+						"schema": map[string]string{
+							"type":    "string",
+							"example": "00760...01f79a",
+						},
+					},
+				}
 			}
 
 			path["responses"] = map[int32]interface{}{
-				200: map[string]interface{}{
+				http.StatusOK: map[string]interface{}{
 					"description": "successful operation",
 					"content": map[string]interface{}{
 						"application/json": map[string]interface{}{
 							"schema": map[string]string{
-								"$ref": successResponse,
+								"$ref": "#/components/schemas/DataItem",
 							},
 						},
 					},
+					"headers": headers,
 				},
-				404: map[string]interface{}{
+				http.StatusNotFound: map[string]interface{}{
 					"description": "not found",
 					"content": map[string]interface{}{
 						"application/json": map[string]interface{}{
@@ -250,32 +260,55 @@ func (apiServer *ApiServer) GetIndex(c *gin.Context, adapter db.Adapter, index s
 }
 
 // serves the content of a SavedFile
-// will either redirect to the link in the SavedFile or serve it directly
 func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
+
+	var rawFile []byte
+
 	switch file.Type {
 	case files.LocalFile:
-		file, err := files.LoadLocalFile(file.Path)
+		var err error
+		rawFile, err = files.LoadLocalFile(file.Path)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
 			})
 			return
 		}
-		c.JSON(http.StatusOK, file)
 	case files.S3File:
 		url := viper.GetString("storage.cdn")
-		if apiServer.redirect {
-			c.Redirect(301, fmt.Sprintf("%v%v", url, file.Path))
-		} else {
-			res, err := http.Get(fmt.Sprintf("%v%v", url, file.Path))
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": err.Error(),
-				})
-				return
-			}
-			defer res.Body.Close()
-			c.DataFromReader(200, res.ContentLength, "application/json", res.Body, nil)
+		res, err := http.Get(fmt.Sprintf("%v%v", url, file.Path))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		defer res.Body.Close()
+		rawFile, err = io.ReadAll(res.Body)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to read response body: " + err.Error(),
+			})
+			return
 		}
 	}
+
+	apiServer.serveFile(c, rawFile)
+}
+
+func (apiServer *ApiServer) serveFile(c *gin.Context, file []byte) {
+
+	var trustlessDataItem types.TrustlessDataItem
+	err := json.Unmarshal(file, &trustlessDataItem)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	proofBytes := utils.EncodeProof(&trustlessDataItem)
+
+	c.Header("x-kyve-proof", hex.EncodeToString(proofBytes))
+	c.JSON(http.StatusOK, trustlessDataItem.Value)
 }
