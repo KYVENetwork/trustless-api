@@ -13,21 +13,27 @@ import (
 
 type TendermintIndexer struct{}
 
-func (t *TendermintIndexer) GetBindings() map[string][]types.ParameterIndex {
-	return map[string][]types.ParameterIndex{
+func (t *TendermintIndexer) GetBindings() map[string]types.Endpoint {
+	return map[string]types.Endpoint{
 		"/block": {
-			{
-				IndexId:     utils.IndexTendermintBlock,
-				Parameter:   []string{"height"},
-				Description: []string{"block height"},
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexTendermintBlock,
+					Parameter:   []string{"height"},
+					Description: []string{"block height"},
+				},
 			},
+			Schema: "TendermintBlock",
 		},
 		"/block_results": {
-			{
-				IndexId:     utils.IndexTendermintBlockResults,
-				Parameter:   []string{"height"},
-				Description: []string{"block height"},
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexTendermintBlockResults,
+					Parameter:   []string{"height"},
+					Description: []string{"block height"},
+				},
 			},
+			Schema: "TendermintBlockResults",
 		},
 	}
 }
@@ -104,9 +110,11 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool
 
 		createTrustlessDataItem := func(value json.RawMessage, indexId int, proof []types.MerkleNode) (types.TrustlessDataItem, error) {
 
-			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", proof)
+			var encodedProof string
 			// if proof is not attached, we set the proof to an empty string
-			if !proofAttached {
+			if proofAttached {
+				encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", proof)
+			} else {
 				encodedProof = ""
 			}
 

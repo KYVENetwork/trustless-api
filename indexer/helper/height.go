@@ -11,20 +11,23 @@ import (
 
 type HeightIndexer struct{}
 
-func (eth *HeightIndexer) GetBindings() map[string][]types.ParameterIndex {
-	return map[string][]types.ParameterIndex{
+func (eth *HeightIndexer) GetBindings() map[string]types.Endpoint {
+	return map[string]types.Endpoint{
 		"/value": {
-			{
-				IndexId:     utils.IndexBlockHeight,
-				Parameter:   []string{"height"},
-				Description: []string{"height"},
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexBlockHeight,
+					Parameter:   []string{"height"},
+					Description: []string{"height"},
+				},
 			},
+			Schema: "DataItem",
 		},
 	}
 }
 
 // TODO: Handle proofAttached = false
-func (*HeightIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.TrustlessDataItem, error) {
+func (*HeightIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool) (*[]types.TrustlessDataItem, error) {
 	leafs := merkle.GetBundleHashes(&bundle.DataItems)
 	var trustlessItems []types.TrustlessDataItem
 	for index, dataitem := range bundle.DataItems {
@@ -32,12 +35,17 @@ func (*HeightIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.Trustl
 		if err != nil {
 			return nil, err
 		}
-		raw, err := json.Marshal(bundle.DataItems[index])
+		raw, err := json.Marshal(dataitem)
 		if err != nil {
 			return nil, err
 		}
 
-		encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "key", "value", proof)
+		var encodedProof string
+		if proofAttached {
+			encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, dataitem.Key, "value", proof)
+		} else {
+			encodedProof = ""
+		}
 
 		trustlessDataItem := types.TrustlessDataItem{
 			Value:    raw,

@@ -13,45 +13,1103 @@ externalDocs:
 {{.Paths}}
 components:
   schemas:
-    NoProofResponse:
-      type: object
-      properties:
-        id:
-          type: integer
-          format: int64
-          example: -1
-        jsonrpc:
-          type: string
-          example: "2.0"
-        result:
-          type: object
-          example: {}
     Error:
       type: object
       properties:
         error:
           type: string
           example: "data item not found"
-    TrustlessResponse:
+    TendermintBlockResults:
       type: object
       properties:
-        value:
-          $ref: '#/components/schemas/DataItem'
-        proof:
-          type: array
-          items:
-            $ref: '#/components/schemas/Proof'
-        poolId:
+        id:
           type: integer
-          format: int64
-          example: 10
-        bundleId:
-          type: integer
-          format: int64
-          example: 10
-        chainId:
+        jsonrpc:
           type: string
-          example: "kyve-1"
+        result:
+          type: object
+          properties:
+            height:
+              type: string
+            txs_results:
+              type: "null"
+            begin_block_events:
+              type: array
+              items:
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                    attributes:
+                      type: array
+                      items:
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                        - type: object
+                          properties:
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          required:
+                            - key
+                            - value
+                  required:
+                    - type
+                    - attributes
+            end_block_events:
+              type: "null"
+            validator_updates:
+              type: "null"
+            consensus_param_updates:
+              type: object
+              properties:
+                block:
+                  type: object
+                  properties:
+                    max_bytes:
+                      type: string
+                    max_gas:
+                      type: string
+                  required:
+                    - max_bytes
+                    - max_gas
+                evidence:
+                  type: object
+                  properties:
+                    max_age_num_blocks:
+                      type: string
+                    max_age_duration:
+                      type: string
+                    max_bytes:
+                      type: string
+                  required:
+                    - max_age_num_blocks
+                    - max_age_duration
+                    - max_bytes
+                validator:
+                  type: object
+                  properties:
+                    pub_key_types:
+                      type: array
+                      items:
+                        - type: string
+                  required:
+                    - pub_key_types
+                version:
+                  type: object
+              required:
+                - block
+                - evidence
+                - validator
+                - version
+          required:
+            - height
+            - txs_results
+            - begin_block_events
+            - end_block_events
+            - validator_updates
+            - consensus_param_updates
+      required:
+        - id
+        - jsonrpc
+        - result
+    TendermintBlock:
+      type: object
+      properties:
+        id:
+          type: integer
+        jsonrpc:
+          type: string
+        result:
+          type: object
+          properties:
+            block_id:
+              type: object
+              properties:
+                hash:
+                  type: string
+                parts:
+                  type: object
+                  properties:
+                    total:
+                      type: integer
+                    hash:
+                      type: string
+                  required:
+                    - total
+                    - hash
+              required:
+                - hash
+                - parts
+            block:
+              type: object
+              properties:
+                header:
+                  type: object
+                  properties:
+                    version:
+                      type: object
+                      properties:
+                        block:
+                          type: string
+                      required:
+                        - block
+                    chain_id:
+                      type: string
+                    height:
+                      type: string
+                    time:
+                      type: string
+                    last_block_id:
+                      type: object
+                      properties:
+                        hash:
+                          type: string
+                        parts:
+                          type: object
+                          properties:
+                            total:
+                              type: integer
+                            hash:
+                              type: string
+                          required:
+                            - total
+                            - hash
+                      required:
+                        - hash
+                        - parts
+                    last_commit_hash:
+                      type: string
+                    data_hash:
+                      type: string
+                    validators_hash:
+                      type: string
+                    next_validators_hash:
+                      type: string
+                    consensus_hash:
+                      type: string
+                    app_hash:
+                      type: string
+                    last_results_hash:
+                      type: string
+                    evidence_hash:
+                      type: string
+                    proposer_address:
+                      type: string
+                  required:
+                    - version
+                    - chain_id
+                    - height
+                    - time
+                    - last_block_id
+                    - last_commit_hash
+                    - data_hash
+                    - validators_hash
+                    - next_validators_hash
+                    - consensus_hash
+                    - app_hash
+                    - last_results_hash
+                    - evidence_hash
+                    - proposer_address
+                data:
+                  type: object
+                  properties:
+                    txs:
+                      type: array
+                      items: {}
+                  required:
+                    - txs
+                evidence:
+                  type: object
+                  properties:
+                    evidence:
+                      type: array
+                      items: {}
+                  required:
+                    - evidence
+                last_commit:
+                  type: object
+                  properties:
+                    height:
+                      type: string
+                    round:
+                      type: integer
+                    block_id:
+                      type: object
+                      properties:
+                        hash:
+                          type: string
+                        parts:
+                          type: object
+                          properties:
+                            total:
+                              type: integer
+                            hash:
+                              type: string
+                          required:
+                            - total
+                            - hash
+                      required:
+                        - hash
+                        - parts
+                    signatures:
+                      type: array
+                      items: {}
+                  required:
+                    - height
+                    - round
+                    - block_id
+                    - signatures
+              required:
+                - header
+                - data
+                - evidence
+                - last_commit
+          required:
+            - block_id
+            - block
+      required:
+        - id
+        - jsonrpc
+        - result
     DataItem:
       type: object
       properties:
@@ -61,12 +1119,3 @@ components:
         value:
           type: object
           example: {}
-    Proof:
-      type: object
-      properties:
-        left:
-          type: boolean
-          example: true
-        hash:
-          type: string
-          example: "c97955538f7953eaede664e638073d59917a45f14426d41260ed8924ca1904ff"

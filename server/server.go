@@ -108,11 +108,10 @@ func StartApiServer() *ApiServer {
 	for _, pool := range pools {
 		paths := pool.Indexer.GetBindings()
 		currentAdapter := pool.Adapter
-		for p, para := range paths {
+		for p, endpoint := range paths {
 			path := fmt.Sprintf("%v%v", pool.Slug, p)
-			params := para
 			r.GET(path, func(ctx *gin.Context) {
-				indexString, indexId, err := apiServer.findSelectedParameter(ctx, &params)
+				indexString, indexId, err := apiServer.findSelectedParameter(ctx, &endpoint.QueryParameter)
 				if err != nil {
 					ctx.JSON(http.StatusBadRequest, gin.H{
 						"error": "unkown parameter",
@@ -144,7 +143,7 @@ func GenerateOpenApi(pools []ServePool) ([]byte, error) {
 			path["tags"] = []string{p.Slug}
 
 			parameters := []map[string]interface{}{}
-			for _, param := range value {
+			for _, param := range value.QueryParameter {
 
 				if len(param.Parameter) != len(param.Description) {
 					logger.Error().Msg("parameter and description length mismatch")
@@ -186,7 +185,7 @@ func GenerateOpenApi(pools []ServePool) ([]byte, error) {
 					"content": map[string]interface{}{
 						"application/json": map[string]interface{}{
 							"schema": map[string]string{
-								"$ref": "#/components/schemas/DataItem",
+								"$ref": fmt.Sprintf("#/components/schemas/%v", value.Schema),
 							},
 						},
 					},

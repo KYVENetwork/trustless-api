@@ -13,20 +13,23 @@ import (
 
 type CelestiaIndexer struct{}
 
-func (*CelestiaIndexer) GetBindings() map[string][]types.ParameterIndex {
-	return map[string][]types.ParameterIndex{
+func (*CelestiaIndexer) GetBindings() map[string]types.Endpoint {
+	return map[string]types.Endpoint{
 		"/GetSharesByNamespace": {
-			{
-				IndexId:     utils.IndexSharesByNamespace,
-				Parameter:   []string{"height", "namespace"},
-				Description: []string{"celestia block height", "celestia namespace, available namespaces: AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0=,AAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAg=,AAAAAAAAAAAAAAAAAAAAAAAAAAAABYTLU4hLOUU=,AAAAAAAAAAAAAAAAAAAAAAAAAAAADBuw7+PjGs8="},
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexSharesByNamespace,
+					Parameter:   []string{"height", "namespace"},
+					Description: []string{"celestia block height", "celestia namespace, available namespaces: AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0=,AAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAg=,AAAAAAAAAAAAAAAAAAAAAAAAAAAABYTLU4hLOUU=,AAAAAAAAAAAAAAAAAAAAAAAAAAAADBuw7+PjGs8="},
+				},
 			},
+			Schema: "DataItem",
 		},
 	}
 }
 
 // TODO: Handle proofAttached = false
-func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.TrustlessDataItem, error) {
+func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool) (*[]types.TrustlessDataItem, error) {
 
 	// convert data items to celestia data items
 	// we can also construct the high level leafs at this point
@@ -76,17 +79,23 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.Tr
 			// finally append the proof for the rest of the data items
 			totalProof = append(totalProof, proof...)
 
-			raw, err := json.Marshal(dataitem.Value.SharesByNamespace[index])
+			rpcResponse, err := utils.WrapIntoJsonRpcResponse(dataitem.Value.SharesByNamespace[index])
 			if err != nil {
 				return nil, err
 			}
-			// create compound key with the correct order, like defined in `GetBindings`
+
 			index := fmt.Sprintf("%v-%v", dataitem.Key, namespace.NamespaceId)
 
-			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "key", "value", totalProof)
+			var encodedProof string
+			// if proof is not attached, we set the proof to an empty string
+			if proofAttached {
+				encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", totalProof)
+			} else {
+				encodedProof = ""
+			}
 
 			trustlessDataItem := types.TrustlessDataItem{
-				Value:    raw,
+				Value:    rpcResponse,
 				Proof:    encodedProof,
 				BundleId: bundle.BundleId,
 				PoolId:   bundle.PoolId,

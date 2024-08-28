@@ -163,6 +163,7 @@ type ParameterIndex struct {
 	IndexId     int
 	Parameter   []string
 	Description []string
+	Schema      string
 }
 
 type TendermintDataItem struct {
@@ -182,4 +183,9 @@ type Proof struct {
 	PoolId           int64        `json:"poolId"`
 	DataItemKey      string       `json:"dataItemKey"`
 	DataItemValueKey string       `json:"dataItemValueKey"`
+}
+
+type Endpoint struct {
+	QueryParameter []ParameterIndex
+	Schema         string
 }

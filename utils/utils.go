@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -179,22 +180,25 @@ func GetUniqueDataitemName(item *types.TrustlessDataItem) string {
 // Structure:
 // - 2  bytes: poolId (uint16)
 // - 8  bytes: bundleId (uint64)
-// - 16 bytes: chainId
-// - 16 bytes: dataItemKey
-// - 16 bytes: dataItemValueKey
+// - chainId (string, null terminated)
+// - dataItemKey (string, null terminated)
+// - dataItemValueKey (string, null terminated)
 // - Array of merkle nodes:
 //   - 1 byte:  left (true/false)
 //   - 32 bytes: hash (sha256)
 //
 // returns the proof as hex string
 func EncodeProof(poolId, bundleId int64, chainId string, dataItemKey, dataItemValueKey string, proof []types.MerkleNode) string {
-	bytes := make([]byte, 58) // 2 + 8 + 16 + 16 + 16 bytes for poolId, bundleId, chainId, dataItemKey and dataItemValueKey
+	bytes := make([]byte, 10)
 
 	binary.BigEndian.PutUint16(bytes[0:2], uint16(poolId))
 	binary.BigEndian.PutUint64(bytes[2:10], uint64(bundleId))
-	copy(bytes[10:26], []byte(chainId))
-	copy(bytes[26:42], []byte(dataItemKey))
-	copy(bytes[42:58], []byte(dataItemValueKey))
+	bytes = append(bytes, chainId...)
+	bytes = append(bytes, 0)
+	bytes = append(bytes, dataItemKey...)
+	bytes = append(bytes, 0)
+	bytes = append(bytes, dataItemValueKey...)
+	bytes = append(bytes, 0)
 
 	for _, merkleNode := range proof {
 		if merkleNode.Left {
@@ -206,16 +210,16 @@ func EncodeProof(poolId, bundleId int64, chainId string, dataItemKey, dataItemVa
 		bytes = append(bytes, hashBytes...)
 	}
 
-	return hex.EncodeToString(bytes)
+	return base64.StdEncoding.EncodeToString(bytes)
 }
 
 // DecodeProof decodes the proof of a data item from a byte array
-// encodedProofString is the hex string of the proof
+// encodedProofString is the base64 string of the proof
 // see EncodeProof for more information
 // returns the proof as a struct
 func DecodeProof(encodedProofString string) (*types.Proof, error) {
 
-	encodedProof, err := hex.DecodeString(encodedProofString)
+	encodedProof, err := base64.StdEncoding.DecodeString(encodedProofString)
 	if err != nil {
 		return nil, err
 	}
@@ -229,11 +233,25 @@ func DecodeProof(encodedProofString string) (*types.Proof, error) {
 	proof.PoolId = int64(binary.BigEndian.Uint16(encodedProof[0:2]))
 	proof.BundleId = int64(binary.BigEndian.Uint64(encodedProof[2:10]))
 	// Convert the byte slice to a null-terminated string
-	proof.ChainId = string(bytes.TrimRight(encodedProof[10:26], "\x00"))
-	proof.DataItemKey = string(bytes.TrimRight(encodedProof[26:42], "\x00"))
-	proof.DataItemValueKey = string(bytes.TrimRight(encodedProof[42:58], "\x00"))
+	endIndex := bytes.IndexByte(encodedProof[10:], 0)
+	if endIndex == -1 {
+		return nil, fmt.Errorf("invalid encoded proo, missing: chainId")
+	}
+	proof.ChainId = string(bytes.TrimRight(encodedProof[10:endIndex], "\x00"))
 
-	proofBytes := encodedProof[58:]
+	endIndexKey := bytes.IndexByte(encodedProof[endIndex:], 0)
+	if endIndexKey == -1 {
+		return nil, fmt.Errorf("invalid encoded proo, missing: dataItemkey")
+	}
+	proof.DataItemKey = string(bytes.TrimRight(encodedProof[endIndex:endIndexKey], "\x00"))
+
+	endIndexValueKey := bytes.IndexByte(encodedProof[endIndexKey:], 0)
+	if endIndex == -1 {
+		return nil, fmt.Errorf("invalid encoded proo, missing: chainId")
+	}
+	proof.DataItemValueKey = string(bytes.TrimRight(encodedProof[endIndexKey:endIndexValueKey], "\x00"))
+
+	proofBytes := encodedProof[endIndexValueKey:]
 
 	for len(proofBytes) >= 33 {
 		merkleNode := types.MerkleNode{}
