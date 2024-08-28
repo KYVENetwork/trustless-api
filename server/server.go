@@ -3,10 +3,15 @@ package server
 import (
 	"bytes"
 	_ "embed"
+	"encoding/json"
 	"fmt"
+	"github.com/KYVENetwork/trustless-api/files"
+	"github.com/KYVENetwork/trustless-api/types"
 	"html"
 	"html/template"
+	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/KYVENetwork/trustless-api/config"
@@ -122,4 +127,103 @@ func StartApiServer() *ApiServer {
 	}
 
 	return apiServer
+}
+
+func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]types.ParameterIndex) (string, int, error) {
+	// iterate over all params
+	// select the one where all params have a value set and return the build string from the parameter
+	for _, param := range *params {
+
+		var query []string
+		for _, parameterName := range param.Parameter {
+			if c.Query(parameterName) != "" {
+				query = append(query, c.Query(parameterName))
+			}
+		}
+
+		if len(query) == len(param.Parameter) {
+			return strings.Join(query, "-"), param.IndexId, nil
+		}
+	}
+
+	// no fitting parameter
+	return "", 0, fmt.Errorf("wrong parameter")
+}
+
+// getIndex will search the database for the given query and serve the correct data item if one is found
+// if the desired data item does not exist it serves an error
+//
+// `index` - is the name of the index that will be used e. g. block_height
+// `indexId` - is the corresponding Id for the key e. g. block_height -> 0
+func (apiServer *ApiServer) getIndex(c *gin.Context, adapter db.Adapter, index string, indexId int) {
+	file, err := adapter.Get(indexId, index)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	apiServer.resolveFile(c, file)
+}
+
+// resolveFile serves the content of a SavedFile
+func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
+
+	var rawFile []byte
+
+	switch file.Type {
+	case files.LocalFile:
+		var err error
+		rawFile, err = files.LoadLocalFile(file.Path)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+	case files.S3File:
+		url := viper.GetString("storage.cdn")
+		res, err := http.Get(fmt.Sprintf("%v%v", url, file.Path))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		defer res.Body.Close()
+		rawFile, err = io.ReadAll(res.Body)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to read response body: " + err.Error(),
+			})
+			return
+		}
+	}
+
+	apiServer.serveFile(c, rawFile)
+}
+
+func (apiServer *ApiServer) serveFile(c *gin.Context, file []byte) {
+	var trustlessDataItem types.TrustlessDataItem
+	err := json.Unmarshal(file, &trustlessDataItem)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// only send the proof if it is attached
+	proofValue, proofParamExists := c.GetQuery("proof")
+
+	if trustlessDataItem.Proof != "" {
+		if proofParamExists {
+			if proofValue != "false" {
+				c.Header("x-kyve-proof", trustlessDataItem.Proof)
+			}
+		} else {
+			c.Header("x-kyve-proof", trustlessDataItem.Proof)
+		}
+	}
+	c.JSON(http.StatusOK, trustlessDataItem.Value)
 }
