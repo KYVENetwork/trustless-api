@@ -110,8 +110,9 @@ func StartApiServer() *ApiServer {
 		currentAdapter := pool.Adapter
 		for p, endpoint := range paths {
 			path := fmt.Sprintf("%v%v", pool.Slug, p)
+			localEndpoint := endpoint
 			r.GET(path, func(ctx *gin.Context) {
-				indexString, indexId, err := apiServer.findSelectedParameter(ctx, &endpoint.QueryParameter)
+				indexString, indexId, err := apiServer.findSelectedParameter(ctx, &localEndpoint.QueryParameter)
 				if err != nil {
 					ctx.JSON(http.StatusBadRequest, gin.H{
 						"error": "unkown parameter",
