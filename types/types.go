@@ -122,13 +122,10 @@ type BundleSummary struct {
 
 type TrustlessDataItem struct {
 	Value    json.RawMessage `json:"value"`
-	Proof    []MerkleNode    `json:"proof"`
-	PoolId   int64           `json:"poolId"`
-	BundleId int64           `json:"bundleId"`
-	ChainId  string          `json:"chainId"`
-
-	ValueWithoutProof json.RawMessage `json:"valueWithoutProof,omitempty"`
-	Indices           []Index         `json:"-"`
+	Proof    string          `json:"proof,omitempty"` // proof is only included if proofAttached is true
+	Indices  []Index         `json:"-"`
+	PoolId   int64           `json:"-"`
+	BundleId int64           `json:"-"`
 }
 
 type Index struct {
@@ -166,6 +163,7 @@ type ParameterIndex struct {
 	IndexId     int
 	Parameter   []string
 	Description []string
+	Schema      string
 }
 
 type TendermintDataItem struct {
@@ -176,4 +174,18 @@ type TendermintDataItem struct {
 type TendermintValue struct {
 	Block        json.RawMessage `json:"block"`
 	BlockResults json.RawMessage `json:"block_results"`
+}
+
+type Proof struct {
+	Hashes           []MerkleNode `json:"proof"`
+	BundleId         int64        `json:"bundleId"`
+	ChainId          string       `json:"chainId"`
+	PoolId           int64        `json:"poolId"`
+	DataItemKey      string       `json:"dataItemKey"`
+	DataItemValueKey string       `json:"dataItemValueKey"`
+}
+
+type Endpoint struct {
+	QueryParameter []ParameterIndex
+	Schema         string
 }

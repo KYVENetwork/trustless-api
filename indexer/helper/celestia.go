@@ -13,20 +13,23 @@ import (
 
 type CelestiaIndexer struct{}
 
-func (*CelestiaIndexer) GetBindings() map[string][]types.ParameterIndex {
-	return map[string][]types.ParameterIndex{
+func (*CelestiaIndexer) GetBindings() map[string]types.Endpoint {
+	return map[string]types.Endpoint{
 		"/GetSharesByNamespace": {
-			{
-				IndexId:     utils.IndexSharesByNamespace,
-				Parameter:   []string{"height", "namespace"},
-				Description: []string{"celestia block height", "celestia namespace, available namespaces: AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0=,AAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAg=,AAAAAAAAAAAAAAAAAAAAAAAAAAAABYTLU4hLOUU=,AAAAAAAAAAAAAAAAAAAAAAAAAAAADBuw7+PjGs8="},
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexSharesByNamespace,
+					Parameter:   []string{"height", "namespace"},
+					Description: []string{"celestia block height", "celestia namespace, available namespaces: AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0=,AAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAg=,AAAAAAAAAAAAAAAAAAAAAAAAAAAABYTLU4hLOUU=,AAAAAAAAAAAAAAAAAAAAAAAAAAAADBuw7+PjGs8="},
+				},
 			},
+			Schema: "DataItem",
 		},
 	}
 }
 
 // TODO: Handle proofAttached = false
-func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.TrustlessDataItem, error) {
+func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool) (*[]types.TrustlessDataItem, error) {
 
 	// convert data items to celestia data items
 	// we can also construct the high level leafs at this point
@@ -56,27 +59,6 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.Tr
 			return nil, err
 		}
 
-		// raw, err := json.Marshal(bundle.DataItems[index])
-		// if err != nil {
-		// 	return nil, err
-		// }
-
-		// // first we insert the entire bundle for the block height key
-		// trustlessDataItem := types.TrustlessDataItem{
-		// 	Value:    raw,
-		// 	Proof:    proof,
-		// 	BundleId: bundle.BundleId,
-		// 	PoolId:   bundle.PoolId,
-		// 	ChainId:  bundle.ChainId,
-		// 	Indices: []types.Index{
-		// 		{Index: dataitem.Key, IndexId: IndexBlockHeight},
-		// 	},
-		// 	ProofType: "celestia",
-		// }
-		// trustlessItems = append(trustlessItems, trustlessDataItem)
-
-		// then we go through every namespace and create another item just for the namespace as the key and the block height
-
 		// first we have to construct the leafs of all the namespaces
 		var namespaceLeafs [][32]byte
 		for _, namespacedShares := range dataitem.Value.SharesByNamespace {
@@ -97,18 +79,26 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.Tr
 			// finally append the proof for the rest of the data items
 			totalProof = append(totalProof, proof...)
 
-			raw, err := json.Marshal(dataitem.Value.SharesByNamespace[index])
+			rpcResponse, err := utils.WrapIntoJsonRpcResponse(dataitem.Value.SharesByNamespace[index])
 			if err != nil {
 				return nil, err
 			}
-			// create compound key with the correct order, like defined in `GetBindings`
+
 			index := fmt.Sprintf("%v-%v", dataitem.Key, namespace.NamespaceId)
+
+			var encodedProof string
+			// if proof is not attached, we set the proof to an empty string
+			if proofAttached {
+				encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", totalProof)
+			} else {
+				encodedProof = ""
+			}
+
 			trustlessDataItem := types.TrustlessDataItem{
-				Value:    raw,
-				Proof:    totalProof,
+				Value:    rpcResponse,
+				Proof:    encodedProof,
 				BundleId: bundle.BundleId,
 				PoolId:   bundle.PoolId,
-				ChainId:  bundle.ChainId,
 				Indices: []types.Index{
 					{Index: index, IndexId: utils.IndexSharesByNamespace},
 				},

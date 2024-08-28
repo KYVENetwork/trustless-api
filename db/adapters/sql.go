@@ -111,7 +111,7 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle, proofAttached bool) error 
 		localIndex := index
 		g.Go(func() error {
 			localDataItem := &(*dataItems)[localIndex]
-			file, err := adapter.saveDataItem.Save(localDataItem, proofAttached)
+			file, err := adapter.saveDataItem.Save(localDataItem)
 			if err != nil {
 				logger.Error().
 					Err(err).

@@ -77,8 +77,6 @@ database:
 server: 
     # port of the server
     port: 4242 
-    # will redirect to the CDN defined in `storage` if set to false the server will fetch the content on request and serve it directly
-    redirect: false 
 
 # === SERVER ===
 # crawler configuration. Only relevant when running the crawling process
@@ -295,6 +293,6 @@ The crawler has done the difficult part of indexing each bundle, now the server 
 1. A user requests a specific data item with a key. E. g. the user does the following request: `/beacon/blob_sidecars?block_height=1337`
 2. Now the server looksup the data item location for that key. Following our example, the server would call the database adapter with the following arguments: `Get(1337, EthBlobIndexHeight)`
     - `EthBlobIndexHeight = 0` because the block_height is the first index defined in `EthBlobs`
-3. Now that we have the data items location, the server either redirects to that location, or serves it directly. This behaviour can be set in the `config.yml`.
+3. Now that we have the data item's location, serves the data item directly.
 4. At this point the server has provided the user with all the necessariy information to query for the on-chain merkle root for that specific data item.
 5. Finally, the user constructs the local merkle root hash based on the provided data item from the server and compares it to the on-chain merkle root.

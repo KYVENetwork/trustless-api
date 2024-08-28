@@ -12,19 +12,22 @@ import (
 
 type EthBlobsIndexer struct{}
 
-func (eth *EthBlobsIndexer) GetBindings() map[string][]types.ParameterIndex {
-	return map[string][]types.ParameterIndex{
+func (eth *EthBlobsIndexer) GetBindings() map[string]types.Endpoint {
+	return map[string]types.Endpoint{
 		"/beacon/blob_sidecars": {
-			{
-				IndexId:     utils.IndexBlockHeight,
-				Parameter:   []string{"block_height"},
-				Description: []string{"Ethereum block height, starting from 19426587"},
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexBlockHeight,
+					Parameter:   []string{"block_height"},
+					Description: []string{"Ethereum block height, starting from 19426587"},
+				},
+				{
+					IndexId:     utils.IndexSlotNumber,
+					Parameter:   []string{"slot_number"},
+					Description: []string{"Ethereum slot number, starting from 8626178"},
+				},
 			},
-			{
-				IndexId:     utils.IndexSlotNumber,
-				Parameter:   []string{"slot_number"},
-				Description: []string{"Ethereum slot number, starting from 8626178"},
-			},
+			Schema: "DataItem",
 		},
 	}
 }
@@ -60,17 +63,18 @@ func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle, _ bool) (*[]types.Tr
 			return nil, err
 		}
 
-		raw, err := json.Marshal(bundle.DataItems[index])
+		encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, dataitem.Key, "value", proof)
+
+		bytes, err := json.Marshal(dataitem)
 		if err != nil {
 			return nil, err
 		}
 
 		trustlessDataItem := types.TrustlessDataItem{
-			Value:    raw,
-			Proof:    proof,
+			Value:    bytes,
+			Proof:    encodedProof,
 			BundleId: bundle.BundleId,
 			PoolId:   bundle.PoolId,
-			ChainId:  bundle.ChainId,
 			Indices:  indices,
 		}
 		trustlessItems = append(trustlessItems, trustlessDataItem)
