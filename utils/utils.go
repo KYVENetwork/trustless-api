@@ -187,7 +187,7 @@ func GetUniqueDataitemName(item *types.TrustlessDataItem) string {
 //   - 1 byte:  left (true/false)
 //   - 32 bytes: hash (sha256)
 //
-// returns the proof as hex string
+// returns the proof as Base64
 func EncodeProof(poolId, bundleId int64, chainId string, dataItemKey, dataItemValueKey string, proof []types.MerkleNode) string {
 	bytes := make([]byte, 10)
 
