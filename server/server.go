@@ -170,10 +170,10 @@ func GenerateOpenApi(pools []ServePool) ([]byte, error) {
 			if p.ProofAttached {
 				headers = map[string]interface{}{
 					"x-kyve-proof": map[string]interface{}{
-						"description": "the proof of the data item",
+						"description": "KYVE Data Item Inclusion Proof Base64 encoded.",
 						"schema": map[string]string{
 							"type":    "string",
-							"example": "00760...01f79a",
+							"example": "AIQAAAA...Jhhf6ut",
 						},
 					},
 				}
