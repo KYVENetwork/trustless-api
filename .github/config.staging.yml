@@ -48,7 +48,16 @@ pools:
     slug: osmosis
     bundleStartId: 183000
     excludeProof: true
-
+  - chainid: korellia-2
+    indexer: Tendermint
+    poolid: 136
+    slug: story-cometbft
+    bundleStartId: 0
+  - chainid: korellia-2
+    indexer: Height
+    poolid: 138
+    slug: story-evm
+    bundleStartId: 0
 # === DATABASE ===
 # database configuration
 # ================
