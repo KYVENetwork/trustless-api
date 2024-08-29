@@ -195,7 +195,7 @@ func EncodeProof(poolId, bundleId int64, chainId string, dataItemKey, dataItemVa
 	binary.BigEndian.PutUint64(bytes[2:10], uint64(bundleId))
 	// Append chainId, dataItemKey, and dataItemValueKey as null-terminated strings
 	for _, str := range []string{chainId, dataItemKey, dataItemValueKey} {
-		bytes = append(bytes, []byte(str)...)
+		bytes = append(bytes, str...)
 		bytes = append(bytes, 0)
 	}
 
