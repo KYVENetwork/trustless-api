@@ -17,7 +17,7 @@ type Indexer interface {
 	//
 	// NOTE: 	If you want to create compound indices, you have to separate them with dashes '-' e. g.: '<blockHeight>-<namespace>'
 	// 			the order has to be identical to the order defined in `GetBindings`
-	IndexBundle(bundle *types.Bundle, proofAttached bool) (*[]types.TrustlessDataItem, error)
+	IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error)
 
 	// GetBindings returns a map of endpoints. Each Endpoint contains information about the url and necessary query parameter. The bindings also map QueryParamter to database indices.
 	//

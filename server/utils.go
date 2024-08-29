@@ -2,8 +2,9 @@ package server
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"net/http"
+
+	"gopkg.in/yaml.v3"
 )
 
 // generateOpenApi generates the OpenAPI spec as yaml file
@@ -53,7 +54,7 @@ func generateOpenApi(pools []ServePool) ([]byte, error) {
 
 			var headers map[string]interface{}
 
-			if p.ProofAttached {
+			if !p.ExcludeProof {
 				headers = map[string]interface{}{
 					"x-kyve-proof": map[string]interface{}{
 						"description": "KYVE Data Item Inclusion Proof Base64 encoded.",

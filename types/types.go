@@ -122,7 +122,7 @@ type BundleSummary struct {
 
 type TrustlessDataItem struct {
 	Value    json.RawMessage `json:"value"`
-	Proof    string          `json:"proof,omitempty"` // proof is only included if proofAttached is true
+	Proof    string          `json:"proof,omitempty"` // proof is not included if excludeProof is true
 	Indices  []Index         `json:"-"`
 	PoolId   int64           `json:"-"`
 	BundleId int64           `json:"-"`

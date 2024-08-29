@@ -17,13 +17,12 @@ pools:
       poolid: 21
       slug: ethereum
       bundleStartId: 0
-      proofAttached: true
     - chainid: korellia-2
       indexer: Tendermint
       poolid: 113
       slug: injective
       bundleStartId: 141
-      proofAttached: true
+      excludeProof: true # set to true if you want to exclude the proof from the data items
 
 # === DATABASE ===
 # database configuration

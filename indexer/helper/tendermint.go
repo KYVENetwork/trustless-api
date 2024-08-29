@@ -77,7 +77,7 @@ func (t *TendermintIndexer) CalculateProof(dataItem *types.TendermintDataItem, l
 	return totalBlockProof, totalBlockResultsProof, nil
 }
 
-func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool) (*[]types.TrustlessDataItem, error) {
+func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error) {
 	var dataItems []types.TendermintDataItem
 	var leafs [][32]byte
 
@@ -89,7 +89,7 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool
 
 		tendermintItem := types.TendermintDataItem{Key: item.Key, Value: tendermintValue}
 
-		if proofAttached {
+		if excludeProof {
 			leafs = append(leafs, t.tendermintDataItemToSha256(&tendermintItem))
 		}
 
@@ -100,7 +100,7 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool
 	for index, dataItem := range dataItems {
 
 		var blockProof, blockResultsProof []types.MerkleNode
-		if proofAttached {
+		if excludeProof {
 			var err error
 			blockProof, blockResultsProof, err = t.CalculateProof(&dataItem, leafs, index)
 			if err != nil {
@@ -112,10 +112,10 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool
 
 			var encodedProof string
 			// if proof is not attached, we set the proof to an empty string
-			if proofAttached {
-				encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", proof)
-			} else {
+			if excludeProof {
 				encodedProof = ""
+			} else {
+				encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", proof)
 			}
 
 			rpcResponse, err := utils.WrapIntoJsonRpcResponse(value)

@@ -23,7 +23,7 @@ type IndexDocument struct {
 }
 
 type Adapter interface {
-	Save(bundle *types.Bundle, proofAttached bool) error
+	Save(bundle *types.Bundle, excludeProof bool) error
 	Get(indexId int, key string) (files.SavedFile, error)
 	GetMissingBundles(bundleStartId, lastBundleId int64) []int64
 	GetIndexer() indexer.Indexer

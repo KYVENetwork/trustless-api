@@ -28,8 +28,7 @@ func (*CelestiaIndexer) GetBindings() map[string]types.Endpoint {
 	}
 }
 
-// TODO: Handle proofAttached = false
-func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool) (*[]types.TrustlessDataItem, error) {
+func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error) {
 
 	// convert data items to celestia data items
 	// we can also construct the high level leafs at this point
@@ -88,10 +87,10 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool) 
 
 			var encodedProof string
 			// if proof is not attached, we set the proof to an empty string
-			if proofAttached {
-				encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", totalProof)
-			} else {
+			if excludeProof {
 				encodedProof = ""
+			} else {
+				encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", totalProof)
 			}
 
 			trustlessDataItem := types.TrustlessDataItem{

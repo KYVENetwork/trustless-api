@@ -26,8 +26,7 @@ func (eth *HeightIndexer) GetBindings() map[string]types.Endpoint {
 	}
 }
 
-// TODO: Handle proofAttached = false
-func (*HeightIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool) (*[]types.TrustlessDataItem, error) {
+func (*HeightIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error) {
 	leafs := merkle.GetBundleHashes(&bundle.DataItems)
 	var trustlessItems []types.TrustlessDataItem
 	for index, dataitem := range bundle.DataItems {
@@ -41,10 +40,10 @@ func (*HeightIndexer) IndexBundle(bundle *types.Bundle, proofAttached bool) (*[]
 		}
 
 		var encodedProof string
-		if proofAttached {
-			encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, dataitem.Key, "value", proof)
-		} else {
+		if excludeProof {
 			encodedProof = ""
+		} else {
+			encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, dataitem.Key, "value", proof)
 		}
 
 		trustlessDataItem := types.TrustlessDataItem{
