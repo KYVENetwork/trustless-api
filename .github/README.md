@@ -310,7 +310,7 @@ The crawler has done the difficult part of indexing each bundle, now the server 
 
 ### Response Structure
 
-The Trustless API response contains the actual data item and the inclusion proof that contains all necessary information to verify the data item on-chain. The actual data of the data item might be wrapped in a custom structure, depending on the indexer. For example, the `Tendermint` indexer wraps the data item in a `JSON-RPC 2.0` response.
+The Trustless API response contains the actual data item and the inclusion proof that contains all necessary information to verify the data item has been validated through KYVE. The actual data of the data item might be wrapped in a custom structure, depending on the indexer. For example, the `Tendermint` indexer wraps the data item in a `JSON-RPC 2.0` response.
 
 Note: Each endpoints response structure can be found by looking at the Swagger documentation.
 
@@ -339,9 +339,9 @@ The proof is byte encoded in the following structure:
 
 Note: The proof is encoded in big-endian.
 
-To construct the original data item from the trustless api response, the `dataItemKey` and `dataItemValueKey` are necessary. This is because the data item might be wrapped in a custom structure by the indexer, such as the Tendermint indexer.
+To construct the original data item from the Trustless API response, the `dataItemKey` and `dataItemValueKey` are necessary. This is because the data item might be wrapped in a custom structure by the indexer, such as the Tendermint indexer.
 
-Constructing the original data item from the trustless api response:
+Constructing the original data item from the Trustless API response:
 
 ```ts
 {
