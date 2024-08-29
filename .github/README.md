@@ -3,6 +3,7 @@
 The trustless Celestia and EVM Blobs API, providing validated data through KYVE.
 
 ## Build from Source
+
 ```bash
 git clone https://github.com/KYVENetwork/trustless-api.git
 
@@ -12,7 +13,9 @@ make
 
 cp build/trustless-api ~/go/bin/trustless-api
 ```
-## How to start: 
+
+## How to start:
+
 ### Crawler
 
 You can start the crawling process with the following command:
@@ -47,73 +50,73 @@ log: info
 #         e. g. with the slug 'ethereum' and the indexer EthBlobs the resulting url will be: "/ethereum/beacon/blob_sidecars?..."
 # =============
 pools:
-    - chainid: kaon-1
-      indexer: EthBlobs
-      poolid: 21
-      slug: ethereum
-    - chainid: korellia-2
-      indexer: Height
-      poolid: 105
-      slug: linea
+  - chainid: kaon-1
+    indexer: EthBlobs
+    poolid: 21
+    slug: ethereum
+  - chainid: korellia-2
+    indexer: Height
+    poolid: 105
+    slug: linea
 
 # === DATABASE ===
 # database configuration
 # ================
 database:
-    # supported databases: sqlite (default), postgres
-    type: sqlite 
-    # the database name, if you use sqlite this will the the database file. default: ./database.db
-    dbname: indexer.db 
-    # following attributes are only relevant when using postgres, you don't need them for sqlite
-    host: "localhost"
-    # IMPORTANT: this is postgres database port, not the port the app will use to serve
-    port: 5432 
-    user: "admin"
-    password: "root"
+  # supported databases: sqlite (default), postgres
+  type: sqlite
+  # the database name, if you use sqlite this will the the database file. default: ./database.db
+  dbname: indexer.db
+  # following attributes are only relevant when using postgres, you don't need them for sqlite
+  host: "localhost"
+  # IMPORTANT: this is postgres database port, not the port the app will use to serve
+  port: 5432
+  user: "admin"
+  password: "root"
 
 # === SERVER ===
 # server configuration. The server will use the pools config to know what pools to serve
 # ==============
-server: 
-    # port of the server
-    port: 4242 
+server:
+  # port of the server
+  port: 4242
 
 # === SERVER ===
 # crawler configuration. Only relevant when running the crawling process
 # ==============
 crawler:
-    # how many threads are used for downloading & processing the bundles
-    threads: 4
+  # how many threads are used for downloading & processing the bundles
+  threads: 4
 
 # === STORAGE ===
 # storage configuration.
 # ===============
 storage:
-    # the type of storage to use. available options: local (default), s3
-    type: local
-    # how many threads are used to save/upload the processed bundle. Default 8
-    threads: 8
-    # only relevant when using local storage, can be left empty when using AWS
-    path: ./data 
-    # what compression to use when storing/uploading the data
-    # available options: gzip (default), none
-    compression: gzip
-    
-    # S3 CONFIG
-    # The following configs are only relevent when using S3
+  # the type of storage to use. available options: local (default), s3
+  type: local
+  # how many threads are used to save/upload the processed bundle. Default 8
+  threads: 8
+  # only relevant when using local storage, can be left empty when using AWS
+  path: ./data
+  # what compression to use when storing/uploading the data
+  # available options: gzip (default), none
+  compression: gzip
 
-    # your R2 or AWS endpoint
-    aws-endpoint: "http://example-bucket.s3-website.us-west-2.amazonaws.com/" 
-    # your bucket name
-    bucketname: "example-bucket" 
-    # CDN where to fetch the data
-    cdn: "https://example.domain/" 
-    # your access key id and your acces key secret
-    credentials:
-        keyid: "<access_key_id>" 
-        keysecret: "<access_key_secret>"
-    # what region to use for the aws config. default: auto
-    region: auto 
+  # S3 CONFIG
+  # The following configs are only relevent when using S3
+
+  # your R2 or AWS endpoint
+  aws-endpoint: "http://example-bucket.s3-website.us-west-2.amazonaws.com/"
+  # your bucket name
+  bucketname: "example-bucket"
+  # CDN where to fetch the data
+  cdn: "https://example.domain/"
+  # your access key id and your acces key secret
+  credentials:
+    keyid: "<access_key_id>"
+    keysecret: "<access_key_secret>"
+  # what region to use for the aws config. default: auto
+  region: auto
 
 # === ENDPOINTS ===
 # specify custom endpoints & fallback
@@ -121,24 +124,24 @@ storage:
 # if you dont provide any endpoints, official endpoints will be set as default
 # =================
 endpoints:
-    storage:
-        1:
-            - https://arweave.net
-            # define as many fallback endpoints as you want
-            # - https://arweave.net
-        2:
-            - https://arweave.net
-        3:
-            - https://storage.kyve.network
-    chains:
-        kaon-1:
-            - https://api.kaon.kyve.network
-            # same here, define your fallback endpoints
-            # - https://api.kaon.kyve.network
-        korellia-2:
-            - https://api.korellia.kyve.network
-        kyve-1:
-            - https://api.kyve.network
+  storage:
+    1:
+      - https://arweave.net
+      # define as many fallback endpoints as you want
+      # - https://arweave.net
+    2:
+      - https://arweave.net
+    3:
+      - https://storage.kyve.network
+  chains:
+    kaon-1:
+      - https://api.kaon.kyve.network
+      # same here, define your fallback endpoints
+      # - https://api.kaon.kyve.network
+    korellia-2:
+      - https://api.korellia.kyve.network
+    kyve-1:
+      - https://api.kyve.network
 ```
 
 ## How it works
@@ -157,18 +160,20 @@ As previously mentioned, the `crawler` is responsible for retrieving all bundles
 
 The config file contains all `poolId`s that should be crawled. The crawler itself functions like a master, starting one go-routine per `poolId` that is responsible for crawling that specific `poolId`.
 
-Each go-routine (referred to as a ChildCrawler from here on) performs the following tasks: 
+Each go-routine (referred to as a ChildCrawler from here on) performs the following tasks:
+
 - query missing bundles
 - for each data item in the bundle
-	-  it generates a data inclusion proof for that specific bundle
- 	-  precomputes the Trustless API response
-  	-  saves the response
-  	-  and saves the response location for certain keys
+  - it generates a data inclusion proof for that specific bundle
+  - precomputes the Trustless API response
+  - saves the response
+  - and saves the response location for certain keys
 - repeats that every n-seconds
 
 ### Query Bundles
 
 To insert a bundle we first have to retrieve its bundle data.
+
 - first we have to query for that specific bundleId on the KYVE chain, we call this the `finalizedBundle` (the ChildCrawler will use the `chainrest` defined in the config)
 - then we have to get the decompressed bundle data associated with the `finalizedBundle` from the given storage provider (the ChildCrawler will use the `storagerest` defined in the config)
 - the decompressed bundle data is an array of data items, we compute the hash value of every single data item for the inclusion proof
@@ -187,6 +192,7 @@ Finally, we can build the response, which will consist of the actual data item a
 As a last step, we save/upload all responses to a file storage, like S3, and save the location in the database.
 
 ### Indexer
+
 We have to generate indices on each data item because we want to quickly retrieve the trustless data item based on a specific key that corresponse to that exact data item. For each data item, there must be at least one index, but there can be more than one. The crawler will generate indices based on the `indexer` defined in the `config.yml`.
 
 The whole purpose of the Indexer is to return the possible indices of a specific data item, that then will be stored and later queried in the database.
@@ -194,6 +200,7 @@ The whole purpose of the Indexer is to return the possible indices of a specific
 **Example: `EthBlobs`**
 
 The `EthBlobsIndexer` generates all necessary indices to query for blobs:
+
 - block_height
 - slot_number
 
@@ -204,8 +211,8 @@ func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 	var trustlessItems []types.TrustlessDataItem
 	for index, dataitem := range bundle.DataItems {
 
-        	// calculate inclusion proof
-        	...
+		// calculate inclusion proof
+		...
 
 		// calculate indicies
 		var indices []types.Index = []types.Index{
@@ -218,7 +225,6 @@ func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 			Proof:     proof,
 			BundleId:  bundle.BundleId,
 			PoolId:    bundle.PoolId,
-			ChainId:   bundle.ChainId,
 			Indices:   indices,
 		}
 		trustlessItems = append(trustlessItems, trustlessDataItem)
@@ -232,6 +238,7 @@ func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 How are the data items stored and how do we index them?
 
 We have two schemes:
+
 1. DataItemDocument
 2. IndexDocument.
 
@@ -252,6 +259,7 @@ We have to save the index id, because there might be more than one index for a d
 We use a database adapter interface to separate the database implementation from our logic. This allows us to switch databases without modifying anything else except the database adapter.
 
 Adapter interface:
+
 ```go
 type Adapter interface {
 	Save(bundle *types.Bundle) error
@@ -264,6 +272,7 @@ type Adapter interface {
 As you can see, we make use of only three methods to interact with the database. When inserting the data items it is important to submit them all with only one transactions, otherwise it might be possible that we fail to save some data items of a bundle resulting in incomplete data.
 
 When saving a bundle, the adapter is responsible for the following:
+
 - convert the bundles data items into trustless data items via. an indexer
 - upload/save the trustless data items to a location (this will be done via a FileAdapter, see next chapter)
 - write all necessary information about the data item and its location into the database
@@ -273,7 +282,8 @@ When saving a bundle, the adapter is responsible for the following:
 
 The Trustless API can save the trustless data items to various locations, therefore we need to account for different file types. The FileAdapter is responsible for that.
 
-Currently there are only two FileAdapter: 
+Currently there are only two FileAdapter:
+
 - local file
 - s3 file
 
@@ -286,13 +296,68 @@ type SaveDataItem interface {
 ```
 
 ### How the server works in detail
+
 <img src="../assets/server.png" alt="server sketch"/>
 
 The crawler has done the difficult part of indexing each bundle, now the server is able to simply retrieve the requested data item from the database.
 
 1. A user requests a specific data item with a key. E. g. the user does the following request: `/beacon/blob_sidecars?block_height=1337`
 2. Now the server looksup the data item location for that key. Following our example, the server would call the database adapter with the following arguments: `Get(1337, EthBlobIndexHeight)`
-    - `EthBlobIndexHeight = 0` because the block_height is the first index defined in `EthBlobs`
+   - `EthBlobIndexHeight = 0` because the block_height is the first index defined in `EthBlobs`
 3. Now that we have the data item's location, serves the data item directly.
 4. At this point the server has provided the user with all the necessariy information to query for the on-chain merkle root for that specific data item.
 5. Finally, the user constructs the local merkle root hash based on the provided data item from the server and compares it to the on-chain merkle root.
+
+### Response Structure
+
+The Trustless API response contains the actual data item and the inclusion proof that contains all necessary information to verify the data item on-chain. The actual data of the data item might be wrapped in a custom structure, depending on the indexer. For example, the `Tendermint` indexer wraps the data item in a `JSON-RPC 2.0` response.
+
+Note: Each endpoints response structure can be found by looking at the Swagger documentation.
+
+```json
+{
+    "jsonrpc": "2.0",
+	"id": -1,
+    "result": {
+        ...
+    }
+}
+```
+
+The inclusion proof, necessary for data verification, is included in the response header `x-kyve-proof` and encoded in Base64. If you wish to exclude the proof from the response, you can set the query parameter `proof=false`.
+
+The proof is byte encoded in the following structure:
+
+| Field | Size | Description |
+|-------|------|-------------|
+| poolId | 2 bytes | Pool ID (uint16) |
+| bundleId | 8 bytes | Bundle ID (uint64) |
+| chainId | variable | Chain ID (null-terminated string) |
+| dataItemKey | variable | Data Item Key (null-terminated string) |
+| dataItemValueKey | variable | Data Item Value Key (null-terminated string) |
+| Merkle Nodes | 33 bytes each | Array of Merkle nodes: <br> - 1 byte: left (true/false) <br> - 32 bytes: hash (sha256) |
+
+Note: The proof is encoded in big-endian.
+
+To construct the original data item from the trustless api response, the `dataItemKey` and `dataItemValueKey` are necessary. This is because the data item might be wrapped in a custom structure by the indexer, such as the Tendermint indexer.
+
+Constructing the original data item from the trustless api response:
+
+```ts
+{
+    "key": dataItemKey,
+    "value": response[dataItemValueKey]
+}
+```
+
+Note: if the `dataItemKey` is empty, `response[dataItemValueKey]` is already the actual data item.
+
+### Swagger Documentation
+
+The server automatically generates a swagger documentation, based on the provided `config.yml` file.
+
+To access the swagger documentation, navigate to the index page of your server, like:
+
+```
+https://data.services.kyve.network/
+```
