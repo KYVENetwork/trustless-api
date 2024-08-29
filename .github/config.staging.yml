@@ -48,6 +48,18 @@ pools:
     slug: cronos-zkevm
     bundleStartId: 0
     proofAttached: true
+  - chainid: korellia-2
+    indexer: Tendermint
+    poolid: 136
+    slug: story-cometbft
+    bundleStartId: 0
+    proofAttached: true
+  - chainid: korellia-2
+    indexer: Height
+    poolid: 138
+    slug: story-evm
+    bundleStartId: 0
+    proofAttached: true
   - chainid: kyve-1
     indexer: Tendermint
     poolid: 1
