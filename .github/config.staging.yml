@@ -31,6 +31,12 @@ pools:
     bundleStartId: 141
     proofAttached: true
   - chainid: korellia-2
+    indexer: Tendermint
+    poolid: 125
+    slug: berachain
+    bundleStartId: 0
+    proofAttached: true
+  - chainid: korellia-2
     indexer: Height
     poolid: 118
     slug: avail
