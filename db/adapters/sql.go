@@ -93,10 +93,18 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 //
 // NOTE: This function is thread safe.
 func (adapter *SQLAdapter) Save(bundle *types.Bundle, excludeProof bool) error {
+	start := time.Now()
 	dataItems, err := adapter.indexer.IndexBundle(bundle, excludeProof)
 	if err != nil {
 		return err
 	}
+
+	logger.Debug().
+		Int64("bundleId", bundle.BundleId).
+		Int64("poolId", bundle.PoolId).
+		Msg(fmt.Sprintf("indexed %v data items in %v", len(*dataItems), time.Since(start)))
+
+	start = time.Now()
 
 	type Result struct {
 		item *types.TrustlessDataItem
@@ -133,9 +141,20 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle, excludeProof bool) error {
 		return err
 	}
 
+	elapsed := time.Since(start)
+	logger.Debug().
+		Int64("bundleId", bundle.BundleId).
+		Int64("poolId", bundle.PoolId).
+		Msg(fmt.Sprintf("saving data items took: %v", elapsed))
+
+	start = time.Now()
 	// lock the entire module as we might have multiple database adapter instances at the same time
 	mutex.Lock()
 	defer mutex.Unlock()
+	logger.Debug().
+		Int64("bundleId", bundle.BundleId).
+		Int64("poolId", bundle.PoolId).
+		Msg(fmt.Sprintf("locked database in %v", time.Since(start)))
 
 	items := make([]db.DataItemDocument, 0)
 	indices := make([]db.IndexDocument, 0)

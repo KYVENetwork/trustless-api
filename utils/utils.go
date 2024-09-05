@@ -281,10 +281,17 @@ func DecodeProof(encodedProofString string) (*types.Proof, error) {
 }
 
 func WrapIntoJsonRpcResponse(result interface{}) ([]byte, error) {
-	response := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id":      -1,
-		"result":  result,
+
+	type Response struct {
+		JsonRPC string      `json:"jsonrpc"`
+		ID      int         `json:"id"`
+		Result  interface{} `json:"result"`
+	}
+
+	response := Response{
+		JsonRPC: "2.0",
+		ID:      -1,
+		Result:  result,
 	}
 
 	json, err := json.Marshal(response)
@@ -296,13 +303,23 @@ func WrapIntoJsonRpcResponse(result interface{}) ([]byte, error) {
 }
 
 func WrapIntoJsonRpcErrorResponse(errorMessage string, data any) any {
-	response := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id":      -1,
-		"error": map[string]interface{}{
-			"message": errorMessage,
-			"code":    -32603,
-			"data":    data,
+	type ErrorResponse struct {
+		Message string `json:"message"`
+		Code    int    `json:"code"`
+		Data    any    `json:"data"`
+	}
+
+	response := struct {
+		JsonRPC string        `json:"jsonrpc"`
+		ID      int           `json:"id"`
+		Error   ErrorResponse `json:"error"`
+	}{
+		JsonRPC: "2.0",
+		ID:      -1,
+		Error: ErrorResponse{
+			Message: errorMessage,
+			Code:    -32603,
+			Data:    data,
 		},
 	}
 	return response

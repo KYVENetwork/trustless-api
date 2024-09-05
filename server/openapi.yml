@@ -1172,6 +1172,12 @@ components:
     JsonRPCError:
         type: object
         properties:
+          id:
+            type: integer
+            example: -1
+          jsonrpc:
+            type: string
+            example: "2.0"
           error:
             type: object
             properties:
@@ -1184,12 +1190,6 @@ components:
               message:
                 type: string
                 example: "Internal error"
-          id:
-            type: integer
-            example: -1
-          jsonrpc:
-            type: string
-            example: "2.0"
         required:
           - error
           - id
@@ -1197,14 +1197,14 @@ components:
     JsonRPC:
         type: object
         properties:
-          result:
-            type: object
           id:
             type: integer
             example: -1
           jsonrpc:
             type: string
             example: "2.0"
+          result:
+            type: object
         required:
           - result
           - id

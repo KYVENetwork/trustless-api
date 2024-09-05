@@ -47,19 +47,19 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 
 	compressedBundle, err := bundles.GetFinalizedBundle(crawler.chainId, crawler.poolId, bundleId)
 	if err != nil {
-		logger.Error().Int64("poolId", crawler.poolId).Msg("Something went wrong when retrieving the bundle...")
+		logger.Error().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg("Something went wrong when retrieving the bundle...")
 		return err
 	}
 
 	dataItems, err := bundles.GetDecompressedBundle(*compressedBundle)
 
 	if err != nil {
-		logger.Error().Int64("poolId", crawler.poolId).Msg("Something went wrong when retrieving the bundle...")
+		logger.Error().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg("Something went wrong when decompressing the bundle...")
 		return err
 	}
 
 	elapsed := time.Since(start)
-	logger.Debug().Int64("poolId", crawler.poolId).Msg(fmt.Sprintf("Downloading bundle took: %v", elapsed))
+	logger.Debug().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg(fmt.Sprintf("Downloading bundle took: %v", elapsed))
 
 	bundle := types.Bundle{
 		DataItems: dataItems,
@@ -71,10 +71,11 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 
 	err = crawler.adapter.Save(&bundle, crawler.excludeProof)
 	if err != nil {
+		logger.Error().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg("Something went wrong when inserting the bundle...")
 		return err
 	}
 	elapsed = time.Since(start)
-	logger.Debug().Int64("poolId", crawler.poolId).Msg(fmt.Sprintf("Inserting data items took: %v", elapsed))
+	logger.Debug().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg(fmt.Sprintf("Inserting data items took: %v", elapsed))
 
 	return nil
 }
