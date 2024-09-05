@@ -15,6 +15,7 @@ import (
 	"github.com/go-co-op/gocron"
 	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 var (
@@ -33,8 +34,8 @@ type ChildCrawler struct {
 	chainId       string
 	crawling      sync.Mutex
 	poolId        int64
-
-	excludeProof bool
+	excludeProof  bool
+	semaphore     *semaphore.Weighted
 }
 
 // This is a helper function that will be called from multiple go routines.
@@ -46,19 +47,19 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 
 	compressedBundle, err := bundles.GetFinalizedBundle(crawler.chainId, crawler.poolId, bundleId)
 	if err != nil {
-		logger.Error().Int64("poolId", crawler.poolId).Msg("Something went wrong when retrieving the bundle...")
+		logger.Error().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg("Something went wrong when retrieving the bundle...")
 		return err
 	}
 
 	dataItems, err := bundles.GetDecompressedBundle(*compressedBundle)
 
 	if err != nil {
-		logger.Error().Int64("poolId", crawler.poolId).Msg("Something went wrong when retrieving the bundle...")
+		logger.Error().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg("Something went wrong when decompressing the bundle...")
 		return err
 	}
 
 	elapsed := time.Since(start)
-	logger.Debug().Int64("poolId", crawler.poolId).Msg(fmt.Sprintf("Downloading bundle took: %v", elapsed))
+	logger.Debug().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg(fmt.Sprintf("Downloading bundle took: %v", elapsed))
 
 	bundle := types.Bundle{
 		DataItems: dataItems,
@@ -70,10 +71,11 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 
 	err = crawler.adapter.Save(&bundle, crawler.excludeProof)
 	if err != nil {
+		logger.Error().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg("Something went wrong when inserting the bundle...")
 		return err
 	}
 	elapsed = time.Since(start)
-	logger.Debug().Int64("poolId", crawler.poolId).Msg(fmt.Sprintf("Inserting data items took: %v", elapsed))
+	logger.Debug().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg(fmt.Sprintf("Inserting data items took: %v", elapsed))
 
 	return nil
 }
@@ -95,7 +97,6 @@ func (crawler *ChildCrawler) CrawlBundles() {
 	// create new error group with context
 	// because we want to stop the crawling processes as soon as one request fails and start over again
 	group, ctx := errgroup.WithContext(context.Background())
-	group.SetLimit(viper.GetInt("crawler.threads"))
 
 	poolInfo, err := pool.GetPoolInfo(crawler.chainId, crawler.poolId)
 	if err != nil {
@@ -107,9 +108,12 @@ func (crawler *ChildCrawler) CrawlBundles() {
 	missingBundles := crawler.adapter.GetMissingBundles(crawler.bundleStartId, lastBundle)
 
 	for _, i := range missingBundles {
+		crawler.semaphore.Acquire(ctx, 1)
+
 		logger.Info().Int64("poolId", crawler.poolId).Int64("bundle-id", i).Msg(fmt.Sprintf("Inserting data items: %v/%v", i+1-crawler.bundleStartId, lastBundle+1-crawler.bundleStartId))
 		localIndex := i
 		group.Go(func() error {
+			defer crawler.semaphore.Release(1)
 			return crawler.insertBundleDataItems(localIndex)
 		})
 
@@ -140,16 +144,33 @@ func (crawler *ChildCrawler) Start() {
 	scheduler.StartBlocking()
 }
 
-func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId, bundleStartId int64, excludeProof bool) ChildCrawler {
-	return ChildCrawler{adapter: adapter, bundleStartId: bundleStartId, chainId: chainId, poolId: poolId, excludeProof: excludeProof}
+func CreateBundleCrawler(
+	adapter db.Adapter,
+	chainId string,
+	poolId int64,
+	bundleStartId int64,
+	excludeProof bool,
+	semaphore *semaphore.Weighted,
+) ChildCrawler {
+	return ChildCrawler{
+		adapter:       adapter,
+		bundleStartId: bundleStartId,
+		chainId:       chainId,
+		poolId:        poolId,
+		excludeProof:  excludeProof,
+		semaphore:     semaphore,
+	}
 }
 
 // Create creates a crawler based on the config file.
 func Create() Crawler {
 	var bundleCrawler []*ChildCrawler
+
+	semaphore := semaphore.NewWeighted(viper.GetInt64("crawler.threads"))
+
 	for _, bc := range config.GetPoolsConfig() {
 		adapter := bc.GetDatabaseAdapter()
-		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId, bc.BundleStartId, bc.ExcludeProof)
+		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId, bc.BundleStartId, bc.ExcludeProof, semaphore)
 		bundleCrawler = append(bundleCrawler, &newCrawler)
 	}
 

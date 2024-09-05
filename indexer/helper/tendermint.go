@@ -35,6 +35,16 @@ func (t *TendermintIndexer) GetBindings() map[string]types.Endpoint {
 			},
 			Schema: "TendermintBlockResults",
 		},
+		"/block_by_hash": {
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexTendermintBlockByHash,
+					Parameter:   []string{"hash"},
+					Description: []string{"block hash"},
+				},
+			},
+			Schema: "TendermintBlock",
+		},
 	}
 }
 
@@ -77,6 +87,15 @@ func (t *TendermintIndexer) CalculateProof(dataItem *types.TendermintDataItem, l
 	return totalBlockProof, totalBlockResultsProof, nil
 }
 
+func (t *TendermintIndexer) getBlockHash(dataItem *types.TendermintDataItem) (string, error) {
+	var blockHash types.TendermintBlock
+	err := json.Unmarshal(dataItem.Value.Block, &blockHash)
+	if err != nil {
+		return "", err
+	}
+	return blockHash.BlockId.Hash, nil
+}
+
 func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error) {
 	var dataItems []types.TendermintDataItem
 	var leafs [][32]byte
@@ -108,7 +127,7 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool)
 			}
 		}
 
-		createTrustlessDataItem := func(value json.RawMessage, indexId int, proof []types.MerkleNode) (types.TrustlessDataItem, error) {
+		createTrustlessDataItem := func(value json.RawMessage, proof []types.MerkleNode, indices []types.Index) (types.TrustlessDataItem, error) {
 
 			var encodedProof string
 			// if proof is not attached, we set the proof to an empty string
@@ -128,21 +147,36 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool)
 				Proof:    encodedProof,
 				BundleId: bundle.BundleId,
 				PoolId:   bundle.PoolId,
-				Indices: []types.Index{
-					{
-						Index:   dataItem.Key,
-						IndexId: indexId,
-					},
-				},
+				Indices:  indices,
 			}, nil
 		}
-		// Create and append trustless data items for block and block_results
-		blockTrustlessItem, err := createTrustlessDataItem(dataItem.Value.Block, utils.IndexTendermintBlock, blockProof)
+
+		blockHash, err := t.getBlockHash(&dataItem)
 		if err != nil {
 			return nil, err
 		}
 
-		blockResultsTrustlessItem, err := createTrustlessDataItem(dataItem.Value.BlockResults, utils.IndexTendermintBlockResults, blockResultsProof)
+		// Create and append trustless data items for block and block_results
+		blockTrustlessItem, err := createTrustlessDataItem(dataItem.Value.Block, blockProof, []types.Index{
+			{
+				Index:   dataItem.Key,
+				IndexId: utils.IndexTendermintBlock,
+			},
+			{
+				Index:   blockHash,
+				IndexId: utils.IndexTendermintBlockByHash,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		blockResultsTrustlessItem, err := createTrustlessDataItem(dataItem.Value.BlockResults, blockResultsProof, []types.Index{
+			{
+				Index:   dataItem.Key,
+				IndexId: utils.IndexTendermintBlockResults,
+			},
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -170,4 +204,8 @@ func createHashesForTendermintValue(value *types.TendermintValue) [32]byte {
 	hashes = append(hashes, utils.CalculateSHA256Hash(value.BlockResults))
 
 	return merkle.GetMerkleRoot(hashes)
+}
+
+func (t *TendermintIndexer) GetErrorResponse(message string, data any) any {
+	return utils.WrapIntoJsonRpcErrorResponse(message, data)
 }

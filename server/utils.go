@@ -83,7 +83,7 @@ func generateOpenApi(pools []ServePool) ([]byte, error) {
 					"content": map[string]interface{}{
 						"application/json": map[string]interface{}{
 							"schema": map[string]string{
-								"$ref": "#/components/schemas/Error",
+								"$ref": fmt.Sprintf("#/components/schemas/%vError", value.Schema),
 							},
 						},
 					},

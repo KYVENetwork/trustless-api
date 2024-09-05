@@ -330,6 +330,7 @@ The proof is byte encoded in the following structure:
 
 | Field | Size | Description |
 |-------|------|-------------|
+| version | 1 byte | Version (uint8) |
 | poolId | 2 bytes | Pool ID (uint16) |
 | bundleId | 8 bytes | Bundle ID (uint64) |
 | chainId | variable | Chain ID (null-terminated string) |

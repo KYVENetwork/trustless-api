@@ -9,7 +9,9 @@ import (
 	"github.com/KYVENetwork/trustless-api/types"
 )
 
-type HeightIndexer struct{}
+type HeightIndexer struct {
+	DefaultIndexer
+}
 
 func (eth *HeightIndexer) GetBindings() map[string]types.Endpoint {
 	return map[string]types.Endpoint{

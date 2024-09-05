@@ -19,6 +19,9 @@ type Indexer interface {
 	// 			the order has to be identical to the order defined in `GetBindings`
 	IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error)
 
+	// GetErrorResponse returns a wrapped error response
+	GetErrorResponse(message string, data any) any
+
 	// GetBindings returns a map of endpoints. Each Endpoint contains information about the url and necessary query parameter. The bindings also map QueryParamter to database indices.
 	//
 	// This way it is possible for an Indexer to bind to multiple urls, having an arbitrary amount of query parameter for each url.

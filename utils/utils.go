@@ -178,6 +178,7 @@ func GetUniqueDataitemName(item *types.TrustlessDataItem) string {
 // EncodeProof encodes the proof of a data item into a byte array
 // encoded in big endian
 // Structure:
+// - 1 	bytes: version (uint8)
 // - 2  bytes: poolId (uint16)
 // - 8  bytes: bundleId (uint64)
 // - chainId (string, null terminated)
@@ -189,10 +190,14 @@ func GetUniqueDataitemName(item *types.TrustlessDataItem) string {
 //
 // returns the proof as Base64
 func EncodeProof(poolId, bundleId int64, chainId string, dataItemKey, dataItemValueKey string, proof []types.MerkleNode) string {
-	bytes := make([]byte, 10)
+	bytes := make([]byte, 0, 32)
 
-	binary.BigEndian.PutUint16(bytes[0:2], uint16(poolId))
-	binary.BigEndian.PutUint64(bytes[2:10], uint64(bundleId))
+	// version
+	bytes = append(bytes, 1)
+
+	bytes = binary.BigEndian.AppendUint16(bytes, uint16(poolId))
+	bytes = binary.BigEndian.AppendUint64(bytes, uint64(bundleId))
+
 	// Append chainId, dataItemKey, and dataItemValueKey as null-terminated strings
 	for _, str := range []string{chainId, dataItemKey, dataItemValueKey} {
 		bytes = append(bytes, str...)
@@ -223,17 +228,23 @@ func DecodeProof(encodedProofString string) (*types.Proof, error) {
 		return nil, err
 	}
 
-	if len(encodedProof) < 58 {
+	if len(encodedProof) < 16 {
 		return nil, fmt.Errorf("encoded proof is too short")
 	}
 
 	proof := &types.Proof{}
 
-	proof.PoolId = int64(binary.BigEndian.Uint16(encodedProof[0:2]))
-	proof.BundleId = int64(binary.BigEndian.Uint64(encodedProof[2:10]))
+	version := encodedProof[0]
+
+	if version != 1 {
+		return nil, fmt.Errorf("invalid version")
+	}
+
+	proof.PoolId = int64(binary.BigEndian.Uint16(encodedProof[1:3]))
+	proof.BundleId = int64(binary.BigEndian.Uint64(encodedProof[3:11]))
 
 	// Convert the byte slice to null-terminated strings
-	encodedProof = encodedProof[10:]
+	encodedProof = encodedProof[11:]
 	fields := []struct {
 		name  string
 		value *string
@@ -270,10 +281,16 @@ func DecodeProof(encodedProofString string) (*types.Proof, error) {
 }
 
 func WrapIntoJsonRpcResponse(result interface{}) ([]byte, error) {
-	response := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id":      -1,
-		"result":  result,
+	type Response struct {
+		JsonRPC string      `json:"jsonrpc"`
+		ID      int         `json:"id"`
+		Result  interface{} `json:"result"`
+	}
+
+	response := Response{
+		JsonRPC: "2.0",
+		ID:      -1,
+		Result:  result,
 	}
 
 	json, err := json.Marshal(response)
@@ -282,4 +299,27 @@ func WrapIntoJsonRpcResponse(result interface{}) ([]byte, error) {
 	}
 
 	return json, nil
+}
+
+func WrapIntoJsonRpcErrorResponse(errorMessage string, data any) any {
+	type ErrorResponse struct {
+		Message string `json:"message"`
+		Code    int    `json:"code"`
+		Data    any    `json:"data"`
+	}
+
+	response := struct {
+		JsonRPC string        `json:"jsonrpc"`
+		ID      int           `json:"id"`
+		Error   ErrorResponse `json:"error"`
+	}{
+		JsonRPC: "2.0",
+		ID:      -1,
+		Error: ErrorResponse{
+			Message: errorMessage,
+			Code:    -32603,
+			Data:    data,
+		},
+	}
+	return response
 }

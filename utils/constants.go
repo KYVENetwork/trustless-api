@@ -20,6 +20,7 @@ const (
 	IndexSharesByNamespace      = 3
 	IndexTendermintBlock        = 4
 	IndexTendermintBlockResults = 5
+	IndexTendermintBlockByHash  = 6
 )
 
 const (
