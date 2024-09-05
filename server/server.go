@@ -5,14 +5,15 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/KYVENetwork/trustless-api/files"
-	"github.com/KYVENetwork/trustless-api/types"
 	"html"
 	"html/template"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/KYVENetwork/trustless-api/files"
+	"github.com/KYVENetwork/trustless-api/types"
 
 	"github.com/KYVENetwork/trustless-api/config"
 	"github.com/KYVENetwork/trustless-api/db"
@@ -39,10 +40,10 @@ type ApiServer struct {
 }
 
 type ServePool struct {
-	Slug          string
-	Adapter       db.Adapter
-	Indexer       indexer.Indexer
-	ProofAttached bool
+	Slug         string
+	Adapter      db.Adapter
+	Indexer      indexer.Indexer
+	ExcludeProof bool
 }
 
 func StartApiServer() *ApiServer {
@@ -55,10 +56,10 @@ func StartApiServer() *ApiServer {
 		indexer := adapter.GetIndexer()
 
 		serverPool := ServePool{
-			Indexer:       indexer,
-			Adapter:       adapter,
-			Slug:          p.Slug,
-			ProofAttached: p.ProofAttached,
+			Indexer:      indexer,
+			Adapter:      adapter,
+			Slug:         p.Slug,
+			ExcludeProof: p.ExcludeProof,
 		}
 		pools = append(pools, serverPool)
 	}

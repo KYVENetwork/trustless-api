@@ -34,7 +34,7 @@ type ChildCrawler struct {
 	crawling      sync.Mutex
 	poolId        int64
 
-	proofAttached bool
+	excludeProof bool
 }
 
 // This is a helper function that will be called from multiple go routines.
@@ -68,7 +68,7 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	}
 	start = time.Now()
 
-	err = crawler.adapter.Save(&bundle, crawler.proofAttached)
+	err = crawler.adapter.Save(&bundle, crawler.excludeProof)
 	if err != nil {
 		return err
 	}
@@ -140,8 +140,8 @@ func (crawler *ChildCrawler) Start() {
 	scheduler.StartBlocking()
 }
 
-func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId, bundleStartId int64, proofAttached bool) ChildCrawler {
-	return ChildCrawler{adapter: adapter, bundleStartId: bundleStartId, chainId: chainId, poolId: poolId, proofAttached: proofAttached}
+func CreateBundleCrawler(adapter db.Adapter, chainId string, poolId, bundleStartId int64, excludeProof bool) ChildCrawler {
+	return ChildCrawler{adapter: adapter, bundleStartId: bundleStartId, chainId: chainId, poolId: poolId, excludeProof: excludeProof}
 }
 
 // Create creates a crawler based on the config file.
@@ -149,7 +149,7 @@ func Create() Crawler {
 	var bundleCrawler []*ChildCrawler
 	for _, bc := range config.GetPoolsConfig() {
 		adapter := bc.GetDatabaseAdapter()
-		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId, bc.BundleStartId, bc.ProofAttached)
+		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId, bc.BundleStartId, bc.ExcludeProof)
 		bundleCrawler = append(bundleCrawler, &newCrawler)
 	}
 

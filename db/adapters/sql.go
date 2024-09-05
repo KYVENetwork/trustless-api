@@ -92,8 +92,8 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 // The entire array is inserted as one transaction ensuring we don't have incomplete data.
 //
 // NOTE: This function is thread safe.
-func (adapter *SQLAdapter) Save(bundle *types.Bundle, proofAttached bool) error {
-	dataItems, err := adapter.indexer.IndexBundle(bundle, proofAttached)
+func (adapter *SQLAdapter) Save(bundle *types.Bundle, excludeProof bool) error {
+	dataItems, err := adapter.indexer.IndexBundle(bundle, excludeProof)
 	if err != nil {
 		return err
 	}

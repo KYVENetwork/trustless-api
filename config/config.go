@@ -20,7 +20,7 @@ type PoolsConfig struct {
 	Indexer       string
 	PoolId        int64
 	Slug          string
-	ProofAttached bool `json:"proofAttached" default:"true"`
+	ExcludeProof  bool `json:"excludeProof"`
 }
 
 type ConfigEndpoints struct {
