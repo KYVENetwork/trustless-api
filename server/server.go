@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/types"
@@ -21,7 +20,6 @@ import (
 	"github.com/KYVENetwork/trustless-api/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
-	cachecontrol "go.eigsys.de/gin-cachecontrol/v2"
 )
 
 var (
@@ -100,10 +98,13 @@ func StartApiServer() *ApiServer {
 		c.Data(http.StatusOK, "application/yaml", []byte(openapi))
 	})
 
-	// Enable caching
-	r.Use(cachecontrol.New(cachecontrol.Config{
-		MaxAge: cachecontrol.Duration(24 * time.Hour),
-	}))
+	// Enable caching for successful responses only
+	r.Use(func(c *gin.Context) {
+		c.Next()
+		if c.Writer.Status() == http.StatusOK {
+			c.Header("Cache-Control", "max-age=86400") // 24 hours in seconds
+		}
+	})
 
 	for _, pool := range pools {
 		paths := pool.Indexer.GetBindings()
