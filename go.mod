@@ -14,7 +14,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/tendermint/tendermint v0.34.14
 	go.eigsys.de/gin-cachecontrol/v2 v2.1.0
-	golang.org/x/sync v0.7.0
+	golang.org/x/sync v0.8.0
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/driver/sqlite v1.5.5
 	gorm.io/gorm v1.25.9
