@@ -114,7 +114,7 @@ func StartApiServer() *ApiServer {
 			r.GET(path, func(ctx *gin.Context) {
 				indexString, indexId, err := apiServer.findSelectedParameter(ctx, &localEndpoint.QueryParameter)
 				if err != nil {
-					ctx.JSON(http.StatusBadRequest, localPool.Indexer.GetErrorResponse("Invalid params", nil))
+					ctx.JSON(http.StatusInternalServerError, localPool.Indexer.GetErrorResponse("Invalid params", nil))
 					return
 				}
 				apiServer.getIndex(ctx, localPool, indexString, indexId)
@@ -158,7 +158,7 @@ func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]type
 func (apiServer *ApiServer) getIndex(c *gin.Context, pool ServePool, index string, indexId int) {
 	file, err := pool.Adapter.Get(indexId, index)
 	if err != nil {
-		c.JSON(http.StatusNotFound, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
+		c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
 		return
 	}
 	apiServer.resolveFile(c, file)

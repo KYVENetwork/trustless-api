@@ -22,16 +22,11 @@ pools:
     poolid: 111
     slug: celestia
     bundleStartId: 0
-  - chainid: korellia-2
+  - chainid: kyve-1
     indexer: Tendermint
-    poolid: 113
-    slug: injective
-    bundleStartId: 141
-  - chainid: korellia-2
-    indexer: Height
-    poolid: 118
-    slug: avail
-    bundleStartId: 0
+    poolid: 1
+    slug: osmosis
+    excludeProof: true
 
 # === DATABASE ===
 # database configuration

@@ -190,13 +190,13 @@ func GetUniqueDataitemName(item *types.TrustlessDataItem) string {
 //
 // returns the proof as Base64
 func EncodeProof(poolId, bundleId int64, chainId string, dataItemKey, dataItemValueKey string, proof []types.MerkleNode) string {
-	bytes := make([]byte, 32)
+	bytes := make([]byte, 0, 32)
 
 	// version
-	bytes[0] = 1
+	bytes = append(bytes, 1)
 
-	bytes = append(bytes, binary.BigEndian.AppendUint16(bytes, uint16(poolId))...)
-	bytes = append(bytes, binary.BigEndian.AppendUint64(bytes, uint64(bundleId))...)
+	bytes = binary.BigEndian.AppendUint16(bytes, uint16(poolId))
+	bytes = binary.BigEndian.AppendUint64(bytes, uint64(bundleId))
 
 	// Append chainId, dataItemKey, and dataItemValueKey as null-terminated strings
 	for _, str := range []string{chainId, dataItemKey, dataItemValueKey} {
