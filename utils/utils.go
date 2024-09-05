@@ -294,3 +294,16 @@ func WrapIntoJsonRpcResponse(result interface{}) ([]byte, error) {
 
 	return json, nil
 }
+
+func WrapIntoJsonRpcErrorResponse(errorMessage string, data any) any {
+	response := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      -1,
+		"error": map[string]interface{}{
+			"message": errorMessage,
+			"code":    -32603,
+			"data":    data,
+		},
+	}
+	return response
+}

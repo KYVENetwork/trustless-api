@@ -205,3 +205,7 @@ func createHashesForTendermintValue(value *types.TendermintValue) [32]byte {
 
 	return merkle.GetMerkleRoot(hashes)
 }
+
+func (t *TendermintIndexer) GetErrorResponse(message string, data any) any {
+	return utils.WrapIntoJsonRpcErrorResponse(message, data)
+}

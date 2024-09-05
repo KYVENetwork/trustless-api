@@ -10,7 +10,9 @@ import (
 	"github.com/KYVENetwork/trustless-api/types"
 )
 
-type EthBlobsIndexer struct{}
+type EthBlobsIndexer struct {
+	DefaultIndexer
+}
 
 func (eth *EthBlobsIndexer) GetBindings() map[string]types.Endpoint {
 	return map[string]types.Endpoint{

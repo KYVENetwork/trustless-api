@@ -23,7 +23,7 @@ func (*CelestiaIndexer) GetBindings() map[string]types.Endpoint {
 					Description: []string{"celestia block height", "celestia namespace, available namespaces: AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0=,AAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAg=,AAAAAAAAAAAAAAAAAAAAAAAAAAAABYTLU4hLOUU=,AAAAAAAAAAAAAAAAAAAAAAAAAAAADBuw7+PjGs8="},
 				},
 			},
-			Schema: "DataItem",
+			Schema: "JsonRPC",
 		},
 	}
 }
@@ -121,4 +121,8 @@ func (*CelestiaIndexer) celestiaDataItemToSha256(dataItem *types.CelestiaDataIte
 	combined := append(keyBytes[:], merkleRoot[:]...)
 
 	return sha256.Sum256(combined)
+}
+
+func (*CelestiaIndexer) GetErrorResponse(message string, data any) any {
+	return utils.WrapIntoJsonRpcErrorResponse(message, data)
 }

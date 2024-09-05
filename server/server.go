@@ -107,20 +107,17 @@ func StartApiServer() *ApiServer {
 	})
 
 	for _, pool := range pools {
-		paths := pool.Indexer.GetBindings()
-		currentAdapter := pool.Adapter
-		for p, endpoint := range paths {
-			path := fmt.Sprintf("%v%v", pool.Slug, p)
+		localPool := pool
+		for p, endpoint := range localPool.Indexer.GetBindings() {
+			path := fmt.Sprintf("%v%v", localPool.Slug, p)
 			localEndpoint := endpoint
 			r.GET(path, func(ctx *gin.Context) {
 				indexString, indexId, err := apiServer.findSelectedParameter(ctx, &localEndpoint.QueryParameter)
 				if err != nil {
-					ctx.JSON(http.StatusBadRequest, gin.H{
-						"error": "unkown parameter",
-					})
+					ctx.JSON(http.StatusBadRequest, localPool.Indexer.GetErrorResponse("Invalid params", nil))
 					return
 				}
-				apiServer.getIndex(ctx, currentAdapter, indexString, indexId)
+				apiServer.getIndex(ctx, localPool, indexString, indexId)
 			})
 		}
 	}
@@ -150,7 +147,7 @@ func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]type
 	}
 
 	// no fitting parameter
-	return "", 0, fmt.Errorf("wrong parameter")
+	return "", 0, fmt.Errorf("invalid params")
 }
 
 // getIndex will search the database for the given query and serve the correct data item if one is found
@@ -158,12 +155,10 @@ func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]type
 //
 // `index` - is the name of the index that will be used e. g. block_height
 // `indexId` - is the corresponding Id for the key e. g. block_height -> 0
-func (apiServer *ApiServer) getIndex(c *gin.Context, adapter db.Adapter, index string, indexId int) {
-	file, err := adapter.Get(indexId, index)
+func (apiServer *ApiServer) getIndex(c *gin.Context, pool ServePool, index string, indexId int) {
+	file, err := pool.Adapter.Get(indexId, index)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusNotFound, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
 		return
 	}
 	apiServer.resolveFile(c, file)

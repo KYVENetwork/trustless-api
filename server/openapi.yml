@@ -13,12 +13,62 @@ externalDocs:
 {{.Paths}}
 components:
   schemas:
-    Error:
+    DataItemError:
       type: object
       properties:
         error:
           type: string
           example: "data item not found"
+    TendermintBlockResultsError:
+        type: object
+        properties:
+          error:
+            type: object
+            properties:
+              code:
+                type: integer
+                example: -32603
+              data:
+                type: string
+                example: "data item not found"
+              message:
+                type: string
+                example: "Internal error"
+          id:
+            type: integer
+            example: -1
+          jsonrpc:
+            type: string
+            example: "2.0"
+        required:
+          - error
+          - id
+          - jsonrpc
+    TendermintBlockError:
+        type: object
+        properties:
+          error:
+            type: object
+            properties:
+              code:
+                type: integer
+                example: -32603
+              data:
+                type: string
+                example: "data item not found"
+              message:
+                type: string
+                example: "Internal error"
+          id:
+            type: integer
+            example: -1
+          jsonrpc:
+            type: string
+            example: "2.0"
+        required:
+          - error
+          - id
+          - jsonrpc
     TendermintBlockResults:
       type: object
       properties:
@@ -1119,3 +1169,43 @@ components:
         value:
           type: object
           example: {}
+    JsonRPCError:
+        type: object
+        properties:
+          error:
+            type: object
+            properties:
+              code:
+                type: integer
+                example: -32603
+              data:
+                type: string
+                example: "data item not found"
+              message:
+                type: string
+                example: "Internal error"
+          id:
+            type: integer
+            example: -1
+          jsonrpc:
+            type: string
+            example: "2.0"
+        required:
+          - error
+          - id
+          - jsonrpc
+    JsonRPC:
+        type: object
+        properties:
+          result:
+            type: object
+          id:
+            type: integer
+            example: -1
+          jsonrpc:
+            type: string
+            example: "2.0"
+        required:
+          - result
+          - id
+          - jsonrpc
