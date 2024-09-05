@@ -189,3 +189,9 @@ type Endpoint struct {
 	QueryParameter []ParameterIndex
 	Schema         string
 }
+
+type TendermintBlock struct {
+	BlockId struct {
+		Hash string `json:"hash"`
+	} `json:"block_id"`
+}
