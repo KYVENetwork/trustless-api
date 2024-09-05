@@ -281,7 +281,6 @@ func DecodeProof(encodedProofString string) (*types.Proof, error) {
 }
 
 func WrapIntoJsonRpcResponse(result interface{}) ([]byte, error) {
-
 	type Response struct {
 		JsonRPC string      `json:"jsonrpc"`
 		ID      int         `json:"id"`
