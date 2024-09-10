@@ -44,6 +44,7 @@ type ChildCrawler struct {
 // and inserts the bundle into the database.
 func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	start := time.Now()
+	total := time.Now()
 
 	compressedBundle, err := bundles.GetFinalizedBundle(crawler.chainId, crawler.poolId, bundleId)
 	if err != nil {
@@ -77,7 +78,14 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	elapsed = time.Since(start)
 	logger.Debug().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg(fmt.Sprintf("Inserting data items took: %v", elapsed))
 
+	utils.PrometheusBundlesSynced.WithLabelValues(crawler.labels()...).Inc()
+	utils.PrometheusProcessDuration.WithLabelValues(crawler.labels()...).Set(float64(time.Since(total).Seconds()))
+
 	return nil
+}
+
+func (crawler *ChildCrawler) labels() []string {
+	return []string{fmt.Sprintf("%v", crawler.poolId), crawler.chainId}
 }
 
 // CrawlBundles crawls the latest bundles and processes them.
@@ -94,6 +102,8 @@ func (crawler *ChildCrawler) CrawlBundles() {
 
 	defer crawler.crawling.Unlock()
 
+	utils.PrometheusSyncStarted.WithLabelValues(crawler.labels()...).Inc()
+
 	// create new error group with context
 	// because we want to stop the crawling processes as soon as one request fails and start over again
 	group, ctx := errgroup.WithContext(context.Background())
@@ -108,7 +118,6 @@ func (crawler *ChildCrawler) CrawlBundles() {
 	missingBundles := crawler.adapter.GetMissingBundles(crawler.bundleStartId, lastBundle)
 
 	for _, i := range missingBundles {
-		utils.AwaitMemory()
 		crawler.semaphore.Acquire(ctx, 1)
 
 		logger.Info().Int64("poolId", crawler.poolId).Int64("bundle-id", i).Msg(fmt.Sprintf("Inserting data items: %v/%v", i+1-crawler.bundleStartId, lastBundle+1-crawler.bundleStartId))
@@ -123,6 +132,7 @@ func (crawler *ChildCrawler) CrawlBundles() {
 		case <-ctx.Done():
 			err := group.Wait() // get the error
 			logger.Error().Int64("poolId", crawler.poolId).Err(err).Msg("Failed to process bundle...")
+			utils.PrometheusSyncStepFailedRetry.WithLabelValues(crawler.labels()...).Inc()
 			return
 		default:
 		}
@@ -130,9 +140,11 @@ func (crawler *ChildCrawler) CrawlBundles() {
 
 	// wait until all bundles are uploaded
 	if err := group.Wait(); err != nil {
+		utils.PrometheusSyncStepFailedRetry.WithLabelValues(crawler.labels()...).Inc()
 		logger.Error().Err(err).Msg("Failed to process bundle...")
 	}
 
+	utils.PrometheusSyncFinished.WithLabelValues(crawler.labels()...).Inc()
 	logger.Info().Int64("bundleId", lastBundle).Int64("poolId", crawler.poolId).Msg("Finished crawling to bundle.")
 }
 
