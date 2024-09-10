@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/rand"
 	"net/http"
 	"runtime"
 	runtimeDebug "runtime/debug"
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"github.com/KYVENetwork/trustless-api/types"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -322,4 +324,28 @@ func WrapIntoJsonRpcErrorResponse(errorMessage string, data any) any {
 		},
 	}
 	return response
+}
+
+func AwaitMemory() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	max_ram := viper.GetUint64("RAM")
+	for m.Alloc > max_ram*1024*1024 {
+		runtime.ReadMemStats(&m)
+
+		logger.Debug().
+			Str("alloc", fmt.Sprintf("%v MiB", bToMb(m.Alloc))).
+			Str("total-alloc", fmt.Sprintf("%v MiB", bToMb(m.TotalAlloc))).
+			Str("sys", fmt.Sprintf("%v MiB", bToMb(m.Sys))).
+			Str("num-gc", fmt.Sprintf("%v", m.NumGC)).
+			Msg(fmt.Sprintf("SYSINFO: Memory limit reached (%d MiB): Waiting 10 seconds ...", m.Alloc))
+
+		runtime.GC()
+		time.Sleep(time.Duration(10+rand.Intn(5)) * time.Second)
+	}
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }

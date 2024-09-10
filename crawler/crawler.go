@@ -108,6 +108,7 @@ func (crawler *ChildCrawler) CrawlBundles() {
 	missingBundles := crawler.adapter.GetMissingBundles(crawler.bundleStartId, lastBundle)
 
 	for _, i := range missingBundles {
+		utils.AwaitMemory()
 		crawler.semaphore.Acquire(ctx, 1)
 
 		logger.Info().Int64("poolId", crawler.poolId).Int64("bundle-id", i).Msg(fmt.Sprintf("Inserting data items: %v/%v", i+1-crawler.bundleStartId, lastBundle+1-crawler.bundleStartId))

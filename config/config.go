@@ -47,9 +47,12 @@ var (
 //go:embed config.template.yml
 var DefaultTemplate []byte
 
-func loadDefaults() {
+func LoadDefaults() {
 	// log level
 	viper.SetDefault("log", "info")
+
+	// RAM
+	viper.SetDefault("RAM", uint64(1024))
 
 	viper.SetDefault("crawler.threads", 4)
 
@@ -84,7 +87,7 @@ func loadDefaults() {
 
 func LoadConfig(configPath string) {
 	viper.AutomaticEnv()
-	loadDefaults()
+	LoadDefaults()
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
 	viper.SetConfigFile(configPath)
@@ -111,6 +114,8 @@ func LoadConfig(configPath string) {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to load config.")
 	}
+
+	_ = viper.BindEnv("RAM", "RAM")
 
 	_ = viper.BindEnv("database.dbname", "DATABASE_NAME")
 	_ = viper.BindEnv("database.user", "DATABASE_USER")
