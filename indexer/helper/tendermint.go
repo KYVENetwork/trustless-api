@@ -179,7 +179,7 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool)
 				Index:   dataItem.Key,
 				IndexId: utils.IndexTendermintBlockResults,
 			},
-		}, &trustlessItems[index*2])
+		}, &trustlessItems[index+len(dataItems)])
 
 		if err != nil {
 			return nil, err
