@@ -9,6 +9,7 @@
 *.dylib
 
 .idea
+.vscode
 
 data
 
@@ -16,6 +17,7 @@ data
 *.db
 *.db-journal
 config.yml
+
 
 # Test binary, built with `go test -c`
 *.test

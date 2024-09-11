@@ -108,18 +108,19 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool)
 
 		tendermintItem := types.TendermintDataItem{Key: item.Key, Value: tendermintValue}
 
-		if excludeProof {
+		if !excludeProof {
 			leafs = append(leafs, t.tendermintDataItemToSha256(&tendermintItem))
 		}
 
 		dataItems = append(dataItems, tendermintItem)
 	}
 
-	var trustlessItems []types.TrustlessDataItem
+	// we have 2 turstless items per normal data item
+	trustlessItems := make([]types.TrustlessDataItem, len(dataItems)*2)
 	for index, dataItem := range dataItems {
 
 		var blockProof, blockResultsProof []types.MerkleNode
-		if excludeProof {
+		if !excludeProof {
 			var err error
 			blockProof, blockResultsProof, err = t.CalculateProof(&dataItem, leafs, index)
 			if err != nil {
@@ -127,7 +128,7 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool)
 			}
 		}
 
-		createTrustlessDataItem := func(value json.RawMessage, proof []types.MerkleNode, indices []types.Index) (types.TrustlessDataItem, error) {
+		insertTurstlessDataItem := func(value *json.RawMessage, proof []types.MerkleNode, indices []types.Index, dest *types.TrustlessDataItem) error {
 
 			var encodedProof string
 			// if proof is not attached, we set the proof to an empty string
@@ -137,18 +138,19 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool)
 				encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", proof)
 			}
 
-			rpcResponse, err := utils.WrapIntoJsonRpcResponse(value)
+			rpcResponse, err := utils.WrapIntoJsonRpcResponse(*value)
 			if err != nil {
-				return types.TrustlessDataItem{}, err
+				return err
 			}
 
-			return types.TrustlessDataItem{
+			*dest = types.TrustlessDataItem{
 				Value:    rpcResponse,
 				Proof:    encodedProof,
 				BundleId: bundle.BundleId,
 				PoolId:   bundle.PoolId,
 				Indices:  indices,
-			}, nil
+			}
+			return nil
 		}
 
 		blockHash, err := t.getBlockHash(&dataItem)
@@ -157,7 +159,7 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool)
 		}
 
 		// Create and append trustless data items for block and block_results
-		blockTrustlessItem, err := createTrustlessDataItem(dataItem.Value.Block, blockProof, []types.Index{
+		err = insertTurstlessDataItem(&dataItem.Value.Block, blockProof, []types.Index{
 			{
 				Index:   dataItem.Key,
 				IndexId: utils.IndexTendermintBlock,
@@ -166,23 +168,22 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool)
 				Index:   blockHash,
 				IndexId: utils.IndexTendermintBlockByHash,
 			},
-		})
+		}, &trustlessItems[index])
+
 		if err != nil {
 			return nil, err
 		}
 
-		blockResultsTrustlessItem, err := createTrustlessDataItem(dataItem.Value.BlockResults, blockResultsProof, []types.Index{
+		err = insertTurstlessDataItem(&dataItem.Value.BlockResults, blockResultsProof, []types.Index{
 			{
 				Index:   dataItem.Key,
 				IndexId: utils.IndexTendermintBlockResults,
 			},
-		})
+		}, &trustlessItems[index+len(dataItems)])
+
 		if err != nil {
 			return nil, err
 		}
-
-		trustlessItems = append(trustlessItems, blockTrustlessItem)
-		trustlessItems = append(trustlessItems, blockResultsTrustlessItem)
 	}
 	return &trustlessItems, nil
 }

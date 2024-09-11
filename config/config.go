@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 
 	"github.com/KYVENetwork/trustless-api/db"
 	"github.com/KYVENetwork/trustless-api/db/adapters"
@@ -47,11 +48,18 @@ var (
 //go:embed config.template.yml
 var DefaultTemplate []byte
 
-func loadDefaults() {
+func LoadDefaults() {
 	// log level
 	viper.SetDefault("log", "info")
 
+	// RAM
+	viper.SetDefault("RAM", uint64(1024))
+
 	viper.SetDefault("crawler.threads", 4)
+
+	// prometheus
+	viper.SetDefault("prometheus.enabled", false)
+	viper.SetDefault("prometheus.port", 2112)
 
 	// storage
 	viper.SetDefault("storage.type", "local")
@@ -84,7 +92,7 @@ func loadDefaults() {
 
 func LoadConfig(configPath string) {
 	viper.AutomaticEnv()
-	loadDefaults()
+	LoadDefaults()
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
 	viper.SetConfigFile(configPath)
@@ -112,6 +120,8 @@ func LoadConfig(configPath string) {
 		logger.Fatal().Err(err).Msg("failed to load config.")
 	}
 
+	_ = viper.BindEnv("RAM", "RAM")
+
 	_ = viper.BindEnv("database.dbname", "DATABASE_NAME")
 	_ = viper.BindEnv("database.user", "DATABASE_USER")
 	_ = viper.BindEnv("database.port", "DATABASE_PORT")
@@ -130,6 +140,16 @@ func LoadConfig(configPath string) {
 
 	loadEndpoints()
 	setLogLevel()
+
+	if viper.GetBool("prometheus.enabled") {
+		utils.StartPrometheus(viper.GetString("prometheus.port"))
+	}
+
+	// setting memory limit
+
+	max_ram := viper.GetInt64("RAM")
+	debug.SetMemoryLimit(max_ram * 1024 * 1024)
+
 }
 
 func setLogLevel() {
