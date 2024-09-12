@@ -7,7 +7,7 @@ instances:
       - sync_step_failed_retry
       - bundle_process_duration
     namespace: trustless-api
-    openmetrics_endpoint: http://localhost:${PROMETHEUS_PORT}/metrics
+    openmetrics_endpoint: "http://localhost:%%env_PROMETHEUS_PORT%%/metrics"
     tag_by_endpoint: false
     tags:
       - env:production
