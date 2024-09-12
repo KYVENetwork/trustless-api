@@ -137,6 +137,7 @@ func LoadConfig(configPath string) {
 	_ = viper.BindEnv("storage.cdn", "CDN")
 	_ = viper.BindEnv("storage.credentials.keyid", "ACCESS_KEY_ID")
 	_ = viper.BindEnv("storage.credentials.keysecret", "SECRET_ACCESS_KEY")
+	_ = viper.BindEnv("storage.threads", "STORAGE_THREADS")
 
 	loadEndpoints()
 	setLogLevel()
