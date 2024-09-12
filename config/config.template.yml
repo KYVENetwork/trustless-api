@@ -1,6 +1,16 @@
 # log level values: info, warning, debug, error, none
 log: info
 
+# max ram usage: in MB
+RAM: 1024
+
+# === PROMETHEUS ===
+# prometheus configuration
+# ==================
+prometheus:
+    enabled: false
+    port: 2112
+
 # === POOLS ===
 # An array that defines what pools should be crawled and how they are served.
 # - chainid: is the chain id of the pool, e. g. kyve-1, koan-1, korellia-2

@@ -1,5 +1,12 @@
 log: info
 
+# === PROMETHEUS ===
+# prometheus configuration
+# ==================
+prometheus:
+    enabled: false
+    port: 2112
+
 # === POOLS ===
 # An array that defines what pools should be crawled and how they are served.
 # - chainid: is the chain id of the pool, e.g. kyve-1, koan-1, korellia-2
@@ -32,7 +39,6 @@ pools:
     poolid: 125
     slug: berachain
     bundleStartId: 0
-    proofAttached: true
   - chainid: korellia-2
     indexer: Height
     poolid: 118
@@ -64,6 +70,16 @@ pools:
     poolid: 138
     slug: story-evm
     bundleStartId: 0
+  - chainid: korellia-2
+    indexer: Height
+    poolid: 139
+    slug: near
+    bundleStartId: 0
+  - chainid: kaon-1
+    indexer: Tendermint
+    poolid: 8
+    slug: dydx
+    bundleStartId: 130000
 # === DATABASE ===
 # database configuration
 # ================
