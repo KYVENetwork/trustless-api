@@ -139,6 +139,9 @@ func LoadConfig(configPath string) {
 	_ = viper.BindEnv("storage.credentials.keysecret", "SECRET_ACCESS_KEY")
 	_ = viper.BindEnv("storage.threads", "STORAGE_THREADS")
 
+	_ = viper.BindEnv("prometheus.enabled", "PROMETHEUS_ENABLED")
+	_ = viper.BindEnv("prometheus.port", "PROMETHEUS_PORT")
+
 	loadEndpoints()
 	setLogLevel()
 

@@ -4,9 +4,11 @@ log: info
 # max ram usage: in MB
 RAM: 1024
 
-# prometheus
+# === PROMETHEUS ===
+# prometheus configuration
+# ==================
 prometheus:
-    enabled: true
+    enabled: false
     port: 2112
 
 # === POOLS ===
