@@ -75,6 +75,11 @@ pools:
     poolid: 139
     slug: near
     bundleStartId: 0
+  - chainid: kaon-1
+    indexer: Tendermint
+    poolid: 8
+    slug: dydx
+    bundleStartId: 130000
 # === DATABASE ===
 # database configuration
 # ================
