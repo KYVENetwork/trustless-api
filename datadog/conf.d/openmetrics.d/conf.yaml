@@ -6,6 +6,11 @@ instances:
       - bundles_synced
       - sync_step_failed_retry
       - bundle_process_duration
+      - go_memstats_alloc_bytes
+      - go_gc_duration_seconds_sum
+      - process_cpu_seconds_total
+      - process_network_transmit_bytes_total
+      - process_network_receive_bytes_total
     namespace: trustless-api
     openmetrics_endpoint: "http://localhost:%%env_PROMETHEUS_PORT%%/metrics"
     tag_by_endpoint: false
