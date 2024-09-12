@@ -80,6 +80,7 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 
 	utils.PrometheusBundlesSynced.WithLabelValues(crawler.labels()...).Inc()
 	utils.PrometheusProcessDuration.WithLabelValues(crawler.labels()...).Set(float64(time.Since(total).Seconds()))
+	utils.PrometheusBundleHeight.WithLabelValues(crawler.labels()...).Set(float64(bundleId))
 
 	return nil
 }

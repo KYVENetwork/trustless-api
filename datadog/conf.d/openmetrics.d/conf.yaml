@@ -6,6 +6,7 @@ instances:
       - bundles_synced
       - sync_step_failed_retry
       - bundle_process_duration
+      - bundle_height
       - go_memstats_alloc_bytes
       - go_gc_duration_seconds_sum
       - process_cpu_seconds_total
