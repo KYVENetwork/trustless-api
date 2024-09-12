@@ -34,7 +34,6 @@ type ChildCrawler struct {
 	chainId       string
 	crawling      sync.Mutex
 	poolId        int64
-	excludeProof  bool
 	semaphore     *semaphore.Weighted
 }
 
@@ -70,7 +69,7 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 	}
 	start = time.Now()
 
-	err = crawler.adapter.Save(&bundle, crawler.excludeProof)
+	err = crawler.adapter.Save(&bundle)
 	if err != nil {
 		logger.Error().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg("Something went wrong when inserting the bundle...")
 		return err
@@ -163,7 +162,6 @@ func CreateBundleCrawler(
 	chainId string,
 	poolId int64,
 	bundleStartId int64,
-	excludeProof bool,
 	semaphore *semaphore.Weighted,
 ) ChildCrawler {
 	return ChildCrawler{
@@ -171,7 +169,6 @@ func CreateBundleCrawler(
 		bundleStartId: bundleStartId,
 		chainId:       chainId,
 		poolId:        poolId,
-		excludeProof:  excludeProof,
 		semaphore:     semaphore,
 	}
 }
@@ -184,7 +181,7 @@ func Create() Crawler {
 
 	for _, bc := range config.GetPoolsConfig() {
 		adapter := bc.GetDatabaseAdapter()
-		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId, bc.BundleStartId, bc.ExcludeProof, semaphore)
+		newCrawler := CreateBundleCrawler(adapter, bc.ChainId, bc.PoolId, bc.BundleStartId, semaphore)
 		bundleCrawler = append(bundleCrawler, &newCrawler)
 	}
 

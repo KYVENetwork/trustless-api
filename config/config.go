@@ -204,13 +204,13 @@ func GetPoolsConfig() []PoolsConfig {
 }
 
 // GetDatabaseAdapter returns the correct db.Adapter that is configured in the config file
-func GetDatabaseAdapter(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) db.Adapter {
+func GetDatabaseAdapter(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64, chainId string) db.Adapter {
 	switch viper.GetString("database.type") {
 	case "sqlite":
-		adapter := adapters.GetSQLite(saveDataItem, indexer, poolId)
+		adapter := adapters.GetSQLite(saveDataItem, indexer, poolId, chainId)
 		return &adapter
 	case "postgres":
-		adapter := adapters.GetPostgres(saveDataItem, indexer, poolId)
+		adapter := adapters.GetPostgres(saveDataItem, indexer, poolId, chainId)
 		return &adapter
 	}
 	logger.Fatal().Str("type", viper.GetString("database.type")).Msg("Unkown database type")
@@ -236,6 +236,6 @@ func (c PoolsConfig) GetDatabaseAdapter() db.Adapter {
 		return nil
 	}
 
-	adapter := GetDatabaseAdapter(saveFile, idx, c.PoolId)
+	adapter := GetDatabaseAdapter(saveFile, idx, c.PoolId, c.ChainId)
 	return adapter
 }

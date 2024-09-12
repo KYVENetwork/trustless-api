@@ -17,7 +17,7 @@ type Indexer interface {
 	//
 	// NOTE: 	If you want to create compound indices, you have to separate them with dashes '-' e. g.: '<blockHeight>-<namespace>'
 	// 			the order has to be identical to the order defined in `GetBindings`
-	IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error)
+	IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error)
 
 	// GetErrorResponse returns a wrapped error response
 	GetErrorResponse(message string, data any) any

@@ -51,7 +51,7 @@ func (*EthBlobsIndexer) getDataItemIndices(dataitem *types.DataItem) ([]types.In
 	return indices, nil
 }
 
-func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error) {
+func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
 	leafs := merkle.GetBundleHashes(&bundle.DataItems)
 	var trustlessItems []types.TrustlessDataItem
 	for index, dataitem := range bundle.DataItems {
@@ -64,13 +64,7 @@ func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool) (
 			return nil, err
 		}
 
-		var encodedProof string
-
-		if excludeProof {
-			encodedProof = ""
-		} else {
-			encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, dataitem.Key, "value", proof)
-		}
+		encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, dataitem.Key, "value", proof)
 
 		bytes, err := json.Marshal(dataitem)
 		if err != nil {
@@ -82,6 +76,7 @@ func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool) (
 			Proof:    encodedProof,
 			BundleId: bundle.BundleId,
 			PoolId:   bundle.PoolId,
+			ChainId:  bundle.ChainId,
 			Indices:  indices,
 		}
 		trustlessItems = append(trustlessItems, trustlessDataItem)

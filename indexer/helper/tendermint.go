@@ -96,7 +96,7 @@ func (t *TendermintIndexer) getBlockHash(dataItem *types.TendermintDataItem) (st
 	return blockHash.BlockId.Hash, nil
 }
 
-func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error) {
+func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
 	var dataItems []types.TendermintDataItem
 	var leafs [][32]byte
 
@@ -108,9 +108,7 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool)
 
 		tendermintItem := types.TendermintDataItem{Key: item.Key, Value: tendermintValue}
 
-		if !excludeProof {
-			leafs = append(leafs, t.tendermintDataItemToSha256(&tendermintItem))
-		}
+		leafs = append(leafs, t.tendermintDataItemToSha256(&tendermintItem))
 
 		dataItems = append(dataItems, tendermintItem)
 	}
@@ -119,24 +117,14 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool)
 	trustlessItems := make([]types.TrustlessDataItem, len(dataItems)*2)
 	for index, dataItem := range dataItems {
 
-		var blockProof, blockResultsProof []types.MerkleNode
-		if !excludeProof {
-			var err error
-			blockProof, blockResultsProof, err = t.CalculateProof(&dataItem, leafs, index)
-			if err != nil {
-				return nil, err
-			}
+		blockProof, blockResultsProof, err := t.CalculateProof(&dataItem, leafs, index)
+		if err != nil {
+			return nil, err
 		}
 
 		insertTurstlessDataItem := func(value *json.RawMessage, proof []types.MerkleNode, indices []types.Index, dest *types.TrustlessDataItem) error {
 
-			var encodedProof string
-			// if proof is not attached, we set the proof to an empty string
-			if excludeProof {
-				encodedProof = ""
-			} else {
-				encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", proof)
-			}
+			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", proof)
 
 			rpcResponse, err := utils.WrapIntoJsonRpcResponse(*value)
 			if err != nil {
@@ -148,6 +136,7 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool)
 				Proof:    encodedProof,
 				BundleId: bundle.BundleId,
 				PoolId:   bundle.PoolId,
+				ChainId:  bundle.ChainId,
 				Indices:  indices,
 			}
 			return nil
