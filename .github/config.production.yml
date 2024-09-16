@@ -29,11 +29,11 @@ pools:
     poolid: 111
     slug: celestia
     bundleStartId: 0
-  - chainid: kyve-1
-    indexer: Tendermint
-    poolid: 1
-    slug: osmosis
-    excludeProof: true
+  # - chainid: kyve-1
+  #   indexer: Tendermint
+  #   poolid: 1
+  #   slug: osmosis
+  #   excludeProof: true
 
 # === DATABASE ===
 # database configuration
