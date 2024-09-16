@@ -9,7 +9,7 @@ instances:
       - bundle_height
       - bundle_size
       - go_memstats_alloc_bytes
-      - go_gc_duration_seconds_sum
+      - go_gc_duration_seconds
       - process_cpu_seconds_total
       - process_network_transmit_bytes_total
       - process_network_receive_bytes_total
