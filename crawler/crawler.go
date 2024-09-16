@@ -51,7 +51,7 @@ func (crawler *ChildCrawler) insertBundleDataItems(bundleId int64) error {
 		return err
 	}
 
-	dataItems, err := bundles.GetDecompressedBundle(*compressedBundle)
+	dataItems, err := bundles.GetDecompressedBundle(*compressedBundle, crawler.labels())
 
 	if err != nil {
 		logger.Error().Int64("poolId", crawler.poolId).Int64("bundleId", bundleId).Msg("Something went wrong when decompressing the bundle...")

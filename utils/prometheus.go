@@ -15,6 +15,7 @@ var (
 	PrometheusSyncStepFailedRetry *prometheus.CounterVec
 
 	PrometheusProcessDuration *prometheus.GaugeVec
+	PrometheusBundleSize      *prometheus.GaugeVec
 	PrometheusBundleHeight    *prometheus.GaugeVec
 )
 
@@ -54,5 +55,9 @@ func init() {
 
 	PrometheusBundleHeight = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "bundle_height",
+	}, labelNames)
+
+	PrometheusBundleSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "bundle_size",
 	}, labelNames)
 }
