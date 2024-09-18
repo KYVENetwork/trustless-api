@@ -23,7 +23,7 @@ func (saveFile *SaveLocalFileInterface) Save(dataItem *types.TrustlessDataItem) 
 	}
 
 	path := viper.GetString("storage.path")
-	dir := fmt.Sprintf("%v/%v/%v", path, dataItem.PoolId, dataItem.BundleId)
+	dir := fmt.Sprintf("%v/%v/%v/%v", path, dataItem.ChainId, dataItem.PoolId, dataItem.BundleId)
 
 	// create directories if we need them
 	err = os.MkdirAll(dir, os.ModePerm)

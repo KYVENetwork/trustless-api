@@ -161,11 +161,11 @@ func (apiServer *ApiServer) getIndex(c *gin.Context, pool ServePool, index strin
 		c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
 		return
 	}
-	apiServer.resolveFile(c, file)
+	apiServer.resolveFile(c, file, pool.ExcludeProof)
 }
 
 // resolveFile serves the content of a SavedFile
-func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
+func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile, excludeProof bool) {
 
 	var rawFile []byte
 
@@ -198,10 +198,10 @@ func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
 		}
 	}
 
-	apiServer.serveFile(c, rawFile)
+	apiServer.serveFile(c, rawFile, excludeProof)
 }
 
-func (apiServer *ApiServer) serveFile(c *gin.Context, file []byte) {
+func (apiServer *ApiServer) serveFile(c *gin.Context, file []byte, excludeProof bool) {
 	var trustlessDataItem types.TrustlessDataItem
 	err := json.Unmarshal(file, &trustlessDataItem)
 	if err != nil {
@@ -214,7 +214,7 @@ func (apiServer *ApiServer) serveFile(c *gin.Context, file []byte) {
 	// only send the proof if it is attached
 	proofValue, proofParamExists := c.GetQuery("proof")
 
-	if trustlessDataItem.Proof != "" {
+	if trustlessDataItem.Proof != "" && !excludeProof {
 		if proofParamExists {
 			if proofValue != "false" {
 				c.Header("x-kyve-proof", trustlessDataItem.Proof)

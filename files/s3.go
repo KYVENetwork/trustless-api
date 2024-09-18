@@ -72,7 +72,7 @@ func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedF
 	reader := bytes.NewReader(b)
 
 	filename := utils.GetUniqueDataitemName(dataitem)
-	filepath := fmt.Sprintf("%v/%v/%v.json", dataitem.PoolId, dataitem.BundleId, filename)
+	filepath := fmt.Sprintf("%v/%v/%v/%v.json", dataitem.ChainId, dataitem.PoolId, dataitem.BundleId, filename)
 
 	_, err = saveFile.client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:          aws.String(saveFile.bucket),

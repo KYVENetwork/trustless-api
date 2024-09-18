@@ -28,7 +28,7 @@ func (*CelestiaIndexer) GetBindings() map[string]types.Endpoint {
 	}
 }
 
-func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error) {
+func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
 
 	// convert data items to celestia data items
 	// we can also construct the high level leafs at this point
@@ -85,19 +85,14 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool) (
 
 			index := fmt.Sprintf("%v-%v", dataitem.Key, namespace.NamespaceId)
 
-			var encodedProof string
-			// if proof is not attached, we set the proof to an empty string
-			if excludeProof {
-				encodedProof = ""
-			} else {
-				encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", totalProof)
-			}
+			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", totalProof)
 
 			trustlessDataItem := types.TrustlessDataItem{
 				Value:    rpcResponse,
 				Proof:    encodedProof,
 				BundleId: bundle.BundleId,
 				PoolId:   bundle.PoolId,
+				ChainId:  bundle.ChainId,
 				Indices: []types.Index{
 					{Index: index, IndexId: utils.IndexSharesByNamespace},
 				},
