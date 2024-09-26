@@ -38,6 +38,10 @@ func buildMerkleTree(hashes *[][32]byte, tree *[][]string) {
 }
 
 func GetMerkleRoot(hashes [][32]byte) [32]byte {
+	if len(hashes) == 0 {
+		return [32]byte{}
+	}
+
 	if len(hashes) == 1 {
 		return hashes[0]
 	}

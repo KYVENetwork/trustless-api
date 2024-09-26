@@ -17,6 +17,7 @@ const (
 const (
 	IndexBlockHeight            = 0
 	IndexSlotNumber             = 1
+	IndexBlobByNamespace        = 2
 	IndexSharesByNamespace      = 3
 	IndexTendermintBlock        = 4
 	IndexTendermintBlockResults = 5
