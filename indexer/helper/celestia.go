@@ -28,6 +28,16 @@ func (*CelestiaIndexer) GetBindings() map[string]types.Endpoint {
 			},
 			Schema: "JsonRPC",
 		},
+		"/GetAll": {
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexAllBlobsByNamespace,
+					Parameter:   []string{"height", "namespaces"},
+					Description: []string{"celestia block height", "celestia share namespaces"},
+				},
+			},
+			Schema: "JsonRPC",
+		},
 		"/block": {
 			QueryParameter: []types.ParameterIndex{
 				{
@@ -57,15 +67,7 @@ type CelestiaTendermintItem struct {
 	BlockResults json.RawMessage `json:"block_results"`
 }
 
-type CelestiaBlob struct {
-	Namespace    string `json:"namespace"`
-	Data         []byte `json:"data"`
-	ShareVersion uint32 `json:"share_version"`
-	Commitment   string `json:"commitment"`
-	Index        int32  `json:"index"`
-}
-
-func (c *CelestiaIndexer) calculateBlobsMerkleRoot(blobs *[]CelestiaBlob) [32]byte {
+func (c *CelestiaIndexer) calculateBlobsMerkleRoot(blobs *[]types.CelestiaBlob) [32]byte {
 	leafs := make([][32]byte, 0, len(*blobs))
 	for _, blob := range *blobs {
 		leafs = append(leafs, utils.CalculateSHA256Hash(blob))
@@ -76,7 +78,7 @@ func (c *CelestiaIndexer) calculateBlobsMerkleRoot(blobs *[]CelestiaBlob) [32]by
 func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
 	type ProcessedDataItem struct {
 		value                  types.TendermintValue
-		blobs                  []CelestiaBlob
+		blobs                  []types.CelestiaBlob
 		key                    string
 		localBlockProof        []types.MerkleNode
 		localBlockResultsProof []types.MerkleNode
@@ -95,8 +97,8 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 			return nil, err
 		}
 
-		// we assume there are 8 blobs per block
-		blobs := make([]CelestiaBlob, 0, 8)
+		// we assume there are 4 blobs per block
+		blobs := make([]types.CelestiaBlob, 0, 4)
 		// iterate over all txs and check if its a BlobTx
 		for _, tx := range celestiaItem.Block.Block.Data.Txs {
 			blobTx := &celestia.BlobTx{}
@@ -135,7 +137,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 			}
 
 			for index, blob := range blobTx.Blobs {
-				blobs = append(blobs, CelestiaBlob{
+				blobs = append(blobs, types.CelestiaBlob{
 					Namespace:    base64.StdEncoding.EncodeToString(blob.NamespaceId), //TODO: check for formatting -> base64 or not
 					Data:         blob.Data,
 					ShareVersion: blob.ShareVersion,
@@ -204,10 +206,8 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 		})
 	}
 
-	// assume we have 4 blobs per block
-	trustlessItems := make([]types.TrustlessDataItem, 0, len(items)*4)
-
-	totalBlobs := 0
+	// assume we have 4 blobs per block + block & block_results
+	trustlessItems := make([]types.TrustlessDataItem, 0, len(items)*6)
 
 	for index, item := range items {
 		proof, err := merkle.GetHashesCompact(&leafs, index)
@@ -222,7 +222,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 
 		// first create trustless data items for each blob
 		for blobIndex, blob := range item.blobs {
-			totalBlobs += 1
+
 			blobRaw, err := json.Marshal(blob)
 			if err != nil {
 				return nil, err
@@ -238,7 +238,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 				return nil, err
 			}
 
-			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", append(proof, blobProof...))
+			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", append(blobProof, proof...))
 
 			trustlessItems = append(trustlessItems, types.TrustlessDataItem{
 				PoolId:   bundle.PoolId,
@@ -254,6 +254,26 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 				},
 			})
 		}
+
+		rawAllBlobs, err := json.Marshal(item.blobs)
+		if err != nil {
+			return nil, err
+		}
+
+		// create a trustless item for all blobs
+		trustlessItems = append(trustlessItems, types.TrustlessDataItem{
+			Proof: "",
+			Indices: []types.Index{
+				{
+					Index:   item.key,
+					IndexId: utils.IndexAllBlobsByNamespace,
+				},
+			},
+			Value:    rawAllBlobs,
+			PoolId:   bundle.PoolId,
+			BundleId: bundle.BundleId,
+			ChainId:  bundle.ChainId,
+		})
 
 		rpcResponse, err := utils.WrapIntoJsonRpcResponse(item.value.Block)
 		if err != nil {

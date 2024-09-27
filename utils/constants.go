@@ -22,6 +22,7 @@ const (
 	IndexTendermintBlock        = 4
 	IndexTendermintBlockResults = 5
 	IndexTendermintBlockByHash  = 6
+	IndexAllBlobsByNamespace    = 7
 )
 
 const (
