@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/merkle"
 	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/KYVENetwork/trustless-api/types/celestia"
@@ -14,7 +15,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type CelestiaIndexer struct{}
+type CelestiaIndexer struct {
+}
 
 func (*CelestiaIndexer) GetBindings() map[string]types.Endpoint {
 	return map[string]types.Endpoint{
@@ -47,6 +49,16 @@ func (*CelestiaIndexer) GetBindings() map[string]types.Endpoint {
 				},
 			},
 			Schema: "TendermintBlock",
+		},
+		"/block_results": {
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexTendermintBlockResults,
+					Parameter:   []string{"height"},
+					Description: []string{"block height"},
+				},
+			},
+			Schema: "TendermintBlockResults",
 		},
 	}
 }
@@ -321,4 +333,55 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 
 func (*CelestiaIndexer) GetErrorResponse(message string, data any) any {
 	return utils.WrapIntoJsonRpcErrorResponse(message, data)
+}
+
+func (d *CelestiaIndexer) InterceptRequest(get files.Get, indexId int, query []string) (*[]byte, error) {
+	if indexId == utils.IndexAllBlobsByNamespace {
+		if len(query) != 2 {
+			return nil, fmt.Errorf("query paramter count mismatch")
+		}
+
+		// the first query parameter (block_height) is our unique identifier
+		file, err := get(indexId, query[0])
+		if err != nil {
+			return nil, err
+		}
+
+		bytes, err := file.Resolve()
+		if err != nil {
+			return nil, err
+		}
+
+		celestiaBlobs := struct {
+			Value []types.CelestiaBlob `json:"value"`
+		}{}
+		err = json.Unmarshal(bytes, &celestiaBlobs)
+		if err != nil {
+			return nil, err
+		}
+
+		// namespace is the second query parameter
+		namespace := query[1]
+
+		filtedredBlobs := []types.CelestiaBlob{}
+		for _, b := range celestiaBlobs.Value {
+			if b.Namespace == namespace {
+				filtedredBlobs = append(filtedredBlobs, b)
+			}
+		}
+
+		namespaceBytes, err := json.Marshal(filtedredBlobs)
+		if err != nil {
+			return nil, err
+		}
+
+		responseBytes, err := utils.WrapIntoJsonRpcResponse(json.RawMessage(namespaceBytes))
+		if err != nil {
+			return nil, err
+		}
+
+		return &responseBytes, nil
+
+	}
+	return nil, nil
 }

@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"html"
 	"html/template"
-	"io"
 	"net/http"
 	"strings"
 
-	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/types"
 
 	"github.com/KYVENetwork/trustless-api/config"
@@ -157,54 +155,13 @@ func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]type
 // `indexId` - is the corresponding Id for the key e. g. block_height -> 0
 func (apiServer *ApiServer) getIndex(c *gin.Context, pool ServePool, query []string, indexId int) {
 
-	// TODO: out source this into a middleware that can be defined in the indexer
-	// also create a server context, so that we don't have to pass all the context
-	if indexId == utils.IndexAllBlobsByNamespace {
-		if len(query) != 2 {
-			c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", fmt.Errorf("query count mismatch error")))
-			return
-		}
-
-		// the first query parameter (block_height) is our unique identifier
-		file, err := pool.Adapter.Get(indexId, query[0])
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
-			return
-		}
-		bytes := apiServer.resolveFile(c, file)
-
-		celestiaBlobs := struct {
-			Value []types.CelestiaBlob `json:"value"`
-		}{}
-		err = json.Unmarshal(bytes, &celestiaBlobs)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
-			return
-		}
-
-		// namespace is the second query parameter
-		namespace := query[1]
-
-		filtedredBlobs := []types.CelestiaBlob{}
-		for _, b := range celestiaBlobs.Value {
-			if b.Namespace == namespace {
-				filtedredBlobs = append(filtedredBlobs, b)
-			}
-		}
-
-		namespaceBytes, err := json.Marshal(filtedredBlobs)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
-			return
-		}
-
-		responseBytes, err := utils.WrapIntoJsonRpcResponse(json.RawMessage(namespaceBytes))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
-			return
-		}
-
-		c.Data(http.StatusOK, "application/json", responseBytes)
+	interceptBytes, err := pool.Indexer.InterceptRequest(pool.Adapter.Get, indexId, query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
+		return
+	}
+	if interceptBytes != nil {
+		c.Data(http.StatusOK, "application/json", *interceptBytes)
 		return
 	}
 
@@ -214,45 +171,12 @@ func (apiServer *ApiServer) getIndex(c *gin.Context, pool ServePool, query []str
 		c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
 		return
 	}
-	bytes := apiServer.resolveFile(c, file)
-	apiServer.serveFile(c, bytes, pool.ExcludeProof)
-}
-
-// resolveFile serves the content of a SavedFile
-func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) []byte {
-
-	var rawFile []byte
-
-	switch file.Type {
-	case files.LocalFile:
-		var err error
-		rawFile, err = files.LoadLocalFile(file.Path)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return nil
-		}
-	case files.S3File:
-		url := viper.GetString("storage.cdn")
-		res, err := http.Get(fmt.Sprintf("%v%v", url, file.Path))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return nil
-		}
-		defer res.Body.Close()
-		rawFile, err = io.ReadAll(res.Body)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to read response body: " + err.Error(),
-			})
-			return nil
-		}
+	bytes, err := file.Resolve()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
+		return
 	}
-
-	return rawFile
+	apiServer.serveFile(c, bytes, pool.ExcludeProof)
 }
 
 func (apiServer *ApiServer) serveFile(c *gin.Context, file []byte, excludeProof bool) {

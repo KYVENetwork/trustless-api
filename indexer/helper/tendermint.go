@@ -11,7 +11,9 @@ import (
 	"github.com/KYVENetwork/trustless-api/types"
 )
 
-type TendermintIndexer struct{}
+type TendermintIndexer struct {
+	DefaultIndexer
+}
 
 func (t *TendermintIndexer) GetBindings() map[string]types.Endpoint {
 	return map[string]types.Endpoint{
