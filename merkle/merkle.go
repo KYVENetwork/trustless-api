@@ -81,6 +81,11 @@ func GetBundleHashesHex(bundle *[]types.DataItem) []string {
 // this function will construct a merkle tree based on the hashes and
 // construct only the necessary hashes for building the merkle tree
 func GetHashesCompact(hashes *[][32]byte, leafIndex int) ([]types.MerkleNode, error) {
+	// if there is just one hash, the hash itself is the merkle root
+	// therefore we have an empty array
+	if len(*hashes) == 1 {
+		return []types.MerkleNode{}, nil
+	}
 	var tree [][]string
 	buildMerkleTree(hashes, &tree)
 	length := len(tree)

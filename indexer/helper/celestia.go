@@ -150,7 +150,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 
 			for index, blob := range blobTx.Blobs {
 				blobs = append(blobs, types.CelestiaBlob{
-					Namespace:    base64.StdEncoding.EncodeToString(blob.NamespaceId), //TODO: check for formatting -> base64 or not
+					Namespace:    base64.StdEncoding.EncodeToString(blob.NamespaceId),
 					Data:         blob.Data,
 					ShareVersion: blob.ShareVersion,
 					Commitment:   base64.StdEncoding.EncodeToString(msgPayForBlobs.ShareCommitments[index]),
@@ -176,8 +176,9 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 
 		keyBytes := sha256.Sum256([]byte(item.Key))
 		combined := append(keyBytes[:], merkleRootCombined[:]...)
+		keyHash := sha256.Sum256(combined)
 
-		leafs = append(leafs, sha256.Sum256(combined))
+		leafs = append(leafs, keyHash)
 
 		blockProof := []types.MerkleNode{
 			{
@@ -187,6 +188,10 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 			{
 				Left: true,
 				Hash: hex.EncodeToString(blobsMerkleRoot[:]),
+			},
+			{
+				Left: false,
+				Hash: hex.EncodeToString(keyBytes[:]),
 			},
 		}
 
@@ -199,12 +204,20 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 				Left: true,
 				Hash: hex.EncodeToString(blobsMerkleRoot[:]),
 			},
+			{
+				Left: false,
+				Hash: hex.EncodeToString(keyBytes[:]),
+			},
 		}
 
 		blobsProof := []types.MerkleNode{
 			{
 				Left: false,
 				Hash: hex.EncodeToString(tendermintMerkleRoot[:]),
+			},
+			{
+				Left: false,
+				Hash: hex.EncodeToString(keyBytes[:]),
 			},
 		}
 
@@ -229,7 +242,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 
 		blobLeafs := make([][32]byte, 0, len(item.blobs))
 		for _, blob := range item.blobs {
-			blobLeafs = append(leafs, utils.CalculateSHA256Hash(blob))
+			blobLeafs = append(blobLeafs, utils.CalculateSHA256Hash(blob))
 		}
 
 		// first create trustless data items for each blob
@@ -249,6 +262,9 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 			if err != nil {
 				return nil, err
 			}
+
+			// append local proof with tendermint block & block results
+			blobProof = append(blobProof, item.localBlobsProof...)
 
 			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", append(blobProof, proof...))
 
