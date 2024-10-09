@@ -150,7 +150,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 
 			for index, blob := range blobTx.Blobs {
 				blobs = append(blobs, types.CelestiaBlob{
-					Namespace:    base64.StdEncoding.EncodeToString(blob.NamespaceId),
+					Namespace:    base64.StdEncoding.EncodeToString(msgPayForBlobs.Namespaces[index]),
 					Data:         blob.Data,
 					ShareVersion: blob.ShareVersion,
 					Commitment:   base64.StdEncoding.EncodeToString(msgPayForBlobs.ShareCommitments[index]),
