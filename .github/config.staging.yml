@@ -58,7 +58,7 @@ pools:
     indexer: Celestia
     poolid: 143
     slug: celestia
-    bundleStartId: 1800
+    bundleStartId: 3014
 
 # === DATABASE ===
 # database configuration
