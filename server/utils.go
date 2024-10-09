@@ -40,15 +40,17 @@ func generateOpenApi(pools []ServePool) ([]byte, error) {
 				}
 			}
 
-			parameters = append(parameters, map[string]interface{}{
-				"name":        "proof",
-				"in":          "query",
-				"description": "disable KYVE Proof with `false`",
-				"required":    false,
-				"schema": map[string]interface{}{
-					"type": "string",
-				},
-			})
+			if !p.ExcludeProof {
+				parameters = append(parameters, map[string]interface{}{
+					"name":        "proof",
+					"in":          "query",
+					"description": "disable KYVE Proof with `false`",
+					"required":    false,
+					"schema": map[string]interface{}{
+						"type": "string",
+					},
+				})
+			}
 
 			path["parameters"] = parameters
 

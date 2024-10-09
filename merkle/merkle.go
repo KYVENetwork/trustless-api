@@ -12,9 +12,6 @@ import (
 // each level will be inserted in `tree`,
 // where the first item are the leafs and the last element are the two leafs that make the root
 func buildMerkleTree(hashes *[][32]byte, tree *[][]string) {
-	if len(*hashes) == 1 && len(*tree) != 0 {
-		return
-	}
 
 	// make sure we have an even number of hashes
 	if len(*hashes)%2 == 1 {
@@ -34,13 +31,18 @@ func buildMerkleTree(hashes *[][32]byte, tree *[][]string) {
 		computedHashes = append(computedHashes, parentHash)
 	}
 
+	if len(computedHashes) == 1 {
+		return
+	}
+
 	buildMerkleTree(&computedHashes, tree)
 }
 
 func GetMerkleRoot(hashes [][32]byte) [32]byte {
-	if len(hashes) == 1 {
-		return hashes[0]
+	if len(hashes) == 0 {
+		return [32]byte{}
 	}
+
 	var computedHashes = [][32]byte{}
 
 	for i := 0; i < len(hashes); i += 2 {
@@ -57,6 +59,9 @@ func GetMerkleRoot(hashes [][32]byte) [32]byte {
 		computedHashes = append(computedHashes, parentHash)
 	}
 
+	if len(computedHashes) == 1 {
+		return computedHashes[0]
+	}
 	return GetMerkleRoot(computedHashes)
 }
 
