@@ -172,7 +172,7 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
 		// first insert the data items, the ID will be written into the array
-		err := tx.Table(adapter.dataItemTable).Create(items).Error
+		err := tx.Table(adapter.dataItemTable).CreateInBatches(items, 50).Error
 		if err != nil {
 			logger.Error().
 				Err(err).
@@ -194,7 +194,7 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 			}
 		}
 
-		err = tx.Table(adapter.indexTable).Create(indices).Error
+		err = tx.Table(adapter.indexTable).CreateInBatches(indices, 50).Error
 		if err != nil {
 			logger.Error().
 				Err(err).
