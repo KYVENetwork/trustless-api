@@ -85,13 +85,12 @@ type EVMDataItem struct {
 		Transactions         []json.RawMessage `json:"transactions"`
 		BaseFeePerGas        json.RawMessage   `json:"baseFeePerGas"`
 		UnderscoreDifficulty json.RawMessage   `json:"_difficulty"`
-		BlockId              json.RawMessage   `json:"block"`
 	} `json:"block"`
 	Receipts []Receipt `json:"receipts"`
 }
 
 type EVMDataItemRaw struct {
-	Block    json.RawMessage `json:"block"`
+	Block    json.RawMessage   `json:"block"`
 	Receipts []json.RawMessage `json:"receipts"`
 }
 
@@ -108,8 +107,8 @@ type Receipt struct {
 	GasUsed           string            `json:"gasUsed"`
 	EffectiveGasPrice string            `json:"effectiveGasPrice"`
 	From              string            `json:"from"`
-	To                string            `json:"to"`
-	ContractAddress   string            `json:"contractAddress,omitempty"`
+	To                *string           `json:"to"`
+	ContractAddress   *string           `json:"contractAddress"`
 }
 
 type Transaction struct {
@@ -170,6 +169,16 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 		if err != nil {
 			return nil, err
 		}
+
+		// TODO: ensure that the scheme stays the same ...
+		// jsonEvmDataItem, _ := json.Marshal(evmDataItem)
+		// if string(jsonEvmDataItem) != string(item.Value) {
+		// 	os.WriteFile("raw_item.json", item.Value, 0666)
+		// 	os.WriteFile("unmarshaled.json", jsonEvmDataItem, 0666)
+		// 	fmt.Println("NOT EQAL")
+		// 	panic(1)
+		// }
+
 		var allLogs [][]json.RawMessage
 		for _, receipt := range evmDataItem.Receipts {
 			allLogs = append(allLogs, receipt.Logs)
@@ -216,7 +225,7 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 			},
 			{
 				Left: true,
-				Hash: hex.EncodeToString(receiptsMerkleRoot[:]),
+				Hash: hex.EncodeToString(receiptsAndLogsMerkleRoot[:]),
 			},
 			{
 				Left: false,
