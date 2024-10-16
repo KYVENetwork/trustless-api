@@ -461,10 +461,5 @@ func (*EVMIndexer) GetErrorResponse(message string, data any) any {
 }
 
 func (d *EVMIndexer) InterceptRequest(get files.Get, indexId int, query []string) (*[]byte, error) {
-	switch indexId {
-	case utils.IndexEVMTransaction:
-		
-	}
-
 	return nil, nil	
 }
