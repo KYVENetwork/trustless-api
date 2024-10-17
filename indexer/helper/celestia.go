@@ -245,8 +245,17 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 			blobLeafs = append(blobLeafs, utils.CalculateSHA256Hash(blob))
 		}
 
+		// only safe blobs once, height-namespace-commitment is not unique, but this does not matter for the blobs.Get request.
+		// It simply returns the first Blob it finds.
+		savedBlobs := map[string]bool{}
+
 		// first create trustless data items for each blob
 		for blobIndex, blob := range item.blobs {
+
+			if savedBlobs[blob.Namespace+blob.Commitment] {
+				continue
+			}
+			savedBlobs[blob.Namespace+blob.Commitment] = true
 
 			blobRaw, err := json.Marshal(blob)
 			if err != nil {
