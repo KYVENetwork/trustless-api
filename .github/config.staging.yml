@@ -25,21 +25,6 @@ pools:
     slug: ethereum
     bundleStartId: 0
   - chainid: korellia-2
-    indexer: Celestia
-    poolid: 111
-    slug: celestia
-    bundleStartId: 0
-  - chainid: korellia-2
-    indexer: Tendermint
-    poolid: 113
-    slug: injective
-    bundleStartId: 141
-  - chainid: korellia-2
-    indexer: Tendermint
-    poolid: 125
-    slug: berachain
-    bundleStartId: 0
-  - chainid: korellia-2
     indexer: Height
     poolid: 118
     slug: avail
@@ -54,12 +39,6 @@ pools:
     poolid: 131
     slug: cronos-zkevm
     bundleStartId: 0
-  - chainid: kyve-1
-    indexer: Tendermint
-    poolid: 1
-    slug: osmosis
-    bundleStartId: 183000
-    excludeProof: true
   - chainid: korellia-2
     indexer: Tendermint
     poolid: 136
@@ -75,11 +54,12 @@ pools:
     poolid: 139
     slug: near
     bundleStartId: 0
-  - chainid: kaon-1
-    indexer: Tendermint
-    poolid: 8
-    slug: dydx
-    bundleStartId: 130000
+  - chainid: korellia-2
+    indexer: Celestia
+    poolid: 143
+    slug: celestia
+    bundleStartId: 3014
+
 # === DATABASE ===
 # database configuration
 # ================

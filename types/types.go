@@ -196,3 +196,11 @@ type TendermintBlock struct {
 		Hash string `json:"hash"`
 	} `json:"block_id"`
 }
+
+type CelestiaBlob struct {
+	Namespace    string `json:"namespace"`
+	Data         []byte `json:"data"`
+	ShareVersion uint32 `json:"share_version"`
+	Commitment   string `json:"commitment"`
+	Index        int32  `json:"index"`
+}

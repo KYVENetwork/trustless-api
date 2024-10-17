@@ -169,10 +169,10 @@ func GetUniqueDataitemName(item *types.TrustlessDataItem) string {
 	var output string
 
 	for _, index := range item.Indices {
-		output += fmt.Sprintf("%v-%v", index.Index, index.IndexId)
+		output += fmt.Sprintf("%v%v", index.Index, index.IndexId)
 	}
 
-	return output
+	return CreateSha256Checksum([]byte(output))
 }
 
 // EncodeProof encodes the proof of a data item into a byte array
@@ -322,8 +322,4 @@ func WrapIntoJsonRpcErrorResponse(errorMessage string, data any) any {
 		},
 	}
 	return response
-}
-
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
 }

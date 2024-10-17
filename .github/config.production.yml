@@ -24,9 +24,9 @@ pools:
     poolid: 21
     slug: ethereum
     bundleStartId: 0
-  - chainid: korellia-2
+  - chainid: kyve-1
     indexer: Celestia
-    poolid: 111
+    poolid: 9
     slug: celestia
     bundleStartId: 0
   - chainid: kyve-1
