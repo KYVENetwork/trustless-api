@@ -4,29 +4,18 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"os"
 
-	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/merkle"
 	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/KYVENetwork/trustless-api/utils"
 )
 
 type EVMIndexer struct {
+	DefaultIndexer
 }
 
 func (*EVMIndexer) GetBindings() map[string]types.Endpoint {
 	return map[string]types.Endpoint{
-		//"/rawValue": {
-		//	QueryParameter: []types.ParameterIndex{
-		//		{
-		//			IndexId:     utils.IndexEVMValue,
-		//			Parameter:   []string{"height"},
-		//			Description: []string{"EVM block number"},
-		//		},
-		//	},
-		//	Schema: "JsonRPC",
-		//},
 		"/blockByHash": {
 			QueryParameter: []types.ParameterIndex{
 				{
@@ -35,7 +24,7 @@ func (*EVMIndexer) GetBindings() map[string]types.Endpoint {
 					Description: []string{"hash of a block"},
 				},
 			},
-			Schema: "JsonRPC",
+			Schema: "EVMBlock",
 		},
 		"/transactionByHash": {
 			QueryParameter: []types.ParameterIndex{
@@ -45,7 +34,7 @@ func (*EVMIndexer) GetBindings() map[string]types.Endpoint {
 					Description: []string{"hash of a transaction"},
 				},
 			},
-			Schema: "JsonRPC",
+			Schema: "EVMTransaction",
 		},
 		"/blockReceipts": {
 			QueryParameter: []types.ParameterIndex{
@@ -55,18 +44,8 @@ func (*EVMIndexer) GetBindings() map[string]types.Endpoint {
 					Description: []string{"hash of a block"},
 				},
 			},
-			Schema: "JsonRPC",
+			Schema: "EVMBlockReceipts",
 		},
-		//"/logs": {
-		//	QueryParameter: []types.ParameterIndex{
-		//		{
-		//			IndexId:     utils.IndexEVMLog,
-		//			Parameter:   []string{"address", "blockHash"},
-		//			Description: []string{"contract address or a list of addresses from which logs should originate", "EVM block hash"},
-		//		},
-		//	},
-		//	Schema: "JsonRPC",
-		//},
 	}
 }
 
@@ -122,36 +101,23 @@ type Log struct {
 	TransactionHash string `json:"transactionHash"`
 }
 
-func (c *EVMIndexer) calculateMerkleRoot(item interface{}) [32]byte {
-	var leafs [][32]byte
+func getMerkleRoot[T any](array *[]T) [32]byte {
+    leafs := make([][32]byte, 0, len(*array))
 
-	switch v := item.(type) {
-	case *[]json.RawMessage:
-		leafs = make([][32]byte, 0, len(*v))
-		for _, i := range *v {
-			leafs = append(leafs, utils.CalculateSHA256Hash(i))
-		}
-	case *[]Receipt:
-		leafs = make([][32]byte, 0, len(*v))
-		for _, i := range *v {
-			leafs = append(leafs, utils.CalculateSHA256Hash(i))
-		}
-	default:
-		panic("unsupported type")
-	}
+    for _, item := range *array {
+        leafs = append(leafs, utils.CalculateSHA256Hash(item))
+    }
 
-	return merkle.GetMerkleRoot(leafs)
+    return merkle.GetMerkleRoot(leafs)
 }
 
 func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
 	type ProcessedDataItem struct {
 		value             EVMDataItem
 		key               string
-		rawDataItemProof  []types.MerkleNode
 		blockProof        []types.MerkleNode
 		transactionsProof []types.MerkleNode
 		receiptsProof     []types.MerkleNode
-		//logsProof         []types.MerkleNode
 	}
 
 	leafs := make([][32]byte, 0, len(bundle.DataItems))
@@ -162,20 +128,6 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 		err := json.Unmarshal(item.Value, &evmDataItem)
 		if err != nil {
 			return nil, err
-		}
-
-		var evmDataItemRaw EVMDataItemRaw
-		err = json.Unmarshal(item.Value, &evmDataItemRaw)
-		if err != nil {
-			return nil, err
-		}
-
-		// Verfiy whether the schema is correct
-		marshalledEvmDataItem, _ := json.Marshal(evmDataItem)
-		if string(marshalledEvmDataItem) != string(item.Value) {
-			os.WriteFile("evm_raw_item.json", item.Value, 0666)
-			os.WriteFile("evm_unmarshalled_item.json", marshalledEvmDataItem, 0666)
-			panic("EVM schema is not correct")
 		}
 
 		// Flatten logs array of all receipts into one log array to create a Merkle root
@@ -194,9 +146,9 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 		// A graphic of the Merkle tree can be found here: assets/evm_merkle_root.png
 		rawDataItemValueHash := utils.CalculateSHA256Hash(item.Value)
 		blockHash := utils.CalculateSHA256Hash(evmDataItem.Block)
-		transactionsMerkleRoot := c.calculateMerkleRoot(&evmDataItem.Block.Transactions)
+		transactionsMerkleRoot := getMerkleRoot(&evmDataItem.Block.Transactions)
 		receiptsHash := utils.CalculateSHA256Hash(&evmDataItem.Receipts)
-		logsMerkleRoot := c.calculateMerkleRoot(&flattenedLogs)
+		logsMerkleRoot := getMerkleRoot(&flattenedLogs)
 
 		blockMerkleRoot := merkle.GetMerkleRoot([][32]byte{blockHash, transactionsMerkleRoot})
 		receiptsLogsMerkleRoot := merkle.GetMerkleRoot([][32]byte{receiptsHash, logsMerkleRoot})
@@ -208,17 +160,6 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 		merkleRoot := sha256.Sum256(combined)
 
 		leafs = append(leafs, merkleRoot)
-
-		rawDataItemProof := []types.MerkleNode{
-			{
-				Left: true,
-				Hash: hex.EncodeToString(blockReceiptsRoot[:]),
-			},
-			{
-				Left: false,
-				Hash: hex.EncodeToString(keyBytes[:]),
-			},
-		}
 
 		blockProof := []types.MerkleNode{
 			{
@@ -277,33 +218,12 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 			},
 		}
 
-		//logsProof := []types.MerkleNode{
-		//	{
-		//		Left: false,
-		//		Hash: hex.EncodeToString(receiptsHash[:]),
-		//	},
-		//	{
-		//		Left: false,
-		//		Hash: hex.EncodeToString(blockMerkleRoot[:]),
-		//	},
-		//	{
-		//		Left: false,
-		//		Hash: hex.EncodeToString(rawDataItemHash[:]),
-		//	},
-		//	{
-		//		Left: false,
-		//		Hash: hex.EncodeToString(keyBytes[:]),
-		//	},
-		//}
-
 		items = append(items, ProcessedDataItem{
 			value:             evmDataItem,
 			key:               item.Key,
-			rawDataItemProof:  rawDataItemProof,
 			blockProof:        blockProof,
 			transactionsProof: transactionsProof,
 			receiptsProof:     receiptsProof,
-			//logsProof:         logsProof,
 		})
 	}
 
@@ -356,62 +276,6 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 			})
 		}
 
-		//var allLogs [][]json.RawMessage
-		//for _, receipt := range item.value.Receipts {
-		//	allLogs = append(allLogs, receipt.Logs)
-		//}
-
-		//// Flatten the array of arrays into a single array
-		//var flattenedLogs []json.RawMessage
-		//for _, logs := range allLogs {
-		//	flattenedLogs = append(flattenedLogs, logs...)
-		//}
-		//
-		//logLeafs := make([][32]byte, 0, len(flattenedLogs))
-		//for _, log := range flattenedLogs {
-		//	logLeafs = append(logLeafs, utils.CalculateSHA256Hash(log))
-		//}
-		//
-		//for logIndex, log := range flattenedLogs {
-		//	logRaw, err := json.Marshal(log)
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//
-		//	rpcResponse, err := utils.WrapIntoJsonRpcResponse(json.RawMessage(logRaw))
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//
-		//	logProof, err := merkle.GetHashesCompact(&logLeafs, logIndex)
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//
-		//	logProof = append(logProof, item.receiptsProof...)
-		//
-		//	encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", append(logProof, proof...))
-		//
-		//	var unmarshalledLog Log
-		//	if err = json.Unmarshal(logRaw, &unmarshalledLog); err != nil {
-		//		return nil, err
-		//	}
-		//
-		//	trustlessItems = append(trustlessItems, types.TrustlessDataItem{
-		//		PoolId:   bundle.PoolId,
-		//		BundleId: bundle.BundleId,
-		//		ChainId:  bundle.ChainId,
-		//		Value:    rpcResponse,
-		//		Proof:    encodedProof,
-		//		Indices: []types.Index{
-		//			{
-		//				Index:   fmt.Sprintf("%v-%v-%v", unmarshalledLog.BlockHash, unmarshalledLog.TransactionHash, unmarshalledLog.LogIndex),
-		//				IndexId: utils.IndexEVMLog,
-		//			},
-		//		},
-		//	})
-		//}
-
 		rpcResponse, err := utils.WrapIntoJsonRpcResponse(item.value.Receipts)
 		if err != nil {
 			return nil, err
@@ -458,8 +322,4 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 
 func (*EVMIndexer) GetErrorResponse(message string, data any) any {
 	return utils.WrapIntoJsonRpcErrorResponse(message, data)
-}
-
-func (d *EVMIndexer) InterceptRequest(get files.Get, indexId int, query []string) (*[]byte, error) {
-	return nil, nil	
 }
