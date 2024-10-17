@@ -59,6 +59,11 @@ pools:
     poolid: 143
     slug: celestia
     bundleStartId: 3014
+  - chainid: korellia-2
+    indexer: EVM
+    poolid: 144
+    slug: berachain
+    bundleStartId: 17274
 
 # === DATABASE ===
 # database configuration

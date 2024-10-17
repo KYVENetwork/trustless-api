@@ -23,6 +23,11 @@ const (
 	IndexTendermintBlockResults = 5
 	IndexTendermintBlockByHash  = 6
 	IndexAllBlobsByNamespace    = 7
+	IndexEVMValue               = 8
+	IndexEVMBlock               = 9
+	IndexEVMTransaction         = 10
+	IndexEVMReceipt             = 11
+	IndexEVMLog                 = 12
 )
 
 const (

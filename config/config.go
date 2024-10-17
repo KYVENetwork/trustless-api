@@ -231,6 +231,8 @@ func (c PoolsConfig) GetDatabaseAdapter() db.Adapter {
 		idx = &indexer.CelestiaIndexer
 	case "Tendermint":
 		idx = &indexer.TendermintIndexer
+	case "EVM":
+		idx = &indexer.EVMIndexer
 	default:
 		logger.Fatal().Str("type", c.Indexer).Msg("failed to resolve indexer")
 		return nil

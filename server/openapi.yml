@@ -19,6 +19,24 @@ components:
         error:
           type: string
           example: "data item not found"
+    EVMBlockError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "data item not found"
+    EVMBlockReceiptsError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "data item not found"
+    EVMTransactionError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "data item not found"
     TendermintBlockResultsError:
         type: object
         properties:
@@ -1194,6 +1212,389 @@ components:
           - error
           - id
           - jsonrpc
+    EVMBlock:
+      type: object
+      properties:
+        jsonrpc:
+          type: string
+        id:
+          type: integer
+        result:
+          type: object
+          properties:
+            hash:
+              type: string
+            parentHash:
+              type: string
+            number:
+              type: integer
+            timestamp:
+              type: integer
+            nonce:
+              type: string
+            difficulty:
+              type: integer
+            gasLimit:
+              type: object
+              properties:
+                type:
+                  type: string
+                hex:
+                  type: string
+              required:
+                - type
+                - hex
+            gasUsed:
+              type: object
+              properties:
+                type:
+                  type: string
+                hex:
+                  type: string
+              required:
+                - type
+                - hex
+            miner:
+              type: string
+            extraData:
+              type: string
+            transactions:
+              type: array
+              items:
+                type: object
+                properties:
+                  hash:
+                    type: string
+                  type:
+                    type: integer
+                  accessList:
+                    type: array
+                    items:
+                      type: object
+                  blockHash:
+                    type: string
+                  blockNumber:
+                    type: integer
+                  transactionIndex:
+                    type: integer
+                  from:
+                    type: string
+                  gasPrice:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      hex:
+                        type: string
+                    required:
+                      - type
+                      - hex
+                  maxPriorityFeePerGas:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      hex:
+                        type: string
+                    required:
+                      - type
+                      - hex
+                  maxFeePerGas:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      hex:
+                        type: string
+                    required:
+                      - type
+                      - hex
+                  gasLimit:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      hex:
+                        type: string
+                    required:
+                      - type
+                      - hex
+                  to:
+                    type: string
+                  value:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      hex:
+                        type: string
+                    required:
+                      - type
+                      - hex
+                  nonce:
+                    type: integer
+                  data:
+                    type: string
+                  r:
+                    type: string
+                  s:
+                    type: string
+                  v:
+                    type: integer
+                  chainId:
+                    type: integer
+                required:
+                  - hash
+                  - type
+                  - blockHash
+                  - blockNumber
+                  - transactionIndex
+                  - from
+                  - gasPrice
+                  - gasLimit
+                  - value
+                  - nonce
+                  - data
+                  - r
+                  - s
+                  - v
+                  - chainId
+            baseFeePerGas:
+              type: object
+              properties:
+                type:
+                  type: string
+                hex:
+                  type: string
+              required:
+                - type
+                - hex
+            _difficulty:
+              type: object
+              properties:
+                type:
+                  type: string
+                hex:
+                  type: string
+              required:
+                - type
+                - hex
+      required:
+        - jsonrpc
+        - id
+        - result
+    EVMTransaction:
+      type: object
+      properties:
+        jsonrpc:
+          type: string
+        id:
+          type: integer
+        result:
+          type: object
+          properties:
+            hash:
+              type: string
+            type:
+              type: integer
+            accessList:
+              type: array
+              items:
+                type: object
+            blockHash:
+              type: string
+            blockNumber:
+              type: integer
+            transactionIndex:
+              type: integer
+            from:
+              type: string
+            gasPrice:
+              type: object
+              properties:
+                type:
+                  type: string
+                hex:
+                  type: string
+              required:
+                - type
+                - hex
+            maxPriorityFeePerGas:
+              type: object
+              properties:
+                type:
+                  type: string
+                hex:
+                  type: string
+              required:
+                - type
+                - hex
+            maxFeePerGas:
+              type: object
+              properties:
+                type:
+                  type: string
+                hex:
+                  type: string
+              required:
+                - type
+                - hex
+            gasLimit:
+              type: object
+              properties:
+                type:
+                  type: string
+                hex:
+                  type: string
+              required:
+                - type
+                - hex
+            to:
+              type: string
+            value:
+              type: object
+              properties:
+                type:
+                  type: string
+                hex:
+                  type: string
+              required:
+                - type
+                - hex
+            nonce:
+              type: integer
+            data:
+              type: string
+            r:
+              type: string
+            s:
+              type: string
+            v:
+              type: integer
+            creates:
+              type: string
+              nullable: true
+            chainId:
+              type: integer
+          required:
+            - hash
+            - type
+            - accessList
+            - blockHash
+            - blockNumber
+            - transactionIndex
+            - from
+            - gasPrice
+            - maxPriorityFeePerGas
+            - maxFeePerGas
+            - gasLimit
+            - to
+            - value
+            - nonce
+            - data
+            - r
+            - s
+            - v
+            - chainId
+      required:
+        - jsonrpc
+        - id
+        - result
+    EVMBlockReceipts:
+      type: object
+      properties:
+        jsonrpc:
+          type: string
+        id:
+          type: integer
+        result:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              cumulativeGasUsed:
+                type: string
+              logs:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    address:
+                      type: string
+                    topics:
+                      type: array
+                      items:
+                        type: string
+                    data:
+                      type: string
+                    blockHash:
+                      type: string
+                    blockNumber:
+                      type: string
+                    blockTimestamp:
+                      type: string
+                    transactionHash:
+                      type: string
+                    transactionIndex:
+                      type: string
+                    logIndex:
+                      type: string
+                    removed:
+                      type: boolean
+                  required:
+                    - address
+                    - topics
+                    - data
+                    - blockHash
+                    - blockNumber
+                    - blockTimestamp
+                    - transactionHash
+                    - transactionIndex
+                    - logIndex
+                    - removed
+              logsBloom:
+                type: string
+              type:
+                type: string
+              transactionHash:
+                type: string
+              transactionIndex:
+                type: string
+              blockHash:
+                type: string
+              blockNumber:
+                type: string
+              gasUsed:
+                type: string
+              effectiveGasPrice:
+                type: string
+              from:
+                type: string
+              to:
+                type: string
+              contractAddress:
+                type: string
+                nullable: true
+            required:
+              - status
+              - cumulativeGasUsed
+              - logs
+              - logsBloom
+              - type
+              - transactionHash
+              - transactionIndex
+              - blockHash
+              - blockNumber
+              - gasUsed
+              - effectiveGasPrice
+              - from
+              - to
+      required:
+        - jsonrpc
+        - id
+        - result
     JsonRPC:
         type: object
         properties:

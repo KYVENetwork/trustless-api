@@ -74,4 +74,5 @@ var (
 	HeightIndexer     = helper.HeightIndexer{}
 	CelestiaIndexer   = helper.CelestiaIndexer{}
 	TendermintIndexer = helper.TendermintIndexer{}
+	EVMIndexer        = helper.EVMIndexer{}
 )
