@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"html"
 	"html/template"
-	"io"
 	"net/http"
 	"strings"
 
-	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/types"
 
 	"github.com/KYVENetwork/trustless-api/config"
@@ -112,12 +110,12 @@ func StartApiServer() *ApiServer {
 			path := fmt.Sprintf("%v%v", localPool.Slug, p)
 			localEndpoint := endpoint
 			r.GET(path, func(ctx *gin.Context) {
-				indexString, indexId, err := apiServer.findSelectedParameter(ctx, &localEndpoint.QueryParameter)
+				indexId, query, err := apiServer.findSelectedParameter(ctx, &localEndpoint.QueryParameter)
 				if err != nil {
 					ctx.JSON(http.StatusInternalServerError, localPool.Indexer.GetErrorResponse("Invalid params", nil))
 					return
 				}
-				apiServer.getIndex(ctx, localPool, indexString, indexId)
+				apiServer.getIndex(ctx, localPool, query, indexId)
 			})
 		}
 	}
@@ -129,7 +127,7 @@ func StartApiServer() *ApiServer {
 	return apiServer
 }
 
-func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]types.ParameterIndex) (string, int, error) {
+func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]types.ParameterIndex) (int, []string, error) {
 	// iterate over all params
 	// select the one where all params have a value set and return the build string from the parameter
 	for _, param := range *params {
@@ -142,12 +140,12 @@ func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]type
 		}
 
 		if len(query) == len(param.Parameter) {
-			return strings.Join(query, "-"), param.IndexId, nil
+			return param.IndexId, query, nil
 		}
 	}
 
 	// no fitting parameter
-	return "", 0, fmt.Errorf("invalid params")
+	return -1, []string{}, fmt.Errorf("invalid params")
 }
 
 // getIndex will search the database for the given query and serve the correct data item if one is found
@@ -155,53 +153,33 @@ func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]type
 //
 // `index` - is the name of the index that will be used e. g. block_height
 // `indexId` - is the corresponding Id for the key e. g. block_height -> 0
-func (apiServer *ApiServer) getIndex(c *gin.Context, pool ServePool, index string, indexId int) {
+func (apiServer *ApiServer) getIndex(c *gin.Context, pool ServePool, query []string, indexId int) {
+
+	interceptBytes, err := pool.Indexer.InterceptRequest(pool.Adapter.Get, indexId, query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
+		return
+	}
+	if interceptBytes != nil {
+		c.Data(http.StatusOK, "application/json", *interceptBytes)
+		return
+	}
+
+	index := strings.Join(query, "-")
 	file, err := pool.Adapter.Get(indexId, index)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
 		return
 	}
-	apiServer.resolveFile(c, file)
-}
-
-// resolveFile serves the content of a SavedFile
-func (apiServer *ApiServer) resolveFile(c *gin.Context, file files.SavedFile) {
-
-	var rawFile []byte
-
-	switch file.Type {
-	case files.LocalFile:
-		var err error
-		rawFile, err = files.LoadLocalFile(file.Path)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-	case files.S3File:
-		url := viper.GetString("storage.cdn")
-		res, err := http.Get(fmt.Sprintf("%v%v", url, file.Path))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-		defer res.Body.Close()
-		rawFile, err = io.ReadAll(res.Body)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to read response body: " + err.Error(),
-			})
-			return
-		}
+	bytes, err := file.Resolve()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
+		return
 	}
-
-	apiServer.serveFile(c, rawFile)
+	apiServer.serveFile(c, bytes, pool.ExcludeProof)
 }
 
-func (apiServer *ApiServer) serveFile(c *gin.Context, file []byte) {
+func (apiServer *ApiServer) serveFile(c *gin.Context, file []byte, excludeProof bool) {
 	var trustlessDataItem types.TrustlessDataItem
 	err := json.Unmarshal(file, &trustlessDataItem)
 	if err != nil {
@@ -214,7 +192,7 @@ func (apiServer *ApiServer) serveFile(c *gin.Context, file []byte) {
 	// only send the proof if it is attached
 	proofValue, proofParamExists := c.GetQuery("proof")
 
-	if trustlessDataItem.Proof != "" {
+	if trustlessDataItem.Proof != "" && !excludeProof {
 		if proofParamExists {
 			if proofValue != "false" {
 				c.Header("x-kyve-proof", trustlessDataItem.Proof)

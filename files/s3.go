@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/KYVENetwork/trustless-api/types"
@@ -72,7 +74,7 @@ func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedF
 	reader := bytes.NewReader(b)
 
 	filename := utils.GetUniqueDataitemName(dataitem)
-	filepath := fmt.Sprintf("%v/%v/%v.json", dataitem.PoolId, dataitem.BundleId, filename)
+	filepath := fmt.Sprintf("%v/%v/%v/%v.json", dataitem.ChainId, dataitem.PoolId, dataitem.BundleId, filename)
 
 	_, err = saveFile.client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:          aws.String(saveFile.bucket),
@@ -87,4 +89,18 @@ func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedF
 	}
 
 	return SavedFile{Type: S3File, Path: filepath}, nil
+}
+
+func LoadS3File(path string) ([]byte, error) {
+	url := viper.GetString("storage.cdn")
+	res, err := http.Get(fmt.Sprintf("%v%v", url, path))
+	if err != nil {
+		return []byte{}, err
+	}
+	defer res.Body.Close()
+	rawFile, err := io.ReadAll(res.Body)
+	if err != nil {
+		return []byte{}, err
+	}
+	return rawFile, nil
 }

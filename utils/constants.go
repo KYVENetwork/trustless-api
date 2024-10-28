@@ -17,10 +17,17 @@ const (
 const (
 	IndexBlockHeight            = 0
 	IndexSlotNumber             = 1
+	IndexBlobByNamespace        = 2
 	IndexSharesByNamespace      = 3
 	IndexTendermintBlock        = 4
 	IndexTendermintBlockResults = 5
 	IndexTendermintBlockByHash  = 6
+	IndexAllBlobsByNamespace    = 7
+	IndexEVMValue               = 8
+	IndexEVMBlock               = 9
+	IndexEVMTransaction         = 10
+	IndexEVMReceipt             = 11
+	IndexEVMLog                 = 12
 )
 
 const (

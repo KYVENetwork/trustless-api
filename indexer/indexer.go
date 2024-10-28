@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/indexer/helper"
 	"github.com/KYVENetwork/trustless-api/types"
 )
@@ -17,7 +18,7 @@ type Indexer interface {
 	//
 	// NOTE: 	If you want to create compound indices, you have to separate them with dashes '-' e. g.: '<blockHeight>-<namespace>'
 	// 			the order has to be identical to the order defined in `GetBindings`
-	IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error)
+	IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error)
 
 	// GetErrorResponse returns a wrapped error response
 	GetErrorResponse(message string, data any) any
@@ -62,6 +63,10 @@ type Indexer interface {
 	// 	},
 	// }
 	GetBindings() map[string]types.Endpoint
+
+	// InterceptRequest gets called whenever a request is made that will resolve a file by this indexer
+	// returns whether or not the server should proceed with default execution path of the request or serve the returned bytes
+	InterceptRequest(get files.Get, indexId int, query []string) (*[]byte, error)
 }
 
 var (
@@ -69,4 +74,5 @@ var (
 	HeightIndexer     = helper.HeightIndexer{}
 	CelestiaIndexer   = helper.CelestiaIndexer{}
 	TendermintIndexer = helper.TendermintIndexer{}
+	EVMIndexer        = helper.EVMIndexer{}
 )

@@ -31,7 +31,7 @@ type SQLAdapter struct {
 	indexTable    string
 }
 
-func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) SQLAdapter {
+func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64, chainId string) SQLAdapter {
 
 	dns := viper.GetString("database.dbname")
 	database, err := gorm.Open(sqlite.Open(dns), &gorm.Config{
@@ -41,7 +41,7 @@ func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId 
 		logger.Fatal().Err(err).Msg("Cannot open database.")
 	}
 
-	dataItemTable, indexTable := db.GetTableNames(poolId)
+	dataItemTable, indexTable := db.GetTableNames(poolId, chainId)
 
 	// Migrate the schema
 	database.Table(dataItemTable).AutoMigrate(&db.DataItemDocument{})
@@ -56,7 +56,7 @@ func GetSQLite(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId 
 	}
 }
 
-func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64) SQLAdapter {
+func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolId int64, chainId string) SQLAdapter {
 	dsn := fmt.Sprintf(
 		"host=%v user=%v password=%v dbname=%v port=%v",
 		viper.GetString("database.host"),
@@ -73,7 +73,7 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 		logger.Fatal().Err(err).Msg("Cannot open database.")
 	}
 
-	dataItemTable, indexTable := db.GetTableNames(poolId)
+	dataItemTable, indexTable := db.GetTableNames(poolId, chainId)
 
 	// Migrate the schema
 	database.Table(dataItemTable).AutoMigrate(&db.DataItemDocument{})
@@ -92,9 +92,9 @@ func GetPostgres(saveDataItem files.SaveDataItem, indexer indexer.Indexer, poolI
 // The entire array is inserted as one transaction ensuring we don't have incomplete data.
 //
 // NOTE: This function is thread safe.
-func (adapter *SQLAdapter) Save(bundle *types.Bundle, excludeProof bool) error {
+func (adapter *SQLAdapter) Save(bundle *types.Bundle) error {
 	start := time.Now()
-	dataItems, err := adapter.indexer.IndexBundle(bundle, excludeProof)
+	dataItems, err := adapter.indexer.IndexBundle(bundle)
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,6 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle, excludeProof bool) error {
 		dataItem := r.item
 		item := db.DataItemDocument{
 			BundleID: dataItem.BundleId,
-			PoolID:   dataItem.PoolId,
 			FileType: file.Type,
 			FilePath: file.Path,
 		}
@@ -173,7 +172,7 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle, excludeProof bool) error {
 
 	return adapter.db.Transaction(func(tx *gorm.DB) error {
 		// first insert the data items, the ID will be written into the array
-		err := tx.Table(adapter.dataItemTable).Create(items).Error
+		err := tx.Table(adapter.dataItemTable).CreateInBatches(items, 200).Error
 		if err != nil {
 			logger.Error().
 				Err(err).
@@ -195,7 +194,7 @@ func (adapter *SQLAdapter) Save(bundle *types.Bundle, excludeProof bool) error {
 			}
 		}
 
-		err = tx.Table(adapter.indexTable).Create(indices).Error
+		err = tx.Table(adapter.indexTable).CreateInBatches(indices, 200).Error
 		if err != nil {
 			logger.Error().
 				Err(err).

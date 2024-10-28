@@ -31,9 +31,9 @@ func TestOsmosisLast50Bundles(t *testing.T) {
 		panic(e)
 	}
 
-	adapter := adapters.GetSQLite(&save, &indexer.TendermintIndexer, 1)
+	adapter := adapters.GetSQLite(&save, &indexer.TendermintIndexer, 1, "kyve-1")
 
-	c := CreateBundleCrawler(&adapter, "kyve-1", 1, p.Pool.Data.TotalBundles-50, true, semaphore.NewWeighted(16))
+	c := CreateBundleCrawler(&adapter, "kyve-1", 1, p.Pool.Data.TotalBundles-50, semaphore.NewWeighted(16))
 
 	c.CrawlBundles()
 }

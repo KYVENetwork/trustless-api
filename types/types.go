@@ -126,6 +126,7 @@ type TrustlessDataItem struct {
 	Indices  []Index         `json:"-"`
 	PoolId   int64           `json:"-"`
 	BundleId int64           `json:"-"`
+	ChainId  string          `json:"-"`
 }
 
 type Index struct {
@@ -194,4 +195,12 @@ type TendermintBlock struct {
 	BlockId struct {
 		Hash string `json:"hash"`
 	} `json:"block_id"`
+}
+
+type CelestiaBlob struct {
+	Namespace    string `json:"namespace"`
+	Data         []byte `json:"data"`
+	ShareVersion uint32 `json:"share_version"`
+	Commitment   string `json:"commitment"`
+	Index        int32  `json:"index"`
 }

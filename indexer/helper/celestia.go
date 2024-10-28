@@ -2,127 +2,411 @@ package helper
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
+	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/merkle"
 	"github.com/KYVENetwork/trustless-api/types"
+	"github.com/KYVENetwork/trustless-api/types/celestia"
 	"github.com/KYVENetwork/trustless-api/utils"
+	"google.golang.org/protobuf/proto"
 )
 
-type CelestiaIndexer struct{}
+type CelestiaIndexer struct {
+}
 
 func (*CelestiaIndexer) GetBindings() map[string]types.Endpoint {
 	return map[string]types.Endpoint{
-		"/GetSharesByNamespace": {
+		"/Get": {
 			QueryParameter: []types.ParameterIndex{
 				{
-					IndexId:     utils.IndexSharesByNamespace,
-					Parameter:   []string{"height", "namespace"},
-					Description: []string{"celestia block height", "celestia namespace, available namespaces: AAAAAAAAAAAAAAAAAAAAAAAAAIZiad33fbxA7Z0=,AAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAg=,AAAAAAAAAAAAAAAAAAAAAAAAAAAABYTLU4hLOUU=,AAAAAAAAAAAAAAAAAAAAAAAAAAAADBuw7+PjGs8="},
+					IndexId:     utils.IndexBlobByNamespace,
+					Parameter:   []string{"height", "namespace", "commitment"},
+					Description: []string{"celestia block height", "celestia share namespace", "blob commitment"},
 				},
 			},
 			Schema: "JsonRPC",
 		},
+		"/GetAll": {
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexAllBlobsByNamespace,
+					Parameter:   []string{"height", "namespaces"},
+					Description: []string{"celestia block height", "celestia share namespaces"},
+				},
+			},
+			Schema: "JsonRPC",
+		},
+		"/block": {
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexTendermintBlock,
+					Parameter:   []string{"height"},
+					Description: []string{"block height"},
+				},
+			},
+			Schema: "TendermintBlock",
+		},
+		"/block_results": {
+			QueryParameter: []types.ParameterIndex{
+				{
+					IndexId:     utils.IndexTendermintBlockResults,
+					Parameter:   []string{"height"},
+					Description: []string{"block height"},
+				},
+			},
+			Schema: "TendermintBlockResults",
+		},
 	}
 }
 
-func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle, excludeProof bool) (*[]types.TrustlessDataItem, error) {
-
-	// convert data items to celestia data items
-	// we can also construct the high level leafs at this point
-	var dataItems []types.CelestiaDataItem
-	var leafs [][32]byte
-
-	for _, item := range bundle.DataItems {
-		var celestiaValue types.CelestiaValue
-
-		if err := json.Unmarshal(item.Value, &celestiaValue); err != nil {
-			return nil, err
+type CelestiaTendermintItem struct {
+	Block struct {
+		BlockId json.RawMessage `json:"block_id"`
+		Block   struct {
+			Header     json.RawMessage `json:"header"`
+			Evidence   json.RawMessage `json:"evidence"`
+			LastCommit json.RawMessage `json:"last_commit"`
+			Data       struct {
+				SquareSize string   `json:"square_size"`
+				Txs        []string `json:"txs"`
+			}
 		}
-		celestiaItem := types.CelestiaDataItem{Key: item.Key, Value: celestiaValue}
-		leafs = append(leafs, c.celestiaDataItemToSha256(&celestiaItem))
-		dataItems = append(dataItems, celestiaItem)
+	} `json:"block"`
+	BlockResults json.RawMessage `json:"block_results"`
+}
+
+func (c *CelestiaIndexer) calculateBlobsMerkleRoot(blobs *[]types.CelestiaBlob) [32]byte {
+	leafs := make([][32]byte, 0, len(*blobs))
+	for _, blob := range *blobs {
+		leafs = append(leafs, utils.CalculateSHA256Hash(blob))
+	}
+	return merkle.GetMerkleRoot(leafs)
+}
+
+func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
+	type ProcessedDataItem struct {
+		value                  types.TendermintValue
+		blobs                  []types.CelestiaBlob
+		key                    string
+		localBlockProof        []types.MerkleNode
+		localBlockResultsProof []types.MerkleNode
+		localBlobsProof        []types.MerkleNode
 	}
 
-	var trustlessItems []types.TrustlessDataItem
+	leafs := make([][32]byte, 0, len(bundle.DataItems))
+	items := make([]ProcessedDataItem, 0, len(bundle.DataItems))
 
-	// now we can process all the data items inside of the bundle
-	// we want to create an index for each data item
-	// but we also want to create an index for each namespace of each data item
-	for index, dataitem := range dataItems {
-		// this will be the roof of our proof
+	// first we decode each data item to get its blobs and calculate its dataitem hash
+	for _, item := range bundle.DataItems {
+		// unmarshal raw tendermint item
+		var celestiaItem CelestiaTendermintItem
+		err := json.Unmarshal(item.Value, &celestiaItem)
+		if err != nil {
+			return nil, err
+		}
+
+		// we assume there are 4 blobs per block
+		blobs := make([]types.CelestiaBlob, 0, 4)
+		// iterate over all txs and check if its a BlobTx
+		for _, tx := range celestiaItem.Block.Block.Data.Txs {
+			blobTx := &celestia.BlobTx{}
+			// tx is encoded in base64
+			txBytes, err := base64.StdEncoding.DecodeString(tx)
+			if err != nil {
+				return nil, err
+			}
+			if err := proto.Unmarshal(txBytes, blobTx); err != nil {
+				// not a BlobTx -> no blobs available
+				continue
+			}
+
+			// extract MsgPayForBlobs to find commitments and other relevant information
+			// we have to unmarshal the based sdk.Tx transaction for this
+
+			tendermintTx := &celestia.Tx{}
+			if err := proto.Unmarshal(blobTx.Tx, tendermintTx); err != nil {
+				return nil, err
+			}
+
+			var msgPayForBlobs *celestia.MsgPayForBlobs
+			for _, msg := range tendermintTx.Body.Messages {
+				// typeUrl for MsgPayForBlobs
+				if msg.TypeUrl == "/celestia.blob.v1.MsgPayForBlobs" {
+					// initilize pointer
+					msgPayForBlobs = &celestia.MsgPayForBlobs{}
+					if err := proto.Unmarshal(msg.Value, msgPayForBlobs); err != nil {
+						return nil, err
+					}
+				}
+			}
+
+			if msgPayForBlobs == nil {
+				return nil, fmt.Errorf("missing MsgPayForBlobs in Tx")
+			}
+
+			for index, blob := range blobTx.Blobs {
+				blobs = append(blobs, types.CelestiaBlob{
+					Namespace:    base64.StdEncoding.EncodeToString(msgPayForBlobs.Namespaces[index]),
+					Data:         blob.Data,
+					ShareVersion: blob.ShareVersion,
+					Commitment:   base64.StdEncoding.EncodeToString(msgPayForBlobs.ShareCommitments[index]),
+					Index:        -1,
+				})
+			}
+		}
+
+		// create leaf hash for the celestia data item
+		var tendermintValue types.TendermintValue
+		err = json.Unmarshal(item.Value, &tendermintValue)
+		if err != nil {
+			return nil, err
+		}
+
+		blockHash := utils.CalculateSHA256Hash(tendermintValue.Block)
+		blockResultsHash := utils.CalculateSHA256Hash(tendermintValue.BlockResults)
+
+		tendermintMerkleRoot := merkle.GetMerkleRoot([][32]byte{blockHash, blockResultsHash})
+		blobsMerkleRoot := c.calculateBlobsMerkleRoot(&blobs)
+
+		merkleRootCombined := merkle.GetMerkleRoot([][32]byte{tendermintMerkleRoot, blobsMerkleRoot})
+
+		keyBytes := sha256.Sum256([]byte(item.Key))
+		combined := append(keyBytes[:], merkleRootCombined[:]...)
+		keyHash := sha256.Sum256(combined)
+
+		leafs = append(leafs, keyHash)
+
+		blockProof := []types.MerkleNode{
+			{
+				Left: true,
+				Hash: hex.EncodeToString(blockResultsHash[:]),
+			},
+			{
+				Left: true,
+				Hash: hex.EncodeToString(blobsMerkleRoot[:]),
+			},
+			{
+				Left: false,
+				Hash: hex.EncodeToString(keyBytes[:]),
+			},
+		}
+
+		blockResultsProof := []types.MerkleNode{
+			{
+				Left: false,
+				Hash: hex.EncodeToString(blockHash[:]),
+			},
+			{
+				Left: true,
+				Hash: hex.EncodeToString(blobsMerkleRoot[:]),
+			},
+			{
+				Left: false,
+				Hash: hex.EncodeToString(keyBytes[:]),
+			},
+		}
+
+		blobsProof := []types.MerkleNode{
+			{
+				Left: false,
+				Hash: hex.EncodeToString(tendermintMerkleRoot[:]),
+			},
+			{
+				Left: false,
+				Hash: hex.EncodeToString(keyBytes[:]),
+			},
+		}
+
+		items = append(items, ProcessedDataItem{
+			value:                  tendermintValue,
+			blobs:                  blobs,
+			key:                    item.Key,
+			localBlockProof:        blockProof,
+			localBlockResultsProof: blockResultsProof,
+			localBlobsProof:        blobsProof,
+		})
+	}
+
+	// assume we have 4 blobs per block + block & block_results
+	trustlessItems := make([]types.TrustlessDataItem, 0, len(items)*6)
+
+	for index, item := range items {
 		proof, err := merkle.GetHashesCompact(&leafs, index)
 		if err != nil {
 			return nil, err
 		}
 
-		// first we have to construct the leafs of all the namespaces
-		var namespaceLeafs [][32]byte
-		for _, namespacedShares := range dataitem.Value.SharesByNamespace {
-			namespaceLeafs = append(namespaceLeafs, utils.CalculateSHA256Hash(namespacedShares))
+		blobLeafs := make([][32]byte, 0, len(item.blobs))
+		for _, blob := range item.blobs {
+			blobLeafs = append(blobLeafs, utils.CalculateSHA256Hash(blob))
 		}
 
-		for index, namespace := range dataitem.Value.SharesByNamespace {
-			namespaceProof, err := merkle.GetHashesCompact(&namespaceLeafs, index)
+		// only safe blobs once, height-namespace-commitment is not unique, but this does not matter for the blobs.Get request.
+		// It simply returns the first Blob it finds.
+		savedBlobs := map[string]bool{}
+
+		// first create trustless data items for each blob
+		for blobIndex, blob := range item.blobs {
+
+			if savedBlobs[blob.Namespace+blob.Commitment] {
+				continue
+			}
+			savedBlobs[blob.Namespace+blob.Commitment] = true
+
+			blobRaw, err := json.Marshal(blob)
 			if err != nil {
 				return nil, err
 			}
 
-			// Because we also hash the key of the original data item, we have to append an extra leaf with the key
-			keyBytes := sha256.Sum256([]byte(dataitem.Key))
-			keyHash := hex.EncodeToString(keyBytes[:])
-			totalProof := append(namespaceProof, types.MerkleNode{Left: false, Hash: keyHash})
-
-			// finally append the proof for the rest of the data items
-			totalProof = append(totalProof, proof...)
-
-			rpcResponse, err := utils.WrapIntoJsonRpcResponse(dataitem.Value.SharesByNamespace[index])
+			rpcResponse, err := utils.WrapIntoJsonRpcResponse(json.RawMessage(blobRaw))
 			if err != nil {
 				return nil, err
 			}
 
-			index := fmt.Sprintf("%v-%v", dataitem.Key, namespace.NamespaceId)
-
-			var encodedProof string
-			// if proof is not attached, we set the proof to an empty string
-			if excludeProof {
-				encodedProof = ""
-			} else {
-				encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", totalProof)
+			blobProof, err := merkle.GetHashesCompact(&blobLeafs, blobIndex)
+			if err != nil {
+				return nil, err
 			}
 
-			trustlessDataItem := types.TrustlessDataItem{
+			// append local proof with tendermint block & block results
+			blobProof = append(blobProof, item.localBlobsProof...)
+
+			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", append(blobProof, proof...))
+
+			trustlessItems = append(trustlessItems, types.TrustlessDataItem{
+				PoolId:   bundle.PoolId,
+				BundleId: bundle.BundleId,
+				ChainId:  bundle.ChainId,
 				Value:    rpcResponse,
 				Proof:    encodedProof,
-				BundleId: bundle.BundleId,
-				PoolId:   bundle.PoolId,
 				Indices: []types.Index{
-					{Index: index, IndexId: utils.IndexSharesByNamespace},
+					{
+						Index:   fmt.Sprintf("%v-%v-%v", item.key, blob.Namespace, blob.Commitment),
+						IndexId: utils.IndexBlobByNamespace,
+					},
 				},
-			}
-			trustlessItems = append(trustlessItems, trustlessDataItem)
+			})
 		}
+
+		rawAllBlobs, err := json.Marshal(item.blobs)
+		if err != nil {
+			return nil, err
+		}
+
+		// create a trustless item for all blobs
+		trustlessItems = append(trustlessItems, types.TrustlessDataItem{
+			Proof: "",
+			Indices: []types.Index{
+				{
+					Index:   item.key,
+					IndexId: utils.IndexAllBlobsByNamespace,
+				},
+			},
+			Value:    rawAllBlobs,
+			PoolId:   bundle.PoolId,
+			BundleId: bundle.BundleId,
+			ChainId:  bundle.ChainId,
+		})
+
+		rpcResponse, err := utils.WrapIntoJsonRpcResponse(item.value.Block)
+		if err != nil {
+			return nil, err
+		}
+
+		encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", append(item.localBlockProof, proof...))
+		trustlessItems = append(trustlessItems, types.TrustlessDataItem{
+			PoolId:   bundle.PoolId,
+			BundleId: bundle.BundleId,
+			ChainId:  bundle.ChainId,
+			Value:    rpcResponse,
+			Proof:    encodedProof,
+			Indices: []types.Index{
+				{
+					Index:   item.key,
+					IndexId: utils.IndexTendermintBlock,
+				},
+			},
+		})
+
+		rpcResponse, err = utils.WrapIntoJsonRpcResponse(item.value.BlockResults)
+		if err != nil {
+			return nil, err
+		}
+
+		encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", append(item.localBlockResultsProof, proof...))
+		trustlessItems = append(trustlessItems, types.TrustlessDataItem{
+			PoolId:   bundle.PoolId,
+			BundleId: bundle.BundleId,
+			ChainId:  bundle.ChainId,
+			Value:    rpcResponse,
+			Proof:    encodedProof,
+			Indices: []types.Index{
+				{
+					Index:   item.key,
+					IndexId: utils.IndexTendermintBlockResults,
+				},
+			},
+		})
 	}
 
 	return &trustlessItems, nil
 }
 
-func (*CelestiaIndexer) celestiaDataItemToSha256(dataItem *types.CelestiaDataItem) [32]byte {
-
-	var shareHashes [][32]byte
-	for _, namespacedShares := range dataItem.Value.SharesByNamespace {
-		shareHashes = append(shareHashes, utils.CalculateSHA256Hash(namespacedShares))
-	}
-
-	merkleRoot := merkle.GetMerkleRoot(shareHashes)
-	keyBytes := sha256.Sum256([]byte(dataItem.Key))
-	combined := append(keyBytes[:], merkleRoot[:]...)
-
-	return sha256.Sum256(combined)
-}
-
 func (*CelestiaIndexer) GetErrorResponse(message string, data any) any {
 	return utils.WrapIntoJsonRpcErrorResponse(message, data)
+}
+
+func (d *CelestiaIndexer) InterceptRequest(get files.Get, indexId int, query []string) (*[]byte, error) {
+	if indexId == utils.IndexAllBlobsByNamespace {
+		if len(query) != 2 {
+			return nil, fmt.Errorf("query paramter count mismatch")
+		}
+
+		// the first query parameter (block_height) is our unique identifier
+		file, err := get(indexId, query[0])
+		if err != nil {
+			return nil, err
+		}
+
+		bytes, err := file.Resolve()
+		if err != nil {
+			return nil, err
+		}
+
+		celestiaBlobs := struct {
+			Value []types.CelestiaBlob `json:"value"`
+		}{}
+		err = json.Unmarshal(bytes, &celestiaBlobs)
+		if err != nil {
+			return nil, err
+		}
+
+		// namespace is the second query parameter
+		namespace := query[1]
+
+		filtedredBlobs := []types.CelestiaBlob{}
+		for _, b := range celestiaBlobs.Value {
+			if b.Namespace == namespace {
+				filtedredBlobs = append(filtedredBlobs, b)
+			}
+		}
+
+		namespaceBytes, err := json.Marshal(filtedredBlobs)
+		if err != nil {
+			return nil, err
+		}
+
+		responseBytes, err := utils.WrapIntoJsonRpcResponse(json.RawMessage(namespaceBytes))
+		if err != nil {
+			return nil, err
+		}
+
+		return &responseBytes, nil
+
+	}
+	return nil, nil
 }

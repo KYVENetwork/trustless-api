@@ -15,6 +15,8 @@ var (
 	PrometheusSyncStepFailedRetry *prometheus.CounterVec
 
 	PrometheusProcessDuration *prometheus.GaugeVec
+	PrometheusBundleSize      *prometheus.GaugeVec
+	PrometheusBundleHeight    *prometheus.GaugeVec
 )
 
 func StartPrometheus(port string) {
@@ -49,5 +51,13 @@ func init() {
 
 	PrometheusProcessDuration = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "bundle_process_duration",
+	}, labelNames)
+
+	PrometheusBundleHeight = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "bundle_height",
+	}, labelNames)
+
+	PrometheusBundleSize = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "bundle_size",
 	}, labelNames)
 }
