@@ -79,7 +79,7 @@ pools:
     indexer: Tendermint
     poolid: 8
     slug: dydx
-    bundleStartId: 130000
+    bundleStartId: 198680
 # === DATABASE ===
 # database configuration
 # ================
