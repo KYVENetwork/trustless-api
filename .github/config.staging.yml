@@ -60,10 +60,10 @@ pools:
     slug: dydx
     bundleStartId: 198680
   - chainid: korellia-2
-    indexer: EVM
-    poolid: 144
-    slug: berachain
-    bundleStartId: 17274
+    indexer: Height
+    poolid: 149
+    slug: cardano
+    bundleStartId: 0
 
 # === DATABASE ===
 # database configuration
