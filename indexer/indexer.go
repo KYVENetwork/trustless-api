@@ -66,7 +66,7 @@ type Indexer interface {
 
 	// InterceptRequest gets called whenever a request is made that will resolve a file by this indexer
 	// returns whether or not the server should proceed with default execution path of the request or serve the returned bytes
-	InterceptRequest(get files.Get, indexId int, query []string) (*[]byte, error)
+	InterceptRequest(get files.Get, indexId int, query []string) (*types.InterceptionResponse, error)
 }
 
 var (

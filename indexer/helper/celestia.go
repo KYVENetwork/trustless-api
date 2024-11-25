@@ -360,7 +360,7 @@ func (*CelestiaIndexer) GetErrorResponse(message string, data any) any {
 	return utils.WrapIntoJsonRpcErrorResponse(message, data)
 }
 
-func (d *CelestiaIndexer) InterceptRequest(get files.Get, indexId int, query []string) (*[]byte, error) {
+func (d *CelestiaIndexer) InterceptRequest(get files.Get, indexId int, query []string) (*types.InterceptionResponse, error) {
 	if indexId == utils.IndexAllBlobsByNamespace {
 		if len(query) != 2 {
 			return nil, fmt.Errorf("query paramter count mismatch")
@@ -405,7 +405,9 @@ func (d *CelestiaIndexer) InterceptRequest(get files.Get, indexId int, query []s
 			return nil, err
 		}
 
-		return &responseBytes, nil
+		return &types.InterceptionResponse{
+			Data: &responseBytes,
+		}, nil
 
 	}
 	return nil, nil
