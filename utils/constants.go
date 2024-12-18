@@ -12,6 +12,7 @@ const (
 	RestEndpointArweave     = "https://arweave.net"
 	RestEndpointBundlr      = "https://arweave.net"
 	RestEndpointKYVEStorage = "https://storage.kyve.network"
+	RestEndpointTurbo       = "https://arweave.net"
 )
 
 const (
