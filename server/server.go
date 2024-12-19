@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/KYVENetwork/trustless-api/types"
 
@@ -155,13 +156,19 @@ func (apiServer *ApiServer) findSelectedParameter(c *gin.Context, params *[]type
 // `indexId` - is the corresponding Id for the key e. g. block_height -> 0
 func (apiServer *ApiServer) getIndex(c *gin.Context, pool ServePool, query []string, indexId int) {
 
-	interceptBytes, err := pool.Indexer.InterceptRequest(pool.Adapter.Get, indexId, query)
+	start := time.Now()
+	interceptResponse, err := pool.Indexer.InterceptRequest(pool.Adapter.Get, indexId, query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, pool.Indexer.GetErrorResponse("Internal error", err.Error()))
 		return
 	}
-	if interceptBytes != nil {
-		c.Data(http.StatusOK, "application/json", *interceptBytes)
+	if interceptResponse != nil {
+		logger.Debug().Str("query", c.FullPath()).Msg(fmt.Sprintf("intercept took: %v", time.Since(start)))
+		proofValue, proofParamExists := c.GetQuery("proof")
+		if !pool.ExcludeProof && (!proofParamExists || proofValue == "true") {
+			c.Header("x-kyve-proof", interceptResponse.Proof)
+		}
+		c.Data(http.StatusOK, "application/json", *interceptResponse.Data)
 		return
 	}
 

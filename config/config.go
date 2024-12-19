@@ -36,6 +36,7 @@ var (
 			1: {utils.RestEndpointArweave},
 			2: {utils.RestEndpointBundlr},
 			3: {utils.RestEndpointKYVEStorage},
+			4: {utils.RestEndpointTurbo},
 		},
 		Chains: map[string][]string{
 			utils.ChainIdMainnet:  {utils.RestEndpointMainnet},
@@ -231,6 +232,8 @@ func (c PoolsConfig) GetDatabaseAdapter() db.Adapter {
 		idx = &indexer.CelestiaIndexer
 	case "Tendermint":
 		idx = &indexer.TendermintIndexer
+	case "EVM":
+		idx = &indexer.EVMIndexer
 	default:
 		logger.Fatal().Str("type", c.Indexer).Msg("failed to resolve indexer")
 		return nil
