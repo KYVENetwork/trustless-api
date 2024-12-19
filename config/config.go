@@ -36,6 +36,7 @@ var (
 			1: {utils.RestEndpointArweave},
 			2: {utils.RestEndpointBundlr},
 			3: {utils.RestEndpointKYVEStorage},
+			4: {utils.RestEndpointTurbo},
 		},
 		Chains: map[string][]string{
 			utils.ChainIdMainnet:  {utils.RestEndpointMainnet},
