@@ -204,3 +204,8 @@ type CelestiaBlob struct {
 	Commitment   string `json:"commitment"`
 	Index        int32  `json:"index"`
 }
+
+type InterceptionResponse struct {
+	Data  *[]byte
+	Proof string
+}

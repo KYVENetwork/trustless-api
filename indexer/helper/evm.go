@@ -4,7 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 
+	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/merkle"
 	"github.com/KYVENetwork/trustless-api/types"
 	"github.com/KYVENetwork/trustless-api/utils"
@@ -101,24 +103,33 @@ type Log struct {
 	TransactionHash string `json:"transactionHash"`
 }
 
+type ProcessedDataItem struct {
+	Value             EVMDataItem        `json:"value"`
+	Key               string             `json:"key"`
+	BlockProof        []types.MerkleNode `json:"blockProof"`
+	TransactionsProof []types.MerkleNode `json:"transactionsProof"`
+	ReceiptsProof     []types.MerkleNode `json:"receiptsProof"`
+}
+
+type IntermediateItem struct {
+	Item        ProcessedDataItem  `json:"item"`
+	BundleProof []types.MerkleNode `json:"bundleProof"`
+	BundleId    int64              `json:"bundleId"`
+	PoolId      int64              `json:"poolId"`
+	ChainId     string             `json:"chainId"`
+}
+
 func getMerkleRoot[T any](array *[]T) [32]byte {
-    leafs := make([][32]byte, 0, len(*array))
+	leafs := make([][32]byte, 0, len(*array))
 
-    for _, item := range *array {
-        leafs = append(leafs, utils.CalculateSHA256Hash(item))
-    }
+	for _, item := range *array {
+		leafs = append(leafs, utils.CalculateSHA256Hash(item))
+	}
 
-    return merkle.GetMerkleRoot(leafs)
+	return merkle.GetMerkleRoot(leafs)
 }
 
 func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataItem, error) {
-	type ProcessedDataItem struct {
-		value             EVMDataItem
-		key               string
-		blockProof        []types.MerkleNode
-		transactionsProof []types.MerkleNode
-		receiptsProof     []types.MerkleNode
-	}
 
 	leafs := make([][32]byte, 0, len(bundle.DataItems))
 	items := make([]ProcessedDataItem, 0, len(bundle.DataItems))
@@ -219,101 +230,67 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 		}
 
 		items = append(items, ProcessedDataItem{
-			value:             evmDataItem,
-			key:               item.Key,
-			blockProof:        blockProof,
-			transactionsProof: transactionsProof,
-			receiptsProof:     receiptsProof,
+			Value:             evmDataItem,
+			Key:               item.Key,
+			BlockProof:        blockProof,
+			TransactionsProof: transactionsProof,
+			ReceiptsProof:     receiptsProof,
 		})
 	}
 
 	trustlessItems := make([]types.TrustlessDataItem, 0, len(items)*6)
 
 	for index, item := range items {
+
 		proof, err := merkle.GetHashesCompact(&leafs, index)
 		if err != nil {
 			return nil, err
 		}
 
-		txLeafs := make([][32]byte, 0, len(item.value.Block.Transactions))
-		for _, tx := range item.value.Block.Transactions {
-			txLeafs = append(txLeafs, utils.CalculateSHA256Hash(tx))
+		intermediateItem := IntermediateItem{
+			Item:        item,
+			BundleProof: proof,
+			BundleId:    bundle.BundleId,
+			PoolId:      bundle.PoolId,
+			ChainId:     bundle.ChainId,
 		}
 
-		// Iterate through all transactions and add it to trustless items to serve them individually.
-		for txIndex, tx := range item.value.Block.Transactions {
-			txProof, err := merkle.GetHashesCompact(&txLeafs, txIndex)
-			if err != nil {
-				return nil, err
-			}
+		rawItem, err := json.Marshal(intermediateItem)
 
-			txProof = append(txProof, item.transactionsProof...)
+		if err != nil {
+			return nil, err
+		}
 
-			encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", append(txProof, proof...))
+		indices := []types.Index{
+			{
+				Index:   item.Value.Block.Hash,
+				IndexId: utils.IndexEVMBlock,
+			},
+			{
+				Index:   item.Value.Block.Hash,
+				IndexId: utils.IndexEVMReceipt,
+			},
+		}
 
-			rpcResponse, err := utils.WrapIntoJsonRpcResponse(tx)
-			if err != nil {
-				return nil, err
-			}
-
+		for _, tx := range item.Value.Block.Transactions {
 			var unmarshalledTx Transaction
 			if err = json.Unmarshal(tx, &unmarshalledTx); err != nil {
 				return nil, err
 			}
 
-			trustlessItems = append(trustlessItems, types.TrustlessDataItem{
-				PoolId:   bundle.PoolId,
-				BundleId: bundle.BundleId,
-				ChainId:  bundle.ChainId,
-				Value:    rpcResponse,
-				Proof:    encodedProof,
-				Indices: []types.Index{
-					{
-						Index:   unmarshalledTx.Hash,
-						IndexId: utils.IndexEVMTransaction,
-					},
-				},
+			indices = append(indices, types.Index{
+				Index:   unmarshalledTx.Hash,
+				IndexId: utils.IndexEVMTransaction,
 			})
 		}
 
-		rpcResponse, err := utils.WrapIntoJsonRpcResponse(item.value.Receipts)
-		if err != nil {
-			return nil, err
-		}
-
-		encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", append(item.receiptsProof, proof...))
-		trustlessItems = append(trustlessItems, types.TrustlessDataItem{
-			Proof: encodedProof,
-			Indices: []types.Index{
-				{
-					Index:   item.value.Block.Hash,
-					IndexId: utils.IndexEVMReceipt,
-				},
-			},
-			Value:    rpcResponse,
-			PoolId:   bundle.PoolId,
-			BundleId: bundle.BundleId,
-			ChainId:  bundle.ChainId,
-		})
-
-		rpcResponse, err = utils.WrapIntoJsonRpcResponse(item.value.Block)
-		if err != nil {
-			return nil, err
-		}
-
-		encodedProof = utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, "", "result", append(item.blockProof, proof...))
 		trustlessItems = append(trustlessItems, types.TrustlessDataItem{
 			PoolId:   bundle.PoolId,
 			BundleId: bundle.BundleId,
 			ChainId:  bundle.ChainId,
-			Value:    rpcResponse,
-			Proof:    encodedProof,
-			Indices: []types.Index{
-				{
-					Index:   item.value.Block.Hash,
-					IndexId: utils.IndexEVMBlock,
-				},
-			},
+			Value:    rawItem,
+			Proof:    "", // derive the proof from the raw item on interception
+			Indices:  indices,
 		})
 	}
 
@@ -322,4 +299,96 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 
 func (*EVMIndexer) GetErrorResponse(message string, data any) any {
 	return utils.WrapIntoJsonRpcErrorResponse(message, data)
+}
+
+func (*EVMIndexer) serveTransactions(intermediateItem *IntermediateItem, query []string) (*types.InterceptionResponse, error) {
+
+	hash := query[0]
+	item := intermediateItem.Item
+
+	txLeafs := make([][32]byte, 0, len(item.Value.Block.Transactions))
+	for _, tx := range item.Value.Block.Transactions {
+		txLeafs = append(txLeafs, utils.CalculateSHA256Hash(tx))
+	}
+
+	// Iterate through all transactions and add it to trustless items to serve them individually.
+	for txIndex, tx := range item.Value.Block.Transactions {
+
+		var unmarshalledTx Transaction
+		if err := json.Unmarshal(tx, &unmarshalledTx); err != nil {
+			return nil, err
+		}
+
+		if unmarshalledTx.Hash != hash {
+			continue
+		}
+
+		txProof, err := merkle.GetHashesCompact(&txLeafs, txIndex)
+		if err != nil {
+			return nil, err
+		}
+
+		txProof = append(txProof, item.TransactionsProof...)
+
+		encodedProof := utils.EncodeProof(intermediateItem.PoolId, intermediateItem.BundleId, intermediateItem.ChainId, "", "result", append(txProof, intermediateItem.BundleProof...))
+
+		rpcResponse, err := utils.WrapIntoJsonRpcResponse(tx)
+		if err != nil {
+			return nil, err
+		}
+
+		return &types.InterceptionResponse{
+			Data:  &rpcResponse,
+			Proof: encodedProof,
+		}, nil
+	}
+
+	return nil, fmt.Errorf("transaction not found")
+}
+
+func (e *EVMIndexer) InterceptRequest(get files.Get, indexId int, query []string) (*types.InterceptionResponse, error) {
+	if len(query) != 1 {
+		return nil, fmt.Errorf("query paramter count mismatch")
+	}
+
+	item, err := get(indexId, query[0])
+	if err != nil {
+		return nil, err
+	}
+
+	bytes, err := item.Resolve()
+	if err != nil {
+		return nil, err
+	}
+
+	intermediateItem := struct {
+		Value IntermediateItem `json:"value"`
+	}{}
+	err = json.Unmarshal(bytes, &intermediateItem)
+	if err != nil {
+		return nil, err
+	}
+
+	rawItem := intermediateItem.Value
+
+	switch indexId {
+	case utils.IndexEVMTransaction:
+		return e.serveTransactions(&rawItem, query)
+	case utils.IndexEVMReceipt:
+		rpcResponse, err := utils.WrapIntoJsonRpcResponse(rawItem.Item.Value.Receipts)
+		encodedProof := utils.EncodeProof(rawItem.PoolId, rawItem.BundleId, rawItem.ChainId, "", "result", append(rawItem.Item.ReceiptsProof, rawItem.BundleProof...))
+		return &types.InterceptionResponse{
+			Data:  &rpcResponse,
+			Proof: encodedProof,
+		}, err
+	case utils.IndexEVMBlock:
+		rpcResponse, err := utils.WrapIntoJsonRpcResponse(rawItem.Item.Value.Block)
+		encodedProof := utils.EncodeProof(rawItem.PoolId, rawItem.BundleId, rawItem.ChainId, "", "result", append(rawItem.Item.BlockProof, rawItem.BundleProof...))
+		return &types.InterceptionResponse{
+			Data:  &rpcResponse,
+			Proof: encodedProof,
+		}, err
+	}
+
+	return nil, nil
 }

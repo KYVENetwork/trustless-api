@@ -131,6 +131,8 @@ endpoints:
       - https://arweave.net
     3:
       - https://storage.kyve.network
+    4:
+        - https://arweave.net
   chains:
     kaon-1:
       - https://api.kaon.kyve.network
