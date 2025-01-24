@@ -19,20 +19,10 @@ prometheus:
 crawler:
   threads: 4
 pools:
-  - chainid: kaon-1
-    indexer: EthBlobs
-    poolid: 21
-    slug: ethereum
-    bundleStartId: 0
   - chainid: korellia-2
     indexer: Height
     poolid: 118
     slug: avail
-    bundleStartId: 0
-  - chainid: korellia-2
-    indexer: Tendermint
-    poolid: 128
-    slug: andromeda
     bundleStartId: 0
   - chainid: korellia-2
     indexer: Height
@@ -64,6 +54,11 @@ pools:
     poolid: 149
     slug: cardano
     bundleStartId: 0
+  - chainid: kaon-1
+    indexer: Tendermint
+    poolid: 18
+    slug: cosmos
+    bundleStartId: 230350
 
 # === DATABASE ===
 # database configuration
