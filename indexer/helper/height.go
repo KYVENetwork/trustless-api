@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/KYVENetwork/trustless-api/utils"
 
@@ -36,7 +36,7 @@ func (*HeightIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataI
 		if err != nil {
 			return nil, err
 		}
-		raw, err := json.Marshal(dataitem)
+		raw, err := jsoniter.Marshal(dataitem)
 		if err != nil {
 			return nil, err
 		}

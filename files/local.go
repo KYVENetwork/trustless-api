@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"io"
 	"os"
 	"path/filepath"
@@ -17,7 +18,7 @@ import (
 type SaveLocalFileInterface struct{}
 
 func (saveFile *SaveLocalFileInterface) Save(dataItem *types.TrustlessDataItem) (SavedFile, error) {
-	b, err := json.Marshal(dataItem)
+	b, err := jsoniter.Marshal(dataItem)
 	if err != nil {
 		return SavedFile{}, err
 	}

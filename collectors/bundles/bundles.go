@@ -1,8 +1,8 @@
 package bundles
 
 import (
-	"encoding/json"
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"strconv"
 
 	"github.com/KYVENetwork/trustless-api/config"
@@ -32,7 +32,7 @@ func GetFinalizedBundle(chainId string, poolId int64, bundleId int64) (*types.Fi
 
 	var finalizedBundle types.FinalizedBundle
 
-	if err := json.Unmarshal(raw, &finalizedBundle); err != nil {
+	if err := jsoniter.Unmarshal(raw, &finalizedBundle); err != nil {
 		return nil, err
 	}
 

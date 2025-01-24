@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/merkle"
@@ -136,7 +137,7 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 
 	for _, item := range bundle.DataItems {
 		var evmDataItem EVMDataItem
-		err := json.Unmarshal(item.Value, &evmDataItem)
+		err := jsoniter.Unmarshal(item.Value, &evmDataItem)
 		if err != nil {
 			return nil, err
 		}
@@ -255,7 +256,7 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 			ChainId:     bundle.ChainId,
 		}
 
-		rawItem, err := json.Marshal(intermediateItem)
+		rawItem, err := jsoniter.Marshal(intermediateItem)
 
 		if err != nil {
 			return nil, err
@@ -274,7 +275,7 @@ func (c *EVMIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessDataIt
 
 		for _, tx := range item.Value.Block.Transactions {
 			var unmarshalledTx Transaction
-			if err = json.Unmarshal(tx, &unmarshalledTx); err != nil {
+			if err = jsoniter.Unmarshal(tx, &unmarshalledTx); err != nil {
 				return nil, err
 			}
 
@@ -315,7 +316,7 @@ func (*EVMIndexer) serveTransactions(intermediateItem *IntermediateItem, query [
 	for txIndex, tx := range item.Value.Block.Transactions {
 
 		var unmarshalledTx Transaction
-		if err := json.Unmarshal(tx, &unmarshalledTx); err != nil {
+		if err := jsoniter.Unmarshal(tx, &unmarshalledTx); err != nil {
 			return nil, err
 		}
 
@@ -364,7 +365,7 @@ func (e *EVMIndexer) InterceptRequest(get files.Get, indexId int, query []string
 	intermediateItem := struct {
 		Value IntermediateItem `json:"value"`
 	}{}
-	err = json.Unmarshal(bytes, &intermediateItem)
+	err = jsoniter.Unmarshal(bytes, &intermediateItem)
 	if err != nil {
 		return nil, err
 	}

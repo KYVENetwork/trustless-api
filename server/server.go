@@ -3,8 +3,8 @@ package server
 import (
 	"bytes"
 	_ "embed"
-	"encoding/json"
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"html"
 	"html/template"
 	"net/http"
@@ -188,7 +188,7 @@ func (apiServer *ApiServer) getIndex(c *gin.Context, pool ServePool, query []str
 
 func (apiServer *ApiServer) serveFile(c *gin.Context, file []byte, excludeProof bool) {
 	var trustlessDataItem types.TrustlessDataItem
-	err := json.Unmarshal(file, &trustlessDataItem)
+	err := jsoniter.Unmarshal(file, &trustlessDataItem)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),

@@ -3,8 +3,8 @@ package files
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"io"
 	"log"
 	"net/http"
@@ -67,7 +67,7 @@ func (saveFile *S3FileInterface) Save(dataitem *types.TrustlessDataItem) (SavedF
 		saveFile.Init()
 	}
 
-	b, err := json.Marshal(dataitem)
+	b, err := jsoniter.Marshal(dataitem)
 	if err != nil {
 		return SavedFile{}, err
 	}
