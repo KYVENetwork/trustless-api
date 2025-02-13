@@ -4,8 +4,8 @@ log: info
 # prometheus configuration
 # ==================
 prometheus:
-    enabled: false
-    port: 2112
+  enabled: false
+  port: 2112
 
 # === POOLS ===
 # An array that defines what pools should be crawled and how they are served.
@@ -127,7 +127,7 @@ endpoints:
     3:
       - https://storage.kyve.network
     4:
-        - https://arweave.net
+      - https://arweave.net
   chains:
     kaon-1:
       - https://api.kaon.kyve.network

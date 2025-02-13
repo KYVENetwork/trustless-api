@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/KYVENetwork/trustless-api/files"
 	"github.com/KYVENetwork/trustless-api/merkle"
@@ -104,7 +105,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 	for _, item := range bundle.DataItems {
 		// unmarshal raw tendermint item
 		var celestiaItem CelestiaTendermintItem
-		err := json.Unmarshal(item.Value, &celestiaItem)
+		err := jsoniter.Unmarshal(item.Value, &celestiaItem)
 		if err != nil {
 			return nil, err
 		}
@@ -161,7 +162,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 
 		// create leaf hash for the celestia data item
 		var tendermintValue types.TendermintValue
-		err = json.Unmarshal(item.Value, &tendermintValue)
+		err = jsoniter.Unmarshal(item.Value, &tendermintValue)
 		if err != nil {
 			return nil, err
 		}
@@ -257,7 +258,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 			}
 			savedBlobs[blob.Namespace+blob.Commitment] = true
 
-			blobRaw, err := json.Marshal(blob)
+			blobRaw, err := jsoniter.Marshal(blob)
 			if err != nil {
 				return nil, err
 			}
@@ -292,7 +293,7 @@ func (c *CelestiaIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 			})
 		}
 
-		rawAllBlobs, err := json.Marshal(item.blobs)
+		rawAllBlobs, err := jsoniter.Marshal(item.blobs)
 		if err != nil {
 			return nil, err
 		}
@@ -380,7 +381,7 @@ func (d *CelestiaIndexer) InterceptRequest(get files.Get, indexId int, query []s
 		celestiaBlobs := struct {
 			Value []types.CelestiaBlob `json:"value"`
 		}{}
-		err = json.Unmarshal(bytes, &celestiaBlobs)
+		err = jsoniter.Unmarshal(bytes, &celestiaBlobs)
 		if err != nil {
 			return nil, err
 		}
@@ -395,7 +396,7 @@ func (d *CelestiaIndexer) InterceptRequest(get files.Get, indexId int, query []s
 			}
 		}
 
-		namespaceBytes, err := json.Marshal(filtedredBlobs)
+		namespaceBytes, err := jsoniter.Marshal(filtedredBlobs)
 		if err != nil {
 			return nil, err
 		}

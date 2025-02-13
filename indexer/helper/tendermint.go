@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/KYVENetwork/trustless-api/utils"
 
@@ -91,7 +92,7 @@ func (t *TendermintIndexer) CalculateProof(dataItem *types.TendermintDataItem, l
 
 func (t *TendermintIndexer) getBlockHash(dataItem *types.TendermintDataItem) (string, error) {
 	var blockHash types.TendermintBlock
-	err := json.Unmarshal(dataItem.Value.Block, &blockHash)
+	err := jsoniter.Unmarshal(dataItem.Value.Block, &blockHash)
 	if err != nil {
 		return "", err
 	}
@@ -104,7 +105,7 @@ func (t *TendermintIndexer) IndexBundle(bundle *types.Bundle) (*[]types.Trustles
 
 	for _, item := range bundle.DataItems {
 		var tendermintValue types.TendermintValue
-		if err := json.Unmarshal(item.Value, &tendermintValue); err != nil {
+		if err := jsoniter.Unmarshal(item.Value, &tendermintValue); err != nil {
 			return nil, err
 		}
 

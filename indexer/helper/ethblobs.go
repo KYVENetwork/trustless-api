@@ -1,8 +1,8 @@
 package helper
 
 import (
-	"encoding/json"
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/KYVENetwork/trustless-api/utils"
 
@@ -39,7 +39,7 @@ func (*EthBlobsIndexer) getDataItemIndices(dataitem *types.DataItem) ([]types.In
 	var blobData types.BlobValue
 
 	// Unmarshal the RawMessage into the struct
-	err := json.Unmarshal(dataitem.Value, &blobData)
+	err := jsoniter.Unmarshal(dataitem.Value, &blobData)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (e *EthBlobsIndexer) IndexBundle(bundle *types.Bundle) (*[]types.TrustlessD
 
 		encodedProof := utils.EncodeProof(bundle.PoolId, bundle.BundleId, bundle.ChainId, dataitem.Key, "value", proof)
 
-		bytes, err := json.Marshal(dataitem)
+		bytes, err := jsoniter.Marshal(dataitem)
 		if err != nil {
 			return nil, err
 		}

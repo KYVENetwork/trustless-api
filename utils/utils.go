@@ -7,8 +7,8 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"io"
 	"math"
 	"net/http"
@@ -146,7 +146,7 @@ func GetChainRest(chainId, chainRest string) string {
 
 func CalculateSHA256Hash(obj interface{}) [32]byte {
 	// Serialize the object to JSON with keys sorted ascending by default
-	serializedObj, err := json.Marshal(obj)
+	serializedObj, err := jsoniter.Marshal(obj)
 	if err != nil {
 		panic(err)
 	}
@@ -293,7 +293,7 @@ func WrapIntoJsonRpcResponse(result interface{}) ([]byte, error) {
 		Result:  result,
 	}
 
-	json, err := json.Marshal(response)
+	json, err := jsoniter.Marshal(response)
 	if err != nil {
 		return nil, err
 	}
