@@ -60,8 +60,8 @@ func (t *TendermintIndexer) CalculateProof(dataItem *types.TendermintDataItem, l
 
 	var tendermintHashes [][32]byte
 
-	tendermintHashes = append(tendermintHashes, utils.CalculateSHA256Hash(dataItem.Value.Block))
-	tendermintHashes = append(tendermintHashes, utils.CalculateSHA256Hash(dataItem.Value.BlockResults))
+	tendermintHashes = append(tendermintHashes, sha256.Sum256(dataItem.Value.Block))
+	tendermintHashes = append(tendermintHashes, sha256.Sum256(dataItem.Value.BlockResults))
 
 	blockProof, err := merkle.GetHashesCompact(&tendermintHashes, 0)
 	if err != nil {

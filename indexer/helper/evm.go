@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/KYVENetwork/trustless-api/files"
