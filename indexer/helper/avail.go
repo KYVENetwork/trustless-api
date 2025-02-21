@@ -201,11 +201,12 @@ func (*AvailIndexer) getSubmissions(item *AvailItem, filter SDK.Filter) ([]DataS
 	rawSubmissions := block.DataSubmissions(filter)
 	submissions := make([]DataSubmission, 0, len(rawSubmissions))
 	for _, s := range rawSubmissions {
+		signer := s.TxSigner.ToAccountId().UnwrapOr(prim.AccountId{}).ToAddress()
 		submissions = append(submissions, DataSubmission{
-			TxHash:   s.TxHash.ToHex(),
+			TxHash:   s.TxHash.ToHexWith0x(),
 			TxIndex:  s.TxIndex,
 			AppId:    s.AppId,
-			TxSigner: s.TxHash.ToHex(),
+			TxSigner: signer,
 			Data:     s.Data,
 		})
 	}
