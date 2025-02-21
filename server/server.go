@@ -4,12 +4,13 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
 	"html"
 	"html/template"
 	"net/http"
 	"strings"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/KYVENetwork/trustless-api/types"
 
@@ -32,8 +33,6 @@ var embeddedHTML string
 var openapi string
 
 type ApiServer struct {
-	blobsAdapter db.Adapter
-	lineaAdapter db.Adapter
 }
 
 type ServePool struct {
@@ -44,7 +43,6 @@ type ServePool struct {
 }
 
 func StartApiServer() *ApiServer {
-	var blobsAdapter, lineaAdapter db.Adapter
 	port := viper.GetInt("server.port")
 
 	var pools []ServePool
@@ -66,10 +64,7 @@ func StartApiServer() *ApiServer {
 		logger.Error().Str("err", err.Error()).Msg("failed to generate openapi")
 	}
 
-	apiServer := &ApiServer{
-		blobsAdapter: blobsAdapter,
-		lineaAdapter: lineaAdapter,
-	}
+	apiServer := &ApiServer{}
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()

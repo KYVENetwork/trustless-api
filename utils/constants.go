@@ -16,19 +16,24 @@ const (
 )
 
 const (
-	IndexBlockHeight            = 0
-	IndexSlotNumber             = 1
-	IndexBlobByNamespace        = 2
-	IndexSharesByNamespace      = 3
-	IndexTendermintBlock        = 4
-	IndexTendermintBlockResults = 5
-	IndexTendermintBlockByHash  = 6
-	IndexAllBlobsByNamespace    = 7
-	IndexEVMValue               = 8
-	IndexEVMBlock               = 9
-	IndexEVMTransaction         = 10
-	IndexEVMReceipt             = 11
-	IndexEVMLog                 = 12
+	IndexBlockHeight              = 0
+	IndexSlotNumber               = 1
+	IndexBlobByNamespace          = 2
+	IndexSharesByNamespace        = 3
+	IndexTendermintBlock          = 4
+	IndexTendermintBlockResults   = 5
+	IndexTendermintBlockByHash    = 6
+	IndexAllBlobsByNamespace      = 7
+	IndexEVMValue                 = 8
+	IndexEVMBlock                 = 9
+	IndexEVMTransaction           = 10
+	IndexEVMReceipt               = 11
+	IndexEVMLog                   = 12
+	IndexAvailBlock               = 13
+	IndexAvailBlockByHeight       = 14
+	IndexAvailSubmissions         = 15
+	IndexAvailSubmissionsByHeight = 16
+	IndexAvailSubmission          = 17
 )
 
 const (
