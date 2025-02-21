@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"slices"
 
 	"gopkg.in/yaml.v3"
 )
@@ -36,7 +37,12 @@ func generateOpenApi(pools []ServePool) ([]byte, error) {
 					currentParameter["schema"] = map[string]interface{}{
 						"type": "string",
 					}
-					parameters = append(parameters, currentParameter)
+					// check if a param with that name has already been inserted
+					if slices.IndexFunc(parameters, func(x map[string]interface{}) bool {
+						return x["name"] == parameterName
+					}) == -1 {
+						parameters = append(parameters, currentParameter)
+					}
 				}
 			}
 

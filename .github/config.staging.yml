@@ -20,10 +20,11 @@ crawler:
   threads: 4
 pools:
   - chainid: korellia-2
-    indexer: Height
-    poolid: 154
+    indexer: Avail
+    poolid: 156
     slug: avail
     bundleStartId: 0
+    excludeProof: true
   - chainid: korellia-2
     indexer: Height
     poolid: 131

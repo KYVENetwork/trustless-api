@@ -72,7 +72,8 @@ type Indexer interface {
 var (
 	EthBlobIndexer    = helper.EthBlobsIndexer{}
 	HeightIndexer     = helper.HeightIndexer{}
-	CelestiaIndexer   = helper.CelestiaIndexer{}
+	CelestiaIndexer   = helper.AvailIndexer{}
 	TendermintIndexer = helper.TendermintIndexer{}
 	EVMIndexer        = helper.EVMIndexer{}
+	AvailIndexer      = helper.AvailIndexer{}
 )
