@@ -26,11 +26,6 @@ pools:
     bundleStartId: 0
     excludeProof: true
   - chainid: korellia-2
-    indexer: Height
-    poolid: 131
-    slug: cronos-zkevm
-    bundleStartId: 0
-  - chainid: korellia-2
     indexer: Tendermint
     poolid: 136
     slug: story-cometbft
@@ -45,21 +40,6 @@ pools:
     poolid: 139
     slug: near
     bundleStartId: 0
-  - chainid: kaon-1
-    indexer: Tendermint
-    poolid: 8
-    slug: dydx
-    bundleStartId: 198680
-  - chainid: korellia-2
-    indexer: Height
-    poolid: 149
-    slug: cardano
-    bundleStartId: 0
-  - chainid: kaon-1
-    indexer: Tendermint
-    poolid: 18
-    slug: cosmos
-    bundleStartId: 230350
 
 # === DATABASE ===
 # database configuration
