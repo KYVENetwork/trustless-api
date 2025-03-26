@@ -40,6 +40,11 @@ pools:
     poolid: 139
     slug: near
     bundleStartId: 0
+  - chainid: korellia-2
+    indexer: EVM
+    poolid: 157
+    slug: monad
+    bundleStartId: 0
 
 # === DATABASE ===
 # database configuration
