@@ -84,15 +84,15 @@ storage:
 endpoints:
   storage:
     1:
-      - https://arweave.net
+      - https://arweave.services.kyve.network/
       # define as many fallback endpoints as you want
-      # - https://arweave.net
+      # - https://arweave.services.kyve.network/
     2:
-      - https://arweave.net
+      - https://arweave.services.kyve.network/
     3:
       - https://storage.kyve.network
     4:
-      - https://arweave.net
+      - https://arweave.services.kyve.network/
   chains:
     kaon-1:
       - https://api.kaon.kyve.network
