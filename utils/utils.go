@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"runtime"
 	runtimeDebug "runtime/debug"
@@ -80,10 +79,10 @@ func GetFromUrlWithBackoff(url string) (data []byte, err error) {
 	for i := 0; i < BackoffMaxRetries; i++ {
 		data, err = GetFromUrl(url)
 		if err != nil {
-			delaySec := math.Pow(2, float64(i))
-			delay := time.Duration(delaySec) * time.Second
+			delayMilliseconds := 500
+			delay := time.Duration(delayMilliseconds) * time.Microsecond
 
-			logger.Error().Msg(fmt.Sprintf("failed to fetch from url %s, retrying in %d seconds", url, int(delaySec)))
+			logger.Error().Msg(fmt.Sprintf("failed to fetch from url %s, retrying in %dms", url, int(delayMilliseconds)))
 			time.Sleep(delay)
 
 			continue

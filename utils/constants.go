@@ -33,7 +33,7 @@ const (
 
 const (
 	BundlesPageLimit  = 100
-	BackoffMaxRetries = 10
+	BackoffMaxRetries = 3
 )
 
 const (
