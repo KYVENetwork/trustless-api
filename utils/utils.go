@@ -74,7 +74,7 @@ func GetFromUrl(url string) ([]byte, error) {
 	return data, nil
 }
 
-// GetFromUrlWithBackoff tries to fetch data from url with exponential backoff
+// GetFromUrlWithBackoff tries to fetch data from url with linear backoff
 func GetFromUrlWithBackoff(url string) (data []byte, err error) {
 	for i := 0; i < BackoffMaxRetries; i++ {
 		data, err = GetFromUrl(url)
