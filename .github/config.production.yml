@@ -84,15 +84,39 @@ storage:
 endpoints:
   storage:
     1:
-      - https://arweave.services.kyve.network
+      - https://shadow.arweave.net
+      - https://shadow.arweaveblock.com
+      - https://shadow.ar.owlstake.com
+      - https://shadow.ainodes.xyz
+      - https://shadow.exnihilio.dnshome.de
+      - https://shadow.vilenarios.com
+      - https://shadow.zigza.xyz
+      - https://shadow.araoai.com
+      - https://shadow.go2.fullnode.agency
       # define as many fallback endpoints as you want
-      # - https://arweave.services.kyve.network
+      # - https://shadow.vilenarios.com
     2:
-      - https://arweave.services.kyve.network
+      - https://shadow.arweave.net
+      - https://shadow.arweaveblock.com
+      - https://shadow.ar.owlstake.com
+      - https://shadow.ainodes.xyz
+      - https://shadow.exnihilio.dnshome.de
+      - https://shadow.vilenarios.com
+      - https://shadow.zigza.xyz
+      - https://shadow.araoai.com
+      - https://shadow.go2.fullnode.agency
     3:
       - https://storage.kyve.network
     4:
-      - https://arweave.services.kyve.network
+      - https://shadow.arweave.net
+      - https://shadow.arweaveblock.com
+      - https://shadow.ar.owlstake.com
+      - https://shadow.ainodes.xyz
+      - https://shadow.exnihilio.dnshome.de
+      - https://shadow.vilenarios.com
+      - https://shadow.zigza.xyz
+      - https://shadow.araoai.com
+      - https://shadow.go2.fullnode.agency
   chains:
     kaon-1:
       - https://api.kaon.kyve.network
