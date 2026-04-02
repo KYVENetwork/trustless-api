@@ -80,7 +80,7 @@ func GetFromUrlWithBackoff(url string) (data []byte, err error) {
 		data, err = GetFromUrl(url)
 		if err != nil {
 			delayMilliseconds := 500
-			delay := time.Duration(delayMilliseconds) * time.Microsecond
+			delay := time.Duration(delayMilliseconds) * time.Millisecond
 
 			logger.Error().Msg(fmt.Sprintf("failed to fetch from url %s, retrying in %dms", url, int(delayMilliseconds)))
 			time.Sleep(delay)
