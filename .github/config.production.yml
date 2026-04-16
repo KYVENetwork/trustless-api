@@ -84,6 +84,7 @@ storage:
 endpoints:
   storage:
     1:
+      - https://bundles.services.kyve.network
       - https://shadow.ar.owlstake.com
       - https://shadow.exnihilio.dnshome.de
       - https://shadow.vilenarios.com
@@ -91,13 +92,16 @@ endpoints:
       # define as many fallback endpoints as you want
       # - https://shadow.vilenarios.com
     2:
+      - https://bundles.services.kyve.network
       - https://shadow.ar.owlstake.com
       - https://shadow.exnihilio.dnshome.de
       - https://shadow.vilenarios.com
       - https://shadow.zigza.xyz
     3:
+      - https://bundles.services.kyve.network
       - https://storage.kyve.network
     4:
+      - https://bundles.services.kyve.network
       - https://shadow.ar.owlstake.com
       - https://shadow.exnihilio.dnshome.de
       - https://shadow.vilenarios.com
