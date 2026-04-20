@@ -118,11 +118,9 @@ func (crawler *ChildCrawler) CrawlBundles() {
 	missingBundles := crawler.adapter.GetMissingBundles(crawler.bundleStartId, lastBundle)
 
 	for _, i := range missingBundles {
-		fmt.Println("Trying to lock...")
 		if err := crawler.semaphore.Acquire(ctx, 1); err != nil {
 			break
 		}
-		fmt.Println("Trying to got lock, nice...")
 
 		logger.Info().Int64("poolId", crawler.poolId).Int64("bundle-id", i).Msg(fmt.Sprintf("Inserting data items: %v/%v", i+1-crawler.bundleStartId, lastBundle+1-crawler.bundleStartId))
 		localIndex := i
