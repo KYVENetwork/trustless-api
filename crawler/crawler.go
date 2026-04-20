@@ -118,30 +118,34 @@ func (crawler *ChildCrawler) CrawlBundles() {
 	missingBundles := crawler.adapter.GetMissingBundles(crawler.bundleStartId, lastBundle)
 
 	for _, i := range missingBundles {
-		crawler.semaphore.Acquire(ctx, 1)
+		fmt.Println("Trying to lock...")
+		if err := crawler.semaphore.Acquire(ctx, 1); err != nil {
+			break
+		}
+		fmt.Println("Trying to got lock, nice...")
 
 		logger.Info().Int64("poolId", crawler.poolId).Int64("bundle-id", i).Msg(fmt.Sprintf("Inserting data items: %v/%v", i+1-crawler.bundleStartId, lastBundle+1-crawler.bundleStartId))
 		localIndex := i
 		group.Go(func() error {
 			defer crawler.semaphore.Release(1)
-			return crawler.insertBundleDataItems(localIndex)
+			err := crawler.insertBundleDataItems(localIndex)
+			if err != nil {
+				logger.Error().Err(err).
+					Int64("poolId", crawler.poolId).
+					Int64("bundleId", localIndex).
+					Msg("Failed to process bundle")
+			}
+			return err
 		})
-
-		// if the context was cancled we don't we return
-		select {
-		case <-ctx.Done():
-			err := group.Wait() // get the error
-			logger.Error().Int64("poolId", crawler.poolId).Err(err).Msg("Failed to process bundle...")
-			utils.PrometheusSyncStepFailedRetry.WithLabelValues(crawler.labels()...).Inc()
-			return
-		default:
-		}
 	}
 
 	// wait until all bundles are uploaded
 	if err := group.Wait(); err != nil {
 		utils.PrometheusSyncStepFailedRetry.WithLabelValues(crawler.labels()...).Inc()
-		logger.Error().Err(err).Msg("Failed to process bundle...")
+		logger.Error().Err(err).
+			Int64("poolId", crawler.poolId).
+			Msg("Failed to process bundles...")
+		return
 	}
 
 	utils.PrometheusSyncFinished.WithLabelValues(crawler.labels()...).Inc()

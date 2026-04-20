@@ -85,6 +85,7 @@ endpoints:
   storage:
     1:
       - https://bundles.services.kyve.network
+      - https://turbo-gateway.com/raw/
       - https://shadow.ar.owlstake.com
       - https://shadow.exnihilio.dnshome.de
       - https://shadow.vilenarios.com
@@ -93,6 +94,7 @@ endpoints:
       # - https://shadow.vilenarios.com
     2:
       - https://bundles.services.kyve.network
+      - https://turbo-gateway.com/raw/
       - https://shadow.ar.owlstake.com
       - https://shadow.exnihilio.dnshome.de
       - https://shadow.vilenarios.com
@@ -102,6 +104,7 @@ endpoints:
       - https://storage.kyve.network
     4:
       - https://bundles.services.kyve.network
+      - https://turbo-gateway.com/raw/
       - https://shadow.ar.owlstake.com
       - https://shadow.exnihilio.dnshome.de
       - https://shadow.vilenarios.com
